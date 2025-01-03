@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&family=DM+Sans:ital,opsz,wght@0,9..40,100;0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;0,9..40,1000;1,9..40,100;1,9..40,200;1,9..40,300;1,9..40,400;1,9..40,500;1,9..40,600;1,9..40,700;1,9..40,800;1,9..40,900;1,9..40,1000&family=Outfit:wght@100..900&display=swap');
+
+/* Add the CSS properties for all elements */
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: Outfit;
+}
+
+/* Add the CSS properties for the body tag */
+body{
+  min-height: 100vh;
+  background-color: #fcfcfc;
+}
+
+/* Add the CSS properties for all a tag links */
+a{
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Add the CSS properties for hr tag */
+hr{
+  border: none;
+  height: 1px;
+  background-color: #a9a9a9;
+}
+
+/* Add the CSS properties for app-content div in App.jsx */
+.app-content{
+  display: flex;
+}
+
+/* flex-col css style will be used in multiple components, so we place it in index.css */
+.flex-col{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* cursor style in List.jsx */
+.cursor{
+  cursor: pointer;
+}
