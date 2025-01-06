@@ -7,7 +7,8 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "build": "echo 'Building backend...'",
-    "vercel-build": "echo 'Vercel build completed'"
+    "vercel-build": "echo 'Vercel build completed'",
+    "test": "node test.js"
   },
   "engines": {
     "node": ">=14.0.0"
