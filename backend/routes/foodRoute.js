@@ -6,24 +6,18 @@ import multer from 'multer';
 
 const foodRouter = express.Router();
 
-// Create one Image Storage Engine
-const storage = multer.diskStorage({
-	// name where you wanna store the image
-	destination: 'uploads',
-	filename: (req, file, cb) => {
-		// cb = callback function
-		return cb(null, `${Date.now()}${file.originalname}`);
+// Use memory storage instead of disk storage for Vercel
+const upload = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 5 * 1024 * 1024, // 5MB limit
 	},
 });
 
-
-const upload = multer({storage: storage});
-
 // create endpoints for the according route handlers.
 foodRouter.post('/add', upload.single('image'), addFood);
-foodRouter.get('/list', listFood)
-foodRouter.post('/remove', removeFood)
-
+foodRouter.get('/list', listFood);
+foodRouter.post('/remove', removeFood);
 
 // set this router in server.js file
 export default foodRouter;
