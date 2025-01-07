@@ -6,39 +6,66 @@ import PropTypes from 'prop-types'
 
 const List = ({ url }) => {
   const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchList = async () => {
     try {
+      setLoading(true);
+      console.log('Fetching food list from:', `${url}/api/food/list`);
+      
       const response = await axios.get(`${url}/api/food/list`);
+      console.log('Response:', response.data);
+      
       if (response.data.success) {
         setList(response.data.data);
+        console.log('Food list loaded successfully:', response.data.data.length, 'items');
       } else {
-        toast.error("Error loading food items");
+        console.error('Server returned error:', response.data);
+        toast.error(response.data.message || "Error loading food items");
       }
     } catch (error) {
-      console.error('Error fetching list:', error);
-      toast.error("Error connecting to server");
+      console.error('Network or server error:', error.message);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        toast.error(`Server error: ${error.response.data.message || error.message}`);
+      } else if (error.request) {
+        console.error('No response received');
+        toast.error("No response from server");
+      } else {
+        console.error('Error details:', error);
+        toast.error(`Error: ${error.message}`);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
   const removeFood = async (foodId) => {
     try {
-      const response = await axios.post(`${url}/api/food/remove`, { id: foodId })
+      console.log('Removing food item:', foodId);
+      const response = await axios.post(`${url}/api/food/remove`, { id: foodId });
+      
       if (response.data.success) {
         toast.success(response.data.message);
         await fetchList();
       } else {
-        toast.error("Error deleting item");
+        console.error('Error removing item:', response.data);
+        toast.error(response.data.message || "Error deleting item");
       }
     } catch (error) {
       console.error('Error removing food:', error);
-      toast.error("Error connecting to server");
+      toast.error(error.response?.data?.message || "Error connecting to server");
     }
   }
 
   useEffect(() => {
+    console.log('List component mounted with URL:', url);
     fetchList();
-  }, [])
+  }, [url])
+
+  if (loading) {
+    return <div className="list add flex-col">Loading food items...</div>;
+  }
 
   return (
     <div className='list add flex-col'>
@@ -51,8 +78,10 @@ const List = ({ url }) => {
           <b>Price</b>
           <b>Action</b>
         </div>
-        {list.map((item) => {
-          return (
+        {list.length === 0 ? (
+          <div className="list-table-format">No food items found</div>
+        ) : (
+          list.map((item) => (
             <div key={item._id} className="list-table-format">
               <img src={item.image} alt={item.name} />
               <p>{item.name}</p>
@@ -60,8 +89,8 @@ const List = ({ url }) => {
               <p>${item.price}</p>
               <p onClick={() => removeFood(item._id)} className='cursor'>X</p>
             </div>
-          )
-        })}
+          ))
+        )}
       </div>
     </div>
   )
