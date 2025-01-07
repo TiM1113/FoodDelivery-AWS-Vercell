@@ -16,8 +16,6 @@ app.use(express.json());
 
 // CORS configuration
 const allowedOrigins = [
-	'http://localhost:5173', // Frontend local
-	'http://localhost:5174', // Admin local
 	'https://admin-kappa-ivory.vercel.app', // Admin production
 	'https://food-delivery-aws-vercell.vercel.app', // Frontend production
 ];
