@@ -19,6 +19,8 @@ const corsOptions = {
 	origin: [
 		process.env.FRONTEND_URL || 'http://localhost:5173',
 		process.env.ADMIN_URL || 'http://localhost:5174',
+		'https://admin-kappa-ivory.vercel.app',
+		'https://food-delivery-aws-vercell.vercel.app',
 	],
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
