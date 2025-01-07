@@ -15,14 +15,23 @@ const app = express();
 app.use(express.json());
 
 // CORS configuration
+const allowedOrigins = [
+	'http://localhost:5173', // Frontend local
+	'http://localhost:5174', // Admin local
+	'https://admin-kappa-ivory.vercel.app', // Admin production
+	'https://food-delivery-aws-vercell.vercel.app', // Frontend production
+];
+
 const corsOptions = {
-	origin: [
-		process.env.FRONTEND_URL || 'http://localhost:5173',
-		process.env.ADMIN_URL || 'http://localhost:5174',
-		'https://admin-kappa-ivory.vercel.app',
-		'https://food-delivery-aws-vercell.vercel.app',
-		'https://frontend-beige-eight-62.vercel.app',
-	],
+	origin: function (origin, callback) {
+		console.log('Request origin:', origin);
+		if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+			callback(null, true);
+		} else {
+			console.log('Origin not allowed:', origin);
+			callback(new Error('Not allowed by CORS'));
+		}
+	},
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: [
@@ -44,6 +53,7 @@ app.use((req, res, next) => {
 	console.log('Request from:', req.headers.origin);
 	console.log('Request method:', req.method);
 	console.log('Request path:', req.path);
+	console.log('Request headers:', req.headers);
 	next();
 });
 
@@ -62,6 +72,16 @@ app.get('/', (req, res) => {
 		status: 'API Working',
 		version: '1.0.0',
 		environment: process.env.NODE_ENV || 'development',
+	});
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+	console.error('Error:', err);
+	res.status(err.status || 500).json({
+		success: false,
+		message: err.message || 'Internal Server Error',
+		error: process.env.NODE_ENV === 'development' ? err : {},
 	});
 });
 
