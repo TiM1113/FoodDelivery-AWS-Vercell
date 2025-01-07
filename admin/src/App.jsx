@@ -8,11 +8,12 @@ import Orders from './pages/Orders/Orders';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Debugging: Log the backend URL to ensure it's being read correctly
-console.log('API URL:', process.env.REACT_APP_API_URL);
-
 const App = () => {
-  const url = process.env.REACT_APP_API_URL || "http://localhost:4000";
+  // Get the base URL for API calls
+  const apiUrl = process.env.REACT_APP_API_URL;
+  
+  // Log the URL for debugging
+  console.log('API URL:', apiUrl);
 
   return (
     <div>
@@ -22,10 +23,10 @@ const App = () => {
       <div className="app-content">
         <Sidebar />
         <Routes>
-          <Route path="/" element={<List url={url}/>} />
-          <Route path="/add" element={<Add url={url}/>} /> 
-          <Route path="/list" element={<List url={url}/>} />
-          <Route path="/orders" element={<Orders url={url}/>} />
+          <Route path="/" element={<List url={apiUrl}/>} />
+          <Route path="/add" element={<Add url={apiUrl}/>} /> 
+          <Route path="/list" element={<List url={apiUrl}/>} />
+          <Route path="/orders" element={<Orders url={apiUrl}/>} />
         </Routes>
       </div>
     </div>
