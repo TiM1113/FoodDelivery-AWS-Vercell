@@ -61,13 +61,16 @@ const addFood = async (req, res) => {
 // Food list API endpoint
 const listFood = async (req, res) => {
 	try {
+		console.log('Attempting to fetch food list');
 		// Using foodModel model to fitch all the food items
 		const foods = await foodModel.find({});
+		console.log('Found foods:', foods.length);
 		// Create one response using the Json object
 		res.json({success: true, data: foods});
 	} catch (error) {
 		console.error('Error listing food:', error);
-		res.json({success: false, message: error.message});
+		console.error('Stack trace:', error.stack);
+		res.status(500).json({success: false, message: error.message});
 	}
 };
 

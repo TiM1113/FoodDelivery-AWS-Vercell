@@ -36,7 +36,10 @@ const corsOptions = {
 	maxAge: 86400,
 };
 
-// Add CORS logging middleware
+// Apply CORS middleware first
+app.use(cors(corsOptions));
+
+// Add request logging middleware
 app.use((req, res, next) => {
 	console.log('Request from:', req.headers.origin);
 	console.log('Request method:', req.method);
