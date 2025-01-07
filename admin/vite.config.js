@@ -1,20 +1,15 @@
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
-
-// // https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })
-
-
-import { defineConfig } from 'vite';
+import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
-  define: {
-    'process.env': {
-      REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL || '',
-    },
-  },
+	plugins: [react()],
+	define: {
+		'process.env': {
+			REACT_APP_API_URL: process.env.REACT_APP_API_URL || '',
+			REACT_APP_S3_URL: process.env.REACT_APP_S3_URL || '',
+		},
+	},
+	server: {
+		historyApiFallback: true,
+	},
 });
