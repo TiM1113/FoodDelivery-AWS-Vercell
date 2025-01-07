@@ -11,12 +11,12 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Debugging: Log the backend URL to ensure it's being read correctly
-console.log(process.env.REACT_APP_API_URL);
+console.log('API URL:', import.meta.env.VITE_API_URL);
 
 const App = () => {
 
   // Only place const url in App.jsx file instead of placing this variable within different files
-  const url = process.env.REACT_APP_API_URL || "http://localhost:4000";
+  const url = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
   
 
