@@ -1,71 +1,76 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './Orders.css'
-import { useState } from 'react'
 import { toast } from 'react-toastify'
-import { useEffect } from 'react'
 import axios from 'axios'
 import { assets } from '../../assets/assets'
+import PropTypes from 'prop-types'
 
-const Orders = ({ url }) => { // {url} curly braces used for destructuring the url from App.jsx file
-
-  // create one state variable to store data from the API, and initialized with empty array [ ]
+const Orders = ({ url }) => {
   const [orders, setOrders] = useState([]);
 
-  // create one fetch function to call the API
   const fetchAllOrders = async () => {
-    const response = await axios.get(url + "/api/order/list");
-    if (response.data.success) {
-      setOrders(response.data.data);
-      console.log(response.data.data);
-    }
-    else {
-      // if failed fetching data from API, will notify with toast.
-      toast.error("Error")
+    try {
+      console.log('Fetching orders from:', `${url}/api/order/list`);
+      const response = await axios.get(`${url}/api/order/list`);
+      if (response.data.success) {
+        setOrders(response.data.data);
+        console.log('Orders fetched:', response.data.data);
+      } else {
+        toast.error("Error loading orders");
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error("Error connecting to server");
     }
   }
 
-// admin panel status , link it with the select tag
-const statusHandler = async (event, orderId) => {
-  // console.log(event, orderId);
-  const response = await axios.post(url + "/api/order/status", {
-    orderId,
-    status:event.target.value
-  })
-  if(response.data.success)
-    await fetchAllOrders();
-}
-
+  const statusHandler = async (event, orderId) => {
+    try {
+      const response = await axios.post(`${url}/api/order/status`, {
+        orderId,
+        status: event.target.value
+      });
+      if (response.data.success) {
+        toast.success("Order status updated");
+        await fetchAllOrders();
+      } else {
+        toast.error("Error updating order status");
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error("Error connecting to server");
+    }
+  }
 
   useEffect(() => {
-    fetchAllOrders()
-  }, [])
+    console.log('Orders component mounted with URL:', url);
+    fetchAllOrders();
+  }, [url]);
 
   return (
     <div className='order add'>
       <h3>Order Page</h3>
       <div className="order-list">
         {orders.map((order, index) => ( 
-          <div key={index} className="order-item">
+          <div key={order._id || index} className="order-item">
             <img src={assets.parcel_icon} alt="" />
             <div>
               <p className="order-item-food">
-                {order.items.map((item, index)=>{
-                  if (index===order.items.length-1) {
-                    return item.name + " x " + item.quantity
+                {order.items.map((item, index) => {
+                  if (index === order.items.length-1) {
+                    return `${item.name} x ${item.quantity}`
                   }
-                  else{
-                    return item.name + " x " + item.quantity + ", "
-                  }
+                  return `${item.name} x ${item.quantity}, `
                 })}
               </p>
-              <p className="order-item-name">{order.address.firstName+" " + order.address.lastName}</p>
+              <p className="order-item-name">{`${order.address.firstName} ${order.address.lastName}`}</p>
               <div className="order-item-address">
-                <p>{order.address.street + ", "}</p>
-                <p>{order.address.city+", " + order.address.state+", " + order.address.country+", " + order.address.zipcode}</p>
+                <p>{`${order.address.street}, `}</p>
+                <p>{`${order.address.city}, ${order.address.state}, ${order.address.country}, ${order.address.zipcode}`}</p>
               </div>
               <p className="order-item-phone">{order.address.phone}</p>
             </div>
-            <p>Items : {order.items.length}</p>
+            <p>Items: {order.items.length}</p>
             <p>${order.amount}</p>
             <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
               <option value="Food Processing">Food Processing</option>
@@ -75,9 +80,12 @@ const statusHandler = async (event, orderId) => {
           </div>  
         ))}
       </div>
-
     </div>
   )
+}
+
+Orders.propTypes = {
+  url: PropTypes.string.isRequired,
 }
 
 export default Orders
