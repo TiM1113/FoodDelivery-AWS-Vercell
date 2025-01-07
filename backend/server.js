@@ -21,12 +21,28 @@ const corsOptions = {
 		process.env.ADMIN_URL || 'http://localhost:5174',
 		'https://admin-kappa-ivory.vercel.app',
 		'https://food-delivery-aws-vercell.vercel.app',
+		'https://frontend-beige-eight-62.vercel.app',
 	],
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'token', 'Authorization'],
+	allowedHeaders: [
+		'Content-Type',
+		'token',
+		'Authorization',
+		'Origin',
+		'Accept',
+	],
+	exposedHeaders: ['Content-Length', 'Content-Type'],
+	maxAge: 86400,
 };
-app.use(cors(corsOptions));
+
+// Add CORS logging middleware
+app.use((req, res, next) => {
+	console.log('Request from:', req.headers.origin);
+	console.log('Request method:', req.method);
+	console.log('Request path:', req.path);
+	next();
+});
 
 // DB connection
 connectDB();
