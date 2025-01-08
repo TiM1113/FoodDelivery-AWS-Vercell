@@ -4,15 +4,14 @@ import {assets} from '../../assets/assets';
 import {StoreContext} from '../../context/StoreContext';
 
 const FoodItem = ({id, name, price, description, image}) => {
-	
-	const {cartItems, addToCart, removeFromCart, url} = useContext(StoreContext);// url used for fetching images from backend database
+	const {cartItems, addToCart, removeFromCart, s3Url} = useContext(StoreContext);
 
 	return (
 		<div className="food-item">
 			<div className="food-item-img-container">
 				<img
-					src={url + "/images/" + image}// confirm the images come from backend database
-					alt=""
+					src={image}
+					alt={name}
 					className="food-item-image"
 				/>
 				{!cartItems[id] ? (
@@ -40,13 +39,8 @@ const FoodItem = ({id, name, price, description, image}) => {
 			</div>
 			<div className="food-item-info">
 				<div className="food-item-name-rating">
-
-          {/* Add title for tooltip and truncate name */}
 					<p title={name}>{name}</p>
-					<img
-						src={assets.rating_starts}
-						alt=""
-					/>
+					<img src={assets.rating_starts} alt="" />
 				</div>
 				<p className="food-item-description">{description}</p>
 				<p className="food-item-price">${price}</p>
