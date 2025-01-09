@@ -48,7 +48,17 @@ const StoreContextProvider = (props) => {
       console.log('Fetching food list from:', `${url}/food/list`);
       const response = await axios.get(`${url}/food/list`);
       console.log('Food list response:', response.data);
-      setFoodList(response.data.data);
+      
+      // Map over the food items and ensure image URLs are correct
+      const foodItems = response.data.data.map(item => ({
+        ...item,
+        image: item.image.startsWith('http') 
+          ? item.image 
+          : `${s3Url}/uploads/${item.image}`
+      }));
+      
+      console.log('Processed food items:', foodItems);
+      setFoodList(foodItems);
     } catch (error) {
       console.error('Error fetching food list:', error);
     }
