@@ -17,7 +17,8 @@ app.use(express.json());
 // CORS configuration
 const allowedOrigins = [
 	'https://admin-kappa-ivory.vercel.app', // Admin production
-	'https://food-delivery-aws-vercell.vercel.app', // Frontend production
+	'https://frontend-beige-eight-62.vercel.app', // Frontend production
+	'https://backend-ten-azure-58.vercel.app', // Backend production
 ];
 
 const corsOptions = {
