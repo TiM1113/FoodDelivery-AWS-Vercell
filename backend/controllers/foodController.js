@@ -96,14 +96,27 @@ const listFood = async (req, res) => {
 
 		// Using foodModel model to fetch all the food items
 		const foods = await foodModel.find({}).sort({createdAt: -1});
-		console.log('Found foods:', foods.length);
-		console.log('Food items:', foods);
+
+		// Map through foods to ensure all image URLs have the correct format
+		const processedFoods = foods.map((food) => {
+			const foodObj = food.toObject(); // Convert mongoose doc to plain object
+
+			// If image URL doesn't start with https://, assume it needs the full S3 path
+			if (!foodObj.image.startsWith('https://')) {
+				foodObj.image = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${foodObj.image}`;
+			}
+
+			return foodObj;
+		});
+
+		console.log('Processed foods count:', processedFoods.length);
+		console.log('Sample food item:', processedFoods[0]); // Log first item for debugging
 
 		// Create one response using the Json object
 		res.json({
 			success: true,
-			data: foods,
-			count: foods.length,
+			data: processedFoods,
+			count: processedFoods.length,
 		});
 	} catch (error) {
 		console.error('Error listing food:', error);
