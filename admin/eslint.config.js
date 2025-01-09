@@ -22,6 +22,8 @@ export default [
 		rules: {
 			'no-unused-vars': 'warn',
 			'react/prop-types': 'off',
+			'no-undef': 'off',
+			'no-implicit-globals': 'off',
 		},
 	},
 ];

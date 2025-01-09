@@ -7,6 +7,7 @@ import PropTypes from 'prop-types'
 const List = ({ url }) => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const s3Url = process.env.REACT_APP_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
 
   const fetchList = async () => {
     try {
@@ -17,8 +18,12 @@ const List = ({ url }) => {
       console.log('Response:', response.data);
       
       if (response.data.success) {
-        setList(response.data.data);
-        console.log('Food list loaded successfully:', response.data.data.length, 'items');
+        const foodItems = response.data.data.map(item => ({
+          ...item,
+          image: item.image.startsWith('http') ? item.image : `${s3Url}/${item.image}`
+        }));
+        setList(foodItems);
+        console.log('Food list loaded successfully:', foodItems.length, 'items');
       } else {
         console.error('Server returned error:', response.data);
         toast.error(response.data.message || "Error loading food items");
@@ -83,7 +88,14 @@ const List = ({ url }) => {
         ) : (
           list.map((item) => (
             <div key={item._id} className="list-table-format">
-              <img src={item.image} alt={item.name} />
+              <img 
+                src={item.image} 
+                alt={item.name} 
+                onError={(e) => {
+                  console.error('Error loading image:', item.image);
+                  e.target.src = 'https://via.placeholder.com/100x100?text=No+Image';
+                }}
+              />
               <p>{item.name}</p>
               <p>{item.category}</p>
               <p>${item.price}</p>
