@@ -2,9 +2,10 @@ import React, {useContext} from 'react';
 import './FoodItem.css';
 import {assets} from '../../assets/assets';
 import {StoreContext} from '../../context/StoreContext';
+import food_1 from '../../assets/food_1.png';
 
 const FoodItem = ({id, name, price, description, image}) => {
-	const {cartItems, addToCart, removeFromCart, s3Url} = useContext(StoreContext);
+	const {cartItems, addToCart, removeFromCart} = useContext(StoreContext);
 
 	return (
 		<div className="food-item">
@@ -13,6 +14,10 @@ const FoodItem = ({id, name, price, description, image}) => {
 					src={image}
 					alt={name}
 					className="food-item-image"
+					onError={(e) => {
+						console.error('Error loading image:', image);
+						e.target.src = food_1;
+					}}
 				/>
 				{!cartItems[id] ? (
 					<img
