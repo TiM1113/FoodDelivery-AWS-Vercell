@@ -32,10 +32,10 @@ const LoginPopup = ({ setShowLogin }) => {
     // using Axios to call the APIs
     let newUrl = url;
     if (currState === "Login") {
-      newUrl += "/api/user/login"
+      newUrl += "/user/login"
     }
     else{
-      newUrl += "/api/user/register"
+      newUrl += "/user/register"
     }
 
      // call the API will be working in Login and Register
