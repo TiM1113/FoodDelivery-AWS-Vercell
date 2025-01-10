@@ -1,8 +1,24 @@
-import { createContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import axios from 'axios';
-export const StoreContext = createContext(null);
 
-const StoreContextProvider = (props) => {
+// Create the context with initial default values
+const defaultContextValue = {
+  food_list: [],
+  cartItems: {},
+  setCartItems: () => {},
+  addToCart: () => Promise.resolve(),
+  removeFromCart: () => Promise.resolve(),
+  getTotalCartAmount: () => 0,
+  url: '',
+  s3Url: '',
+  token: '',
+  setToken: () => {}
+};
+
+export const StoreContext = createContext(defaultContextValue);
+
+// StoreContext Provider Component
+function StoreContextProvider(props) {
   const url = process.env.REACT_APP_API_URL || "https://backend-ten-azure-58.vercel.app/api";
   const s3Url = process.env.REACT_APP_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
   
@@ -10,36 +26,70 @@ const StoreContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
 
+  // Verify if an item exists in food_list
+  const verifyItemExists = (itemId) => {
+    return food_list.some(item => item._id === itemId);
+  };
+
   const addToCart = async (itemId) => {
-    if (!cartItems[itemId]) {
-      setCartItems((prev) => ({ ...prev, [itemId]: 1 }));
-    } else {
-      setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] + 1 }));
-    }
-    if (token) {
-      await axios.post(`${url}/cart/add`, { itemId }, { headers: { token } });
+    try {
+      // Verify item exists before adding
+      if (!verifyItemExists(itemId)) {
+        console.warn(`Attempted to add non-existent item: ${itemId}`);
+        return;
+      }
+
+      const currentItems = { ...cartItems };
+      if (!currentItems[itemId]) {
+        currentItems[itemId] = 1;
+      } else {
+        currentItems[itemId] += 1;
+      }
+      setCartItems(currentItems);
+
+      if (token) {
+        await axios.post(`${url}/cart/add`, { itemId }, { headers: { token } });
+      }
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
     }
   };
 
   const removeFromCart = async (itemId) => {
-    setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }));
-    if (token) {
-      await axios.post(`${url}/cart/remove`, { itemId }, { headers: { token } });
+    try {
+      const currentItems = { ...cartItems };
+      if (currentItems[itemId] && currentItems[itemId] > 0) {
+        currentItems[itemId] -= 1;
+        setCartItems(currentItems);
+
+        if (token) {
+          await axios.post(`${url}/cart/remove`, { itemId }, { headers: { token } });
+        }
+      }
+    } catch (error) {
+      console.error('Error removing item from cart:', error);
     }
   };
 
   const getTotalCartAmount = () => {
     let totalAmount = 0;
-    for (const item in cartItems) {
-      try {
-        if (cartItems[item] > 0) {
-          let itemInfo = food_list.find((product) => product._id === item);
-          totalAmount += itemInfo.price * cartItems[item];
+    if (!food_list || !food_list.length || !cartItems) return 0;
+    
+    try {
+      Object.entries(cartItems).forEach(([itemId, quantity]) => {
+        if (quantity > 0) {
+          const itemInfo = food_list.find(product => product._id === itemId);
+          if (itemInfo && itemInfo.price) {
+            totalAmount += itemInfo.price * quantity;
+          } else {
+            console.warn(`Item ${itemId} not found in food list or missing price`);
+          }
         }
-      } catch (error) {
-        console.error('Error calculating total:', error);
-      }
+      });
+    } catch (error) {
+      console.error('Error calculating total amount:', error);
     }
+    
     return totalAmount;
   };
 
@@ -47,12 +97,16 @@ const StoreContextProvider = (props) => {
     try {
       console.log('Fetching food list from:', `${url}/food/list`);
       const response = await axios.get(`${url}/food/list`);
-      console.log('Food list response:', response.data);
+      
+      if (!response.data || !response.data.data) {
+        console.error('Invalid food list response:', response);
+        return;
+      }
       
       // Map over the food items and ensure image URLs are correct
       const foodItems = response.data.data.map(item => ({
         ...item,
-        image: item.image.startsWith('http') 
+        image: item.image?.startsWith('http') 
           ? item.image 
           : `${s3Url}/uploads/${item.image}`
       }));
@@ -64,10 +118,22 @@ const StoreContextProvider = (props) => {
     }
   };
 
-  const loadCartData = async (token) => {
+  const loadCartData = async (userToken) => {
     try {
-      const response = await axios.post(`${url}/cart/get`, {}, { headers: { token } });
-      setCartItems(response.data.cartData);
+      const response = await axios.post(`${url}/cart/get`, {}, { headers: { token: userToken } });
+      if (response.data?.cartData) {
+        // Verify all items in cart exist in food_list
+        const validCartData = Object.entries(response.data.cartData)
+          .reduce((acc, [itemId, quantity]) => {
+            if (verifyItemExists(itemId)) {
+              acc[itemId] = quantity;
+            } else {
+              console.warn(`Removing non-existent item from cart: ${itemId}`);
+            }
+            return acc;
+          }, {});
+        setCartItems(validCartData);
+      }
     } catch (error) {
       console.error('Error loading cart data:', error);
     }
@@ -76,9 +142,10 @@ const StoreContextProvider = (props) => {
   useEffect(() => {
     async function loadData() {
       await fetchFoodList();
-      if (localStorage.getItem("token")) {
-        setToken(localStorage.getItem("token"));
-        await loadCartData(localStorage.getItem("token"));
+      const savedToken = localStorage.getItem("token");
+      if (savedToken) {
+        setToken(savedToken);
+        await loadCartData(savedToken);
       }
     }
     loadData();
@@ -102,7 +169,7 @@ const StoreContextProvider = (props) => {
       {props.children}
     </StoreContext.Provider>
   );
-};
+}
 
 export default StoreContextProvider;
 
