@@ -56,7 +56,7 @@ const PlaceOrder = () => {
       items: orderItems, // Ensure 'orderItems' contains valid items
       amount: getTotalCartAmount() + 2, // Calculate total properly 2 is the delivery fee
     }
-    let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
+    let response = await axios.post(url + "/order/place", orderData, { headers: { token } })
     if (response.data.success) {
       const { session_url } = response.data;
       window.location.replace(session_url);// Redirect to Stripe Payment Page
