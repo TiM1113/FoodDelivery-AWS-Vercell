@@ -19,7 +19,7 @@ export const StoreContext = createContext(defaultContextValue);
 
 // StoreContext Provider Component
 function StoreContextProvider(props) {
-  const url = process.env.REACT_APP_API_URL || "https://backend-ten-azure-58.vercel.app/api";
+  const url = process.env.REACT_APP_API_URL || "https://backend-ten-azure-58.vercel.app";
   const s3Url = process.env.REACT_APP_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
   
   const [food_list, setFoodList] = useState([]);
