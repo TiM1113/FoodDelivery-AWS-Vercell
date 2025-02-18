@@ -103,19 +103,19 @@ const listOrders = async (req, res) => {
 	}
 };
 
-// create an API for updating orders status in the admin panel 
+// create an API for updating orders status in the admin panel
 const updateStatus = async (req, res) => {
-  try {
-    await orderModel.findByIdAndUpdate(
-      req.body.orderId, 
-      {status:req.body.status}),
-      { new: true } // Ensure the updated document is returned
-    res.json({success:true, message:"Status Updated"})
-  } catch (error) {
-    console.log(error);
-    res.json({success:false, message:"Error"})
-  }
-}
+	try {
+		await orderModel.findByIdAndUpdate(req.body.orderId, {
+			status: req.body.status,
+		}),
+			{new: true}; // Ensure the updated document is returned
+		res.json({success: true, message: 'Status Updated'});
+	} catch (error) {
+		console.log(error);
+		res.json({success: false, message: 'Error'});
+	}
+};
 
 // export placeOrder function and it will be imported in orderRoute.js
 export {placeOrder, userOrders, verifyOrder, listOrders, updateStatus};
