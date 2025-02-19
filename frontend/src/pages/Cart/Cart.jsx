@@ -8,6 +8,7 @@ const Cart = () => {
 
   const navigate = useNavigate();
 
+
 	return (
 		<div className="cart">
 			<div className="cart-items">
@@ -27,7 +28,7 @@ const Cart = () => {
 							<div key={item._id}>
 								<div className="cart-items-title cart-items-item">
 									<img
-										src={url + "/images/" + item.image}// confirm the images come from backend database
+										src={item.image}// confirm the images come from backend database
 										alt=""
 									/>
 									<p>{item.name}</p>
