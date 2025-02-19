@@ -48,7 +48,7 @@ function StoreContextProvider(props) {
       setCartItems(currentItems);
 
       if (token) {
-        await axios.post(`${url}/cart/add`, { itemId }, { headers: { token } });
+        await axios.post(`${url}/api/cart/add`, { itemId }, { headers: { token } });
       }
     } catch (error) {
       console.error('Error adding item to cart:', error);
@@ -63,7 +63,7 @@ function StoreContextProvider(props) {
         setCartItems(currentItems);
 
         if (token) {
-          await axios.post(`${url}/cart/remove`, { itemId }, { headers: { token } });
+          await axios.post(`${url}/api/cart/remove`, { itemId }, { headers: { token } });
         }
       }
     } catch (error) {
@@ -95,8 +95,8 @@ function StoreContextProvider(props) {
 
   const fetchFoodList = async () => {
     try {
-      console.log('Fetching food list from:', `${url}/food/list`);
-      const response = await axios.get(`${url}/food/list`);
+      console.log('Fetching food list from:', `${url}/api/food/list`);
+      const response = await axios.get(`${url}/api/food/list`);
       
       if (!response.data || !response.data.data) {
         console.error('Invalid food list response:', response);
@@ -120,7 +120,7 @@ function StoreContextProvider(props) {
 
   const loadCartData = async (userToken) => {
     try {
-      const response = await axios.post(`${url}/cart/get`, {}, { headers: { token: userToken } });
+      const response = await axios.post(`${url}/api/cart/get`, {}, { headers: { token: userToken } });
       if (response.data?.cartData) {
         // Verify all items in cart exist in food_list
         const validCartData = Object.entries(response.data.cartData)
