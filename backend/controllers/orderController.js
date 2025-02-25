@@ -11,7 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // create a variable to store the frontend url
 //const frontend_url = 'http://localhost:5174'; // *****should be really care of extra slash "/" was added at the end of url which will lead a "No routes matched location '/verify?success=true&orderId=..." error on the Verify component page.*****
-const frontend_url = 'https://project-fooddelivery-frontend.onrender.com';
+const frontend_url = 'https://frontend-beige-eight-62.vercel.app/';
 // 1 - placing user order form frontend
 const placeOrder = async (req, res) => {
 	// create new order logic
