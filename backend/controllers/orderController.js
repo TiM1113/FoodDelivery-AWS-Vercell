@@ -59,8 +59,8 @@ const placeOrder = async (req, res) => {
 
 		res.json({success: true, session_url: session.url});
 	} catch (error) {
-		console.log(error);
-		res.json({success: false, message: 'Error'});
+		console.error("Order placement error:", error); // 让错误信息可见
+    res.status(500).json({ success: false, message: error.message || "Order placement failed" });
 	}
 };
 
