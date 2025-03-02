@@ -21,6 +21,7 @@ const orderRouter = express.Router();
 orderRouter.post('/place', authMiddleware, placeOrder);
 // 2- place order verification end point
 orderRouter.post('/verify', verifyOrder);
+orderRouter.get('/verify', verifyOrder);  // ✅ 添加新的 GET 端点
 
 // 3- create end point for userOrders
 orderRouter.post('/userorders', authMiddleware, userOrders);
