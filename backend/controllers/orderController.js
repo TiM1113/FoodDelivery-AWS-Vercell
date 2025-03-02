@@ -77,19 +77,20 @@ const userOrders = async (req, res) => {
 
 //6- create one temporary payment verification system to verify the order(this is not the perfect way, the perfect way is to use B hooks)
 const verifyOrder = async (req, res) => {
-	const {orderId, success} = req.body;
-	try {
-		if (success == 'true') {
-			await orderModel.findByIdAndUpdate(orderId, {payment: true});
-			res.json({success: true, message: 'Paid'});
-		} else {
-			await orderModel.findByIdAndDelete(orderId);
-			res.json({success: false, message: 'Not Paid'});
-		}
-	} catch (error) {
-		console.log(error);
-		res.json({success: false, message: 'Error'});
-	}
+	const { orderId, success } = req.query;  // ✅ 改成 req.query，适配 GET 请求
+
+    try {
+        if (success === 'true') {
+            await orderModel.findByIdAndUpdate(orderId, { payment: true });
+            return res.json({ success: true, message: 'Paid' });
+        } else {
+            await orderModel.findByIdAndDelete(orderId);
+            return res.json({ success: false, message: 'Not Paid' });
+        }
+    } catch (error) {
+        console.error("Order verification error:", error);
+        return res.status(500).json({ success: false, message: error.message || 'Error' });
+    }
 };
 
 //2- API: Listing orders for admin panel - fetch all the orders of all the users
