@@ -9,7 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   // Get the base URL for API calls
-  const apiUrl = process.env.REACT_APP_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL || "https://backend-ten-azure-58.vercel.app";
   
   // Log the URL for debugging
   console.log('API URL:', apiUrl);

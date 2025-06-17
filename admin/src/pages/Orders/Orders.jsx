@@ -26,19 +26,31 @@ const Orders = ({ url }) => {
 
   const statusHandler = async (event, orderId) => {
     try {
-      const response = await axios.post(`${url}/api/order/status`, {
+      console.log('Updating order status:', { orderId, status: event.target.value, url: `${url}/api/order/update` });
+      
+      const response = await axios.post(`${url}/api/order/update`, {
         orderId,
         status: event.target.value
       });
+      
+      console.log('Status update response:', response.data);
+      
       if (response.data.success) {
         toast.success("Order status updated");
         await fetchAllOrders();
       } else {
-        toast.error("Error updating order status");
+        console.error('Status update failed:', response.data);
+        toast.error(response.data.message || "Error updating order status");
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      toast.error("Error connecting to server");
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${url}/api/order/update`
+      });
+      toast.error(`Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`);
     }
   }
 
