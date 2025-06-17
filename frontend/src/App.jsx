@@ -1,6 +1,6 @@
 
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import Navbar from './components/Navbar/Navbar'
 import { Route, Routes } from 'react-router-dom'
 import Home from './pages/Home/Home'
@@ -14,7 +14,6 @@ import MyOrders from './pages/MyOrders/MyOrders';
 // Adjust the path as needed
 
 
-import StoreContextProvider from './context/StoreContext';
 
 const App = () => {
 

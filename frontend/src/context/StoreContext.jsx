@@ -1,5 +1,6 @@
-import React, { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import PropTypes from 'prop-types';
 
 // Create the context with initial default values
 const defaultContextValue = {
@@ -19,17 +20,17 @@ export const StoreContext = createContext(defaultContextValue);
 
 // StoreContext Provider Component
 function StoreContextProvider(props) {
-  const url = process.env.REACT_APP_API_URL || "https://backend-ten-azure-58.vercel.app";
-  const s3Url = process.env.REACT_APP_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
+  const url = import.meta.env.VITE_API_URL || "https://backend-ten-azure-58.vercel.app";
+  const s3Url = import.meta.env.VITE_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
   
   const [food_list, setFoodList] = useState([]);
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
 
   // Verify if an item exists in food_list
-  const verifyItemExists = (itemId) => {
+  const verifyItemExists = useCallback((itemId) => {
     return food_list.some(item => item._id === itemId);
-  };
+  }, [food_list]);
 
   const addToCart = async (itemId) => {
     try {
@@ -93,7 +94,7 @@ function StoreContextProvider(props) {
     return totalAmount;
   };
 
-  const fetchFoodList = async () => {
+  const fetchFoodList = useCallback(async () => {
     try {
       console.log('Fetching food list from:', `${url}/api/food/list`);
       const response = await axios.get(`${url}/api/food/list`);
@@ -116,9 +117,9 @@ function StoreContextProvider(props) {
     } catch (error) {
       console.error('Error fetching food list:', error);
     }
-  };
+  }, [url, s3Url]);
 
-  const loadCartData = async (userToken) => {
+  const loadCartData = useCallback(async (userToken) => {
     try {
       const response = await axios.post(`${url}/api/cart/get`, {}, { headers: { token: userToken } });
       if (response.data?.cartData) {
@@ -137,7 +138,7 @@ function StoreContextProvider(props) {
     } catch (error) {
       console.error('Error loading cart data:', error);
     }
-  };
+  }, [url, verifyItemExists]);
 
   useEffect(() => {
     async function loadData() {
@@ -149,7 +150,7 @@ function StoreContextProvider(props) {
       }
     }
     loadData();
-  }, []);
+  }, [fetchFoodList, loadCartData]);
 
   const contextValue = {
     food_list,
@@ -170,6 +171,10 @@ function StoreContextProvider(props) {
     </StoreContext.Provider>
   );
 }
+
+StoreContextProvider.propTypes = {
+  children: PropTypes.node.isRequired
+};
 
 export default StoreContextProvider;
 

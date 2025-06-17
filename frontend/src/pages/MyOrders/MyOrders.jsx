@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 import './MyOrders.css'
 import axios from 'axios'
 import { StoreContext } from '../../context/StoreContext';
@@ -7,19 +7,19 @@ import { assets } from '../../assets/assets';
 const MyOrders = () => {
   
   const [data,setData] =  useState([]);
-  const {url,token,currency} = useContext(StoreContext);
+  const {url,token} = useContext(StoreContext);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
     setData(response.data.data)
     // console.log(response.data.data);
-  }
+  }, [url, token]);
 
   useEffect(()=>{
     if (token) {
       fetchOrders();
     }
-  },[token])
+  },[token, fetchOrders])
 
   return (
     <div className='my-orders'>

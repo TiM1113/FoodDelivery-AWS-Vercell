@@ -1,9 +1,10 @@
 // import React, { useEffect, useState } from 'react' - in this  { useEffect, useState } import, the useEffect function only used for testing state variables, while the verification is finished useEffect function will be delete ad below showed.
-import React, { useContext, useState } from 'react'
+import { useContext, useState } from 'react'
 import './LoginPopup.css'
 import { assets } from '../../assets/assets'
 import { StoreContext } from '../../context/StoreContext'
 import axios from "axios"
+import PropTypes from 'prop-types'
 
 const LoginPopup = ({ setShowLogin }) => {
 
@@ -85,5 +86,9 @@ const LoginPopup = ({ setShowLogin }) => {
     </div>
   )
 }
+
+LoginPopup.propTypes = {
+  setShowLogin: PropTypes.func.isRequired
+};
 
 export default LoginPopup
