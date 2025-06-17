@@ -44,7 +44,7 @@
 
 
 
-import React, { useContext, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import './Verify.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../../context/StoreContext';

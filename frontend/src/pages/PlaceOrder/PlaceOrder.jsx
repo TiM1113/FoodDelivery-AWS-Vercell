@@ -1,5 +1,5 @@
 // Link the API orderController.js in backend with this frontend 
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import './PlaceOrder.css';
 import { StoreContext } from '../../context/StoreContext';
 import { useNavigate } from 'react-router-dom';
@@ -77,7 +77,7 @@ const PlaceOrder = () => {
     else if (getTotalCartAmount() === 0) {
       navigate('/cart')
     }
-  }, [token])
+  }, [token, getTotalCartAmount, navigate])
 
   return (
     <form onSubmit={placeOrder} className='place-order'>
