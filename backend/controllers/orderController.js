@@ -7,35 +7,60 @@ import Stripe from 'stripe'; // in importing package we use capital Strip
 
 // This API will be linked with frontend
 // set up a strip support in orderController component
+if (!process.env.STRIPE_SECRET_KEY) {
+	console.error('STRIPE_SECRET_KEY is not set in environment variables');
+}
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // create a variable to store the frontend url
 //const frontend_url = 'http://localhost:5174'; // *****should be really care of extra slash "/" was added at the end of url which will lead a "No routes matched location '/verify?success=true&orderId=..." error on the Verify component page.*****
-const frontend_url = 'https://frontend-beige-eight-62.vercel.app/';
+const frontend_url = 'https://frontend-beige-eight-62.vercel.app';
 // 1 - placing user order form frontend
 const placeOrder = async (req, res) => {
 	// create new order logic
 	try {
+		// Validate required fields
+		const { userId, items, amount, address } = req.body;
+		
+		if (!userId || !items || !amount || !address) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Missing required fields: userId, items, amount, or address" 
+			});
+		}
+		
+		if (!Array.isArray(items) || items.length === 0) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Items must be a non-empty array" 
+			});
+		}
+		
 		const newOrder = new orderModel({
-			userId: req.body.userId,
-			items: req.body.items,
-			amount: req.body.amount,
-			address: req.body.address,
+			userId,
+			items,
+			amount,
+			address,
 		});
 		await newOrder.save(); // saving the created new order in database
-		await userModel.findByIdAndUpdate(req.body.userId, {cartData: {}}); // using empty cartData:{} value to clear(delete) the user's cart data
+		await userModel.findByIdAndUpdate(userId, {cartData: {}}); // using empty cartData:{} value to clear(delete) the user's cart data
 
 		// to create line items for the stripe payment
-		const line_items = req.body.items.map((item) => ({
-			price_data: {
-				currency: 'aud',
-				product_data: {
-					name: item.name,
+		const line_items = items.map((item) => {
+			if (!item.name || !item.price || !item.quantity) {
+				throw new Error(`Invalid item data: ${JSON.stringify(item)}`);
+			}
+			return {
+				price_data: {
+					currency: 'aud',
+					product_data: {
+						name: item.name,
+					},
+					unit_amount: Math.round(item.price * 100), // Ensure it's an integer
 				},
-				unit_amount: item.price * 100, // Just like INR to USD (using 80 as the INR factor), here the AUD to USD conversion factor is 0.65, and you would multiply by 100 to get cents.
-			},
-			quantity: item.quantity,
-		}));
+				quantity: item.quantity,
+			};
+		});
 
 		// adding delivery charges
 		line_items.push({
@@ -67,11 +92,20 @@ const placeOrder = async (req, res) => {
 //4- first build User Orders for Frontend in this file, 2)- go to routes folder to create the end point of userOrders
 const userOrders = async (req, res) => {
 	try {
-		const orders = await orderModel.find({userId: req.body.userId});
+		const { userId } = req.body;
+		
+		if (!userId) {
+			return res.status(400).json({
+				success: false, 
+				message: 'Missing userId'
+			});
+		}
+		
+		const orders = await orderModel.find({userId: userId});
 		res.json({success: true, data: orders});
 	} catch (error) {
-		console.log(error);
-		res.json({success: false, message: 'Error'});
+		console.error('Error fetching user orders:', error);
+		res.status(500).json({success: false, message: 'Error fetching orders'});
 	}
 };
 
@@ -99,22 +133,31 @@ const listOrders = async (req, res) => {
 		const orders = await orderModel.find({});
 		res.json({success: true, data: orders});
 	} catch (error) {
-		console.log(error);
-		res.json({success: false, message: 'Error'});
+		console.error('Error listing orders:', error);
+		res.status(500).json({success: false, message: 'Error fetching orders list'});
 	}
 };
 
 // create an API for updating orders status in the admin panel
 const updateStatus = async (req, res) => {
 	try {
-		await orderModel.findByIdAndUpdate(req.body.orderId, {
-			status: req.body.status,
-		}),
-			{new: true}; // Ensure the updated document is returned
+		const { orderId, status } = req.body;
+		
+		if (!orderId || !status) {
+			return res.status(400).json({
+				success: false, 
+				message: 'Missing orderId or status'
+			});
+		}
+		
+		await orderModel.findByIdAndUpdate(orderId, {
+			status: status,
+		}, {new: true}); // Ensure the updated document is returned
+		
 		res.json({success: true, message: 'Status Updated'});
 	} catch (error) {
-		console.log(error);
-		res.json({success: false, message: 'Error'});
+		console.error('Error updating order status:', error);
+		res.status(500).json({success: false, message: 'Error updating order status'});
 	}
 };
 
