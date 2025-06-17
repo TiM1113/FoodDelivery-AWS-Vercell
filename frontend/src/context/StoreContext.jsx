@@ -101,6 +101,8 @@ function StoreContextProvider(props) {
       
       if (!response.data || !response.data.data) {
         console.error('Invalid food list response:', response);
+        console.error('Response status:', response.status);
+        console.error('Response headers:', response.headers);
         return;
       }
       
@@ -109,13 +111,23 @@ function StoreContextProvider(props) {
         ...item,
         image: item.image?.startsWith('http') 
           ? item.image 
-          : `${s3Url}/uploads/${item.image}`
+          : `${s3Url}/${item.image}`
       }));
       
-      console.log('Processed food items:', foodItems);
+      console.log('Successfully loaded', foodItems.length, 'food items');
       setFoodList(foodItems);
     } catch (error) {
       console.error('Error fetching food list:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${url}/api/food/list`
+      });
+      
+      // Set empty array on error to prevent undefined issues
+      setFoodList([]);
     }
   }, [url, s3Url]);
 

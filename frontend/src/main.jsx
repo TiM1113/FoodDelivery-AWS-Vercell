@@ -8,7 +8,7 @@ import StoreContextProvider from './context/StoreContext.jsx';
 
 createRoot(document.getElementById('root')).render(
 	<StrictMode>
-		<BrowserRouter>
+		<BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 			<StoreContextProvider>
 				<App />
 			</StoreContextProvider>

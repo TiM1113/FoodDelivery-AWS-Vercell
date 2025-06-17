@@ -19,6 +19,9 @@ const allowedOrigins = [
 	'https://admin-kappa-ivory.vercel.app', // Admin production
 	'https://frontend-beige-eight-62.vercel.app', // Frontend production
 	'https://backend-ten-azure-58.vercel.app', // Backend production
+	'http://localhost:5173', // Frontend development
+	'http://localhost:5174', // Admin development
+	'http://localhost:3000', // Alternative development port
 ];
 
 const corsOptions = {
