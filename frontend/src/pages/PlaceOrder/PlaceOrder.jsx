@@ -60,26 +60,41 @@ const PlaceOrder = () => {
       alert("Error: Your cart is empty");
       return;
     }
-    console.log(orderItems);
+    console.log('Order items:', orderItems);
+    console.log('Form data:', data);
+    console.log('Total amount:', getTotalCartAmount() + 2);
+    
     // create one order data variable
     let orderData = {
       address: data, // Ensure 'data' contains all necessary address details
       items: orderItems, // Ensure 'orderItems' contains valid items
       amount: getTotalCartAmount() + 2, // Calculate total properly 2 is the delivery fee
     }
+    
+    console.log('Sending order data:', orderData);
     try {
+      console.log('Making request to:', url + "/api/order/place");
+      console.log('With headers:', { token });
+      
       let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
+      
+      console.log('Response received:', response);
+      
       if (response.data.success) {
         const { session_url } = response.data;
         window.location.replace(session_url);// Redirect to Stripe Payment Page
       }
       else {
         console.error("Order placement failed:", response.data);
-        alert("Error: Payment session creation failed");
+        alert(`Error: ${response.data.message || 'Payment session creation failed'}`);
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      alert("Error: Failed to place order. Please try again.");
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      const errorMessage = error.response?.data?.message || error.message || "Failed to place order. Please try again.";
+      alert(`Error: ${errorMessage}`);
     }
   }
 
