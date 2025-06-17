@@ -9,7 +9,10 @@ import Stripe from 'stripe'; // in importing package we use capital Strip
 // set up a strip support in orderController component
 if (!process.env.STRIPE_SECRET_KEY) {
 	console.error('STRIPE_SECRET_KEY is not set in environment variables');
+} else {
+	console.log('STRIPE_SECRET_KEY is configured');
 }
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // create a variable to store the frontend url
@@ -19,10 +22,17 @@ const frontend_url = 'https://frontend-beige-eight-62.vercel.app';
 const placeOrder = async (req, res) => {
 	// create new order logic
 	try {
+		console.log('Order placement request received');
+		console.log('Request body:', JSON.stringify(req.body, null, 2));
+		console.log('Request headers token:', req.headers.token ? 'Present' : 'Missing');
+		
 		// Validate required fields
 		const { userId, items, amount, address } = req.body;
 		
+		console.log('Extracted fields:', { userId, itemsCount: items?.length, amount, address });
+		
 		if (!userId || !items || !amount || !address) {
+			console.log('Validation failed - missing fields');
 			return res.status(400).json({ 
 				success: false, 
 				message: "Missing required fields: userId, items, amount, or address" 
@@ -74,6 +84,10 @@ const placeOrder = async (req, res) => {
 			quantity: 1,
 		});
 
+		console.log('Creating Stripe session with line_items:', line_items);
+		console.log('Success URL:', `${frontend_url}/verify?success=true&orderId=${newOrder._id}`);
+		console.log('Cancel URL:', `${frontend_url}/verify?success=false&orderId=${newOrder._id}`);
+		
 		// create a session
 		const session = await stripe.checkout.sessions.create({
 			line_items: line_items,
@@ -82,6 +96,7 @@ const placeOrder = async (req, res) => {
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}`,
 		});
 
+		console.log('Stripe session created successfully:', session.id);
 		res.json({success: true, session_url: session.url});
 	} catch (error) {
 		console.error("Order placement error:", error); // 让错误信息可见
