@@ -176,4 +176,91 @@ const removeFood = async (req, res) => {
 	}
 };
 
-export {addFood, listFood, removeFood};
+// Update food item
+const updateFood = async (req, res) => {
+	try {
+		console.log('MongoDB connection state:', mongoose.connection.readyState);
+		console.log('Attempting to update food item:', req.body.id);
+		console.log('Update data:', req.body);
+
+		const {id, name, description, price, category} = req.body;
+
+		if (!id) {
+			return res.status(400).json({success: false, message: 'Food ID is required'});
+		}
+
+		// Find the existing food item
+		const existingFood = await foodModel.findById(id);
+		if (!existingFood) {
+			return res.status(404).json({success: false, message: 'Food not found'});
+		}
+
+		let imageUrl = existingFood.image;
+
+		// If a new image is provided, upload it to S3
+		if (req.file) {
+			console.log('New image provided, uploading to S3...');
+			const timestamp = Date.now();
+			const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '_')}`;
+
+			// Upload new image to S3
+			await s3Client.send(
+				new PutObjectCommand({
+					Bucket: process.env.AWS_BUCKET_NAME,
+					Key: `uploads/${filename}`,
+					Body: req.file.buffer,
+					ContentType: req.file.mimetype,
+				})
+			);
+
+			imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${filename}`;
+
+			// Delete old image from S3
+			const oldUrlParts = existingFood.image.split('/');
+			const oldKey = `uploads/${oldUrlParts[oldUrlParts.length - 1]}`;
+			console.log('Deleting old image from S3:', oldKey);
+			
+			try {
+				await s3Client.send(
+					new DeleteObjectCommand({
+						Bucket: process.env.AWS_BUCKET_NAME,
+						Key: oldKey,
+					})
+				);
+			} catch (deleteError) {
+				console.warn('Warning: Could not delete old image:', deleteError.message);
+			}
+		}
+
+		// Update the food item in MongoDB
+		const updatedFood = await foodModel.findByIdAndUpdate(
+			id,
+			{
+				name: name || existingFood.name,
+				description: description || existingFood.description,
+				price: price || existingFood.price,
+				category: category || existingFood.category,
+				image: imageUrl,
+			},
+			{new: true}
+		);
+
+		console.log('Food item updated successfully:', updatedFood);
+
+		res.json({
+			success: true,
+			message: 'Food Updated',
+			data: updatedFood,
+		});
+	} catch (error) {
+		console.error('Error updating food:', error);
+		console.error('Stack trace:', error.stack);
+		res.status(500).json({
+			success: false,
+			message: error.message,
+			details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+		});
+	}
+};
+
+export {addFood, listFood, removeFood, updateFood};
