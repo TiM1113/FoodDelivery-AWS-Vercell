@@ -128,7 +128,8 @@ const userOrders = async (req, res) => {
 			});
 		}
 		
-		const orders = await orderModel.find({userId: userId});
+		// Sort orders by date in descending order (newest first)
+		const orders = await orderModel.find({userId: userId}).sort({date: -1});
 		res.json({success: true, data: orders});
 	} catch (error) {
 		console.error('Error fetching user orders:', error);

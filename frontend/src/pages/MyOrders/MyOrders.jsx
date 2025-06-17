@@ -42,8 +42,23 @@ const MyOrders = () => {
       <h2>My Orders</h2>
       <div className="container">
         {data.map((order,index)=>{
+          // Helper function to get status indicator
+          const getStatusIndicator = (status) => {
+            switch(status) {
+              case 'Delivered':
+                return <span className="status-indicator delivered">✓</span>;
+              case 'Out for delivery':
+                return <span className="status-indicator out-for-delivery">🚚</span>;
+              case 'Food Processing':
+                return <span className="status-indicator processing">⏳</span>;
+              default:
+                return <span className="status-indicator default">●</span>;
+            }
+          };
+
           return (
             <div key={index} className='my-orders-order'>
+                <div className="order-number">#{data.length - index}</div>
                 <img src={assets.parcel_icon} alt="" />
                 <p>{order.items.map((item,index)=>{
                   if (index === order.items.length-1) {
@@ -56,7 +71,7 @@ const MyOrders = () => {
                 })}</p>
                 <p>${order.amount}.00</p>
                 <p>Items: {order.items.length}</p>
-                <p><span>&#x25cf;</span> <b>{order.status}</b></p>
+                <p>{getStatusIndicator(order.status)} <b>{order.status}</b></p>
                 <button onClick={() => handleTrackOrder(order)}>Track Order</button>
             </div>
           )

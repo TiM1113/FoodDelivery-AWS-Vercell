@@ -9,9 +9,9 @@
 }
 .my-orders-order{
   display: grid;
-  grid-template-columns: 0.5fr 2fr 1fr 1fr 2fr 1fr;
+  grid-template-columns: 0.3fr 0.5fr 2fr 1fr 1fr 2fr 1fr;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
   font-size: 14px;
   padding: 10px 20px;
   color: #454545;
@@ -27,6 +27,40 @@
   font-weight: 500;
   color: #454545;
 }
+/* Order number styling */
+.order-number {
+  font-weight: bold;
+  font-size: 16px;
+  color: tomato;
+  text-align: center;
+}
+
+/* Status indicators */
+.status-indicator {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.status-indicator.delivered {
+  color: #28a745;
+  background-color: #d4edda;
+  border-radius: 50%;
+  padding: 2px 4px;
+  font-weight: bold;
+}
+
+.status-indicator.out-for-delivery {
+  color: #007bff;
+}
+
+.status-indicator.processing {
+  color: #ffc107;
+}
+
+.status-indicator.default {
+  color: tomato;
+}
+
 .my-orders button{
   border: none;
   padding: 12px 0px;
@@ -173,14 +207,20 @@
 
 @media (max-width:900px) {
   .my-orders-order{
-      grid-template-columns: 1fr 2fr 1fr;
+      grid-template-columns: 0.5fr 1fr 2fr;
       row-gap: 5px;
       font-size: 12px;
+      gap: 10px;
   }
   .my-orders-order button{
       font-size: 10px;
   }
-
+  .order-number {
+    font-size: 14px;
+  }
+  .status-indicator {
+    font-size: 14px;
+  }
   .tracking-content {
     padding: 20px;
     margin: 20px;
