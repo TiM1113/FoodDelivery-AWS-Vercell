@@ -1,4 +1,4 @@
-import {useContext, useEffect} from 'react';
+import {useContext} from 'react';
 import './FoodDisplay.css';
 
 import {StoreContext} from '../../context/StoreContext';
@@ -7,17 +7,6 @@ import PropTypes from 'prop-types';
 
 const FoodDisplay = ({category, searchQuery, setSearchQuery}) => {
 	const {food_list} = useContext(StoreContext);
-
-	// Clear search query after it's been used
-	useEffect(() => {
-		if (searchQuery) {
-			// Clear the search query after a short delay to allow filtering
-			const timer = setTimeout(() => {
-				setSearchQuery("");
-			}, 100);
-			return () => clearTimeout(timer);
-		}
-	}, [searchQuery, setSearchQuery]);
 
 	// Filter food items based on category and search query
 	const filteredFoodList = food_list.filter(item => {
@@ -30,11 +19,23 @@ const FoodDisplay = ({category, searchQuery, setSearchQuery}) => {
 		return matchesCategory && matchesSearch;
 	});
 
+	// Function to clear search
+	const clearSearch = () => {
+		setSearchQuery("");
+	};
+
 	return (
 		<div
 			className="food-display"
 			id="food-display">
-			<h2>{searchQuery ? `Search results for "${searchQuery}"` : "Top dishes near you"}</h2>
+			<div className="food-display-header">
+				<h2>{searchQuery ? `Search results for "${searchQuery}"` : "Top dishes near you"}</h2>
+				{searchQuery && (
+					<button onClick={clearSearch} className="clear-search-btn">
+						Clear Search ✕
+					</button>
+				)}
+			</div>
 			<div className="food-display-list">
 				{food_list.length === 0 ? (
 					<div className="loading-message">

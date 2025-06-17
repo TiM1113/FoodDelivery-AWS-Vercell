@@ -51,7 +51,8 @@ const Navbar = ({ setShowLogin }) => {
     if (searchQuery.trim()) {
       // Navigate to home page and pass search query
       navigate('/', { state: { searchQuery: searchQuery.trim() } });
-      setSearchQuery("");
+      // Keep search query in the search box for user reference
+      // setSearchQuery(""); // Removed - let user see what they searched for
     }
   }
 

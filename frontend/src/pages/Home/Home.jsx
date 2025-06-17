@@ -25,6 +25,9 @@ const Home = () => {
                     foodDisplay.scrollIntoView({ behavior: 'smooth' });
                 }
             }, 100);
+            
+            // Clear the navigation state to prevent re-triggering
+            window.history.replaceState({}, document.title);
         }
     }, [location.state]); 
 
