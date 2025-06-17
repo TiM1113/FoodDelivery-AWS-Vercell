@@ -30,25 +30,31 @@ const LoginPopup = ({ setShowLogin }) => {
   // link this function with the form tag
   const onLogin = async (event) => {
     event.preventDefault()
-    // using Axios to call the APIs
-    let newUrl = url;
-    if (currState === "Login") {
-      newUrl += "/user/login"
-    }
-    else{
-      newUrl += "/user/register"
-    }
+    
+    try {
+      // using Axios to call the APIs
+      let newUrl = url;
+      if (currState === "Login") {
+        newUrl += "/api/user/login"
+      }
+      else{
+        newUrl += "/api/user/register"
+      }
 
-     // call the API will be working in Login and Register
-    const response = await axios.post(newUrl, data);
+      // call the API will be working in Login and Register
+      const response = await axios.post(newUrl, data);
 
-    if (response.data.success) {
-      setToken(response.data.token);// Save token to context
-      localStorage.setItem("token", response.data.token);// Save token to localStorage
-      setShowLogin(false);
-    }
-    else{
-      alert(response.data.message)
+      if (response.data.success) {
+        setToken(response.data.token);// Save token to context
+        localStorage.setItem("token", response.data.token);// Save token to localStorage
+        setShowLogin(false);
+      }
+      else{
+        alert(response.data.message)
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
     }
   }
 
