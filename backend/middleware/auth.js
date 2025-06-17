@@ -2,10 +2,10 @@
 import jwt from "jsonwebtoken"
 
 // create one middleware arrow function
-const authMiddleware = async (req, resizeBy, next) => {
+const authMiddleware = async (req, res, next) => {
   const {token} = req.headers; // first: take the token from the users using the headers + then: destructure the token from the request.header
   if (!token) {
-    return resizeBy.json({success:false, message:"Not Authorized Login Again"})
+    return res.json({success:false, message:"Not Authorized Login Again"})
   }
   // try-catch block to decode the token if we got 
   try {
@@ -14,7 +14,7 @@ const authMiddleware = async (req, resizeBy, next) => {
     next();
   } catch (error) {
     console.log(error);
-    resizeBy.json({success:false, message:"Error"});
+    res.json({success:false, message:"Error"});
   }
 }
 

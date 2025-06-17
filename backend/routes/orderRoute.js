@@ -21,7 +21,7 @@ const orderRouter = express.Router();
 orderRouter.post('/place', authMiddleware, placeOrder);
 // 2- place order verification end point
 orderRouter.post('/verify', verifyOrder);
-orderRouter.get('/verify', verifyOrder);  // ✅ 添加新的 GET 端点
+orderRouter.get('/verify', verifyOrder);
 
 // 3- create end point for userOrders
 orderRouter.post('/userorders', authMiddleware, userOrders);
@@ -34,7 +34,7 @@ orderRouter.get('/list', listOrders); //In Express, route paths must start with 
 // }, listOrders);
 
 // 5- update orders status in admin panel
-orderRouter.post('/status', updateStatus)
+orderRouter.post('/update', updateStatus)
 
 // export the place order router, and it will be used in service.js file
 export default orderRouter;
