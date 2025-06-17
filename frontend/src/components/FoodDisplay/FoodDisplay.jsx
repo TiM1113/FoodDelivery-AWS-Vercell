@@ -1,23 +1,40 @@
-import {useContext} from 'react';
+import {useContext, useEffect} from 'react';
 import './FoodDisplay.css';
 
 import {StoreContext} from '../../context/StoreContext';
 import FoodItem from '../FoodItem/FoodItem';
 import PropTypes from 'prop-types';
 
-const FoodDisplay = ({category}) => {
+const FoodDisplay = ({category, searchQuery, setSearchQuery}) => {
 	const {food_list} = useContext(StoreContext);
 
-	// Filter food items based on category
-	const filteredFoodList = food_list.filter(item => 
-		category === 'All' || category === item.category
-	);
+	// Clear search query after it's been used
+	useEffect(() => {
+		if (searchQuery) {
+			// Clear the search query after a short delay to allow filtering
+			const timer = setTimeout(() => {
+				setSearchQuery("");
+			}, 100);
+			return () => clearTimeout(timer);
+		}
+	}, [searchQuery, setSearchQuery]);
+
+	// Filter food items based on category and search query
+	const filteredFoodList = food_list.filter(item => {
+		const matchesCategory = category === 'All' || category === item.category;
+		const matchesSearch = !searchQuery || 
+			item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			item.category.toLowerCase().includes(searchQuery.toLowerCase());
+		
+		return matchesCategory && matchesSearch;
+	});
 
 	return (
 		<div
 			className="food-display"
 			id="food-display">
-			<h2>Top dishes near you</h2>
+			<h2>{searchQuery ? `Search results for "${searchQuery}"` : "Top dishes near you"}</h2>
 			<div className="food-display-list">
 				{food_list.length === 0 ? (
 					<div className="loading-message">
@@ -25,7 +42,7 @@ const FoodDisplay = ({category}) => {
 					</div>
 				) : filteredFoodList.length === 0 ? (
 					<div className="no-items-message">
-						<p>No items found in this category.</p>
+						<p>{searchQuery ? `No items found matching "${searchQuery}".` : "No items found in this category."}</p>
 					</div>
 				) : (
 					filteredFoodList.map((item, index) => (
@@ -45,7 +62,9 @@ const FoodDisplay = ({category}) => {
 };
 
 FoodDisplay.propTypes = {
-  category: PropTypes.string.isRequired
+  category: PropTypes.string.isRequired,
+  searchQuery: PropTypes.string,
+  setSearchQuery: PropTypes.func
 };
 
 export default FoodDisplay;
