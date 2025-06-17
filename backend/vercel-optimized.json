@@ -1,0 +1,29 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/index.js",
+            "use": "@vercel/node",
+            "config": {
+                "maxLambdaSize": "50mb"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/index.js",
+            "headers": {
+                "Cache-Control": "s-maxage=1, stale-while-revalidate"
+            }
+        }
+    ],
+    "functions": {
+        "api/index.js": {
+            "maxDuration": 30
+        }
+    },
+    "env": {
+        "NODE_ENV": "production"
+    }
+}
