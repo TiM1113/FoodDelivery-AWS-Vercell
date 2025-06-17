@@ -46,9 +46,13 @@ const placeOrder = async (req, res) => {
 			});
 		}
 		
+		// Create a defensive copy of items to prevent any mutation issues
+		const orderItems = [...items];
+		console.log('Created defensive copy of items:', orderItems);
+		
 		const newOrder = new orderModel({
 			userId,
-			items,
+			items: orderItems,
 			amount,
 			address,
 		});
@@ -56,7 +60,14 @@ const placeOrder = async (req, res) => {
 		await userModel.findByIdAndUpdate(userId, {cartData: {}}); // using empty cartData:{} value to clear(delete) the user's cart data
 
 		// to create line items for the stripe payment
-		const line_items = items.map((item) => {
+		console.log('About to create line_items, orderItems is:', orderItems);
+		console.log('OrderItems type:', typeof orderItems, 'Array?', Array.isArray(orderItems));
+		
+		if (!Array.isArray(orderItems) || orderItems.length === 0) {
+			throw new Error('OrderItems is not a valid array at Stripe processing stage');
+		}
+		
+		const line_items = orderItems.map((item) => {
 			if (!item.name || !item.price || !item.quantity) {
 				throw new Error(`Invalid item data: ${JSON.stringify(item)}`);
 			}
