@@ -22,14 +22,14 @@ const Cart = () => {
 				</div>
 				<br />
 				<hr />
-				{food_list.map((item) => {
+				{food_list && food_list.length > 0 ? food_list.map((item) => {
 					if (cartItems[item._id] > 0) {
 						return (
 							<div key={item._id}>
 								<div className="cart-items-title cart-items-item">
 									<img
-										src={item.image}// confirm the images come from backend database
-										alt=""
+										src={item.image}
+										alt={item.name}
 									/>
 									<p>{item.name}</p>
 									<p>${item.price}</p>
@@ -41,7 +41,12 @@ const Cart = () => {
 							</div>
 						);
 					}
-				})}
+					return null;
+				}) : (
+					<div className="cart-empty">
+						<p>Your cart is empty</p>
+					</div>
+				)}
 			</div>
       <div className="cart-bottom">
         <div className="cart-total">

@@ -115,7 +115,10 @@ function StoreContextProvider(props) {
       }));
       
       console.log('Successfully loaded', foodItems.length, 'food items');
-      console.log('Sample image URLs:', foodItems.slice(0, 3).map(item => ({ name: item.name, image: item.image })));
+      // Only log sample URLs in development
+      if (import.meta.env.DEV) {
+        console.log('Sample image URLs:', foodItems.slice(0, 2).map(item => ({ name: item.name, image: item.image })));
+      }
       setFoodList(foodItems);
     } catch (error) {
       console.error('Error fetching food list:', error);

@@ -41,14 +41,25 @@ const PlaceOrder = () => {
   // placeOrder is an async arrow function instead of PlaceOrder component to be redirected to the payment gateway 
   const placeOrder = async (event) => { // link this function to the button <button >PROCEED TO PAYMENT</button> at the bottom 
     event.preventDefault();
+    
+    if (!food_list || food_list.length === 0) {
+      alert("Error: No food items available");
+      return;
+    }
+    
     let orderItems = [];
-    food_list.map((item) => {
+    food_list.forEach((item) => {
       if (cartItems[item._id] > 0) {
-        let itemInfo = item;
+        let itemInfo = { ...item }; // Create a copy to avoid mutating original
         itemInfo["quantity"] = cartItems[item._id];
         orderItems.push(itemInfo)
       }
     })
+    
+    if (orderItems.length === 0) {
+      alert("Error: Your cart is empty");
+      return;
+    }
     console.log(orderItems);
     // create one order data variable
     let orderData = {
@@ -56,13 +67,19 @@ const PlaceOrder = () => {
       items: orderItems, // Ensure 'orderItems' contains valid items
       amount: getTotalCartAmount() + 2, // Calculate total properly 2 is the delivery fee
     }
-    let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
-    if (response.data.success) {
-      const { session_url } = response.data;
-      window.location.replace(session_url);// Redirect to Stripe Payment Page
-    }
-    else {
-      alert("Error: Payment session creation failed");
+    try {
+      let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
+      if (response.data.success) {
+        const { session_url } = response.data;
+        window.location.replace(session_url);// Redirect to Stripe Payment Page
+      }
+      else {
+        console.error("Order placement failed:", response.data);
+        alert("Error: Payment session creation failed");
+      }
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("Error: Failed to place order. Please try again.");
     }
   }
 
