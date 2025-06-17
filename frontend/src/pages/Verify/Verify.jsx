@@ -60,10 +60,9 @@ const Verify = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
-        console.log("🔄 发送 `POST` 请求到:", `${url}/api/order/verify`);
-        console.log("📦 请求 Body:", { success, orderId });
+        console.log("🔄 发送 `GET` 请求到:", `${url}/api/order/verify?success=${success}&orderId=${orderId}`);
 
-        const response = await axios.post(`${url}/api/order/verify`, { success, orderId });
+        const response = await axios.get(`${url}/api/order/verify?success=${success}&orderId=${orderId}`);
 
         console.log("✅ 响应数据:", response.data);
 
