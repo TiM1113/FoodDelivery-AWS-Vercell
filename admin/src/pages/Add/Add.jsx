@@ -1,5 +1,5 @@
 // Using rafce shorthand to create react component-Add.
-import React, { useState } from 'react' // Don't forget to import relative React Hook 'useState' /useEffect hook here just used for testing data update.
+import { useState } from 'react' // Don't forget to import relative React Hook 'useState' /useEffect hook here just used for testing data update.
 // Import CSS into Add component
 import './Add.css';
 import { assets } from '../../assets/assets';

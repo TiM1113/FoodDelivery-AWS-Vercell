@@ -1,5 +1,4 @@
 // Using rafce shorthand to create react component-Sidebar.
-import React from 'react'
 // Import CSS into Sidebar component
 import './Sidebar.css' 
 import { assets } from '../../assets/assets'

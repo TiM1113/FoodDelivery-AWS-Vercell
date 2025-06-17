@@ -1,5 +1,4 @@
 // Using rafce shorthand to create react component-Navbar.
-import React from 'react'
 // Import CSS into Navbar component
 import './Navbar.css'
 // Import assets

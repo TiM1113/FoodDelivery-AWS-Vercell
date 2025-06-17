@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import './Orders.css'
 import { toast } from 'react-toastify'
 import axios from 'axios'
