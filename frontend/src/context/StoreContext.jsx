@@ -111,10 +111,11 @@ function StoreContextProvider(props) {
         ...item,
         image: item.image?.startsWith('http') 
           ? item.image 
-          : `${s3Url}/${item.image}`
+          : `${s3Url}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
       }));
       
       console.log('Successfully loaded', foodItems.length, 'food items');
+      console.log('Sample image URLs:', foodItems.slice(0, 3).map(item => ({ name: item.name, image: item.image })));
       setFoodList(foodItems);
     } catch (error) {
       console.error('Error fetching food list:', error);
@@ -131,14 +132,15 @@ function StoreContextProvider(props) {
     }
   }, [url, s3Url]);
 
-  const loadCartData = useCallback(async (userToken) => {
+  const loadCartData = useCallback(async (userToken, foodList = []) => {
     try {
       const response = await axios.post(`${url}/api/cart/get`, {}, { headers: { token: userToken } });
       if (response.data?.cartData) {
         // Verify all items in cart exist in food_list
         const validCartData = Object.entries(response.data.cartData)
           .reduce((acc, [itemId, quantity]) => {
-            if (verifyItemExists(itemId)) {
+            const itemExists = foodList.some(item => item._id === itemId);
+            if (itemExists) {
               acc[itemId] = quantity;
             } else {
               console.warn(`Removing non-existent item from cart: ${itemId}`);
@@ -150,19 +152,26 @@ function StoreContextProvider(props) {
     } catch (error) {
       console.error('Error loading cart data:', error);
     }
-  }, [url, verifyItemExists]);
+  }, [url]);
 
   useEffect(() => {
     async function loadData() {
       await fetchFoodList();
-      const savedToken = localStorage.getItem("token");
-      if (savedToken) {
-        setToken(savedToken);
-        await loadCartData(savedToken);
-      }
     }
     loadData();
-  }, [fetchFoodList, loadCartData]);
+  }, [fetchFoodList]);
+
+  // Separate effect for loading cart data when token is set and food_list is available
+  useEffect(() => {
+    async function loadCart() {
+      const savedToken = localStorage.getItem("token");
+      if (savedToken && food_list.length > 0) {
+        setToken(savedToken);
+        await loadCartData(savedToken, food_list);
+      }
+    }
+    loadCart();
+  }, [food_list, loadCartData]);
 
   const contextValue = {
     food_list,

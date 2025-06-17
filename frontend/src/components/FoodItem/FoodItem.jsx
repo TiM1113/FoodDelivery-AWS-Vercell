@@ -16,8 +16,11 @@ const FoodItem = ({id, name, price, description, image}) => {
 					alt={name}
 					className="food-item-image"
 					onError={(e) => {
-						console.error('Error loading image:', image);
+						console.warn('Failed to load image:', image, 'for item:', name);
 						e.target.src = food_1;
+					}}
+					onLoad={() => {
+						console.log('Successfully loaded image for:', name);
 					}}
 				/>
 				{!cartItems[id] ? (
