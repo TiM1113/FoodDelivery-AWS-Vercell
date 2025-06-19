@@ -59,24 +59,24 @@ const MyOrders = () => {
 
   const handleRetryPayment = async (order) => {
     try {
-      console.log('Retrying payment for order:', order._id);
+      console.log('Completing payment for existing order:', order._id);
       
-      // Mark that we're going to payment from retry (MyOrders)
+      // Mark that we're going to payment from MyOrders
       sessionStorage.setItem('fromPayment', 'retry');
       
-      // Use the new retry payment endpoint that reuses existing order
+      // Create payment session for existing unpaid order
       const response = await axios.post(url + "/api/order/retry-payment", { orderId: order._id }, { headers: { token } });
       
       if (response.data.success) {
         const { session_url } = response.data;
         window.location.replace(session_url); // Redirect to Stripe Payment Page
       } else {
-        toast.error(response.data.message || 'Payment retry failed');
+        toast.error(response.data.message || 'Payment failed to start');
         sessionStorage.removeItem('fromPayment');
       }
     } catch (error) {
-      console.error('Error retrying payment:', error);
-      toast.error(error.response?.data?.message || 'Failed to retry payment');
+      console.error('Error starting payment:', error);
+      toast.error(error.response?.data?.message || 'Failed to start payment');
       sessionStorage.removeItem('fromPayment');
     }
   };
