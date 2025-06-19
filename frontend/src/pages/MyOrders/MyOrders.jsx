@@ -61,8 +61,8 @@ const MyOrders = () => {
     try {
       console.log('Retrying payment for order:', order._id);
       
-      // Mark that we're going to payment
-      sessionStorage.setItem('fromPayment', 'true');
+      // Mark that we're going to payment from retry (MyOrders)
+      sessionStorage.setItem('fromPayment', 'retry');
       
       // Use the new retry payment endpoint that reuses existing order
       const response = await axios.post(url + "/api/order/retry-payment", { orderId: order._id }, { headers: { token } });

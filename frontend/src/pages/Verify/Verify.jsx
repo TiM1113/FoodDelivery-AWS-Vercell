@@ -67,20 +67,36 @@ const Verify = () => {
         console.log("✅ 响应数据:", response.data);
 
         if (response.data.success) {
-          // Payment successful, clear any payment markers
+          // Payment successful, always go to orders page to see the updated status
           sessionStorage.removeItem('fromPayment');
           navigate("/myorders");
         } else {
-          // Payment failed, return directly to orders page with fresh data
-          console.log('Payment failed, returning to orders page...');
-          sessionStorage.removeItem('fromPayment');
-          navigate("/myorders");
+          // Payment failed, determine where to return based on payment source
+          const paymentSource = sessionStorage.getItem('fromPayment');
+          console.log('Payment failed, payment source:', paymentSource);
+          
+          if (paymentSource === 'retry') {
+            // This was a retry payment from MyOrders, return to MyOrders
+            sessionStorage.removeItem('fromPayment');
+            navigate("/myorders");
+          } else {
+            // This was a new order from Cart, return to Cart
+            sessionStorage.removeItem('fromPayment');
+            navigate("/cart");
+          }
         }
       } catch (error) {
         console.error("❌ 验证请求失败:", error);
-        // Even on error, return to orders page to show current state
-        sessionStorage.removeItem('fromPayment');
-        navigate("/myorders");
+        // On error, determine where to return based on payment source
+        const paymentSource = sessionStorage.getItem('fromPayment');
+        
+        if (paymentSource === 'retry') {
+          sessionStorage.removeItem('fromPayment');
+          navigate("/myorders");
+        } else {
+          sessionStorage.removeItem('fromPayment');
+          navigate("/cart");
+        }
       }
     };
 
@@ -89,9 +105,16 @@ const Verify = () => {
       verifyPayment();
     } else {
       console.error("⚠️ 缺少 `success` 或 `orderId`，无法发送验证请求");
-      // Return to orders page instead of home
-      sessionStorage.removeItem('fromPayment');
-      navigate("/myorders");
+      // Determine where to return based on payment source
+      const paymentSource = sessionStorage.getItem('fromPayment');
+      
+      if (paymentSource === 'retry') {
+        sessionStorage.removeItem('fromPayment');
+        navigate("/myorders");
+      } else {
+        sessionStorage.removeItem('fromPayment');
+        navigate("/cart");
+      }
     }
   }, [success, orderId, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
 
