@@ -1,2 +1,45 @@
 .DS_Store
 .vercel
+
+# Screenshots and documentation files that should not be tracked
+errorscreenshorts/
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Documentation files (keep only essential ones)
+CLAUDE.md
+DEPLOYMENT_GUIDE.md
+DEPLOYMENT_SCRIPTS.md
+OPTIMIZATION_GUIDE.md
+TEST_DEPLOYMENT.md
+
+# Node modules
+node_modules/
+*/node_modules/
+
+# Build directories
+dist/
+build/
+*/dist/
+*/build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
