@@ -1,6 +1,7 @@
 // Create the basic express server
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import {connectDB} from './config/db.js';
 import foodRouter from './routes/foodRoute.js';
 import userRouter from './routes/userRoute.js';
@@ -74,6 +75,25 @@ app.get('/', (req, res) => {
 		status: 'API Working',
 		version: '1.0.0',
 		environment: process.env.NODE_ENV || 'development',
+		timestamp: new Date().toISOString(),
+		mongodb: {
+			state: mongoose.connection.readyState,
+			states: {
+				0: 'disconnected',
+				1: 'connected',
+				2: 'connecting',
+				3: 'disconnecting'
+			}
+		}
+	});
+});
+
+// Simple API test endpoint that doesn't require database
+app.get('/api/health', (req, res) => {
+	res.json({
+		status: 'healthy',
+		timestamp: new Date().toISOString(),
+		environment: process.env.NODE_ENV || 'development'
 	});
 });
 
