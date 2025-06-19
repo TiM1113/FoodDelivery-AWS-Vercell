@@ -208,16 +208,19 @@ const MyOrders = () => {
       fetchOrders();
       
       // Force component refresh if we detect potential cache issues
-      const urlParams = new URLSearchParams(window.location.search);
+      const fromPayment = sessionStorage.getItem('fromPayment');
       const fromStripe = document.referrer.includes('stripe') || 
-                        sessionStorage.getItem('fromPayment') === 'true';
+                        document.referrer.includes('checkout.stripe.com') ||
+                        window.location.href.includes('success=') ||
+                        fromPayment;
       
-      if (fromStripe) {
-        console.log('Detected return from payment, forcing data refresh...');
+      if (fromStripe || fromPayment) {
+        console.log('Detected return from payment flow, forcing complete refresh...', {fromPayment, referrer: document.referrer});
         sessionStorage.removeItem('fromPayment');
-        // Small delay to ensure fresh data
+        
+        // Force a hard refresh of the component
         setTimeout(() => {
-          fetchOrders();
+          window.location.reload();
         }, 100);
       }
     }
@@ -270,7 +273,7 @@ const MyOrders = () => {
   }, [token, fetchOrders]);
 
   return (
-    <div className='my-orders' data-version="2.0">
+    <div className='my-orders' key={`orders-${Date.now()}`} data-version="3.0">
       
       <h2>My Orders</h2>
       <div className="container">
@@ -301,7 +304,7 @@ const MyOrders = () => {
                 <p>{getPaymentStatus(order.payment)}</p>
                 <p>{getStatusIndicator(order.payment ? order.status : 'Payment Pending')} <b>{order.payment ? order.status : 'Payment Pending'}</b></p>
                 <div className="order-actions">
-                  <button onClick={() => handleTrackOrder(order)}>Track Order</button>
+                  <button className="track-order-btn" onClick={() => handleTrackOrder(order)}>Track Order</button>
                   {!order.payment && (
                     <>
                       <button 
