@@ -249,6 +249,9 @@
   height: 30px;
   cursor: pointer;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .quantity-btn:hover {
@@ -265,10 +268,12 @@
   background-color: #6c757d;
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
+  min-width: 70px;
+  text-align: center;
 }
 
 .remove-item-btn:hover {
@@ -297,6 +302,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 15px;
+  padding: 10px 0;
+  margin: 0 15px;
 }
 
 .food-item-add {
@@ -407,10 +414,12 @@
 .category-navigation {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  gap: 12px;
+  margin: 0 15px 20px 15px;
+  padding: 15px 10px;
   border-bottom: 1px solid #eee;
+  background-color: #fafafa;
+  border-radius: 8px 8px 0 0;
 }
 
 .category-btn {
@@ -504,11 +513,22 @@
 }
 
 .close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  font-size: 16px;
   cursor: pointer;
-  color: #666;
+  color: #495057;
+  padding: 8px 16px;
+  border-radius: 6px;
+  min-width: 80px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
 }
 
 .tracking-details p {
@@ -704,7 +724,9 @@
   
   .category-navigation {
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
+    margin: 0 5px 15px 5px;
+    padding: 10px 5px;
   }
   
   .category-btn {
@@ -720,6 +742,11 @@
   .category-btn span {
     display: none;
   }
+  
+  .food-grid {
+    margin: 0 5px;
+    gap: 10px;
+  }
 }
 
 @media (max-width:480px) {
@@ -727,6 +754,8 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    margin: 0 3px 10px 3px;
+    padding: 8px 3px;
   }
   
   .category-btn {
@@ -736,5 +765,16 @@
   
   .category-btn span {
     display: inline;
+  }
+  
+  .food-grid {
+    margin: 0 3px;
+    gap: 8px;
+  }
+  
+  .close-btn {
+    min-width: 60px;
+    padding: 6px 12px;
+    font-size: 14px;
   }
 }
