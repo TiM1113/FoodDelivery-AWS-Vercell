@@ -3,12 +3,14 @@ import './MyOrders.css'
 import axios from 'axios'
 import { StoreContext } from '../../context/StoreContext';
 import { assets } from '../../assets/assets';
+import { useNavigate } from 'react-router-dom';
 
 const MyOrders = () => {
   
   const [data,setData] =  useState([]);
   const [trackingOrder, setTrackingOrder] = useState(null);
   const {url,token} = useContext(StoreContext);
+  const navigate = useNavigate();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -28,6 +30,27 @@ const MyOrders = () => {
 
   const closeTracking = () => {
     setTrackingOrder(null);
+  };
+
+  const handleDishClick = (dishName) => {
+    // Navigate to home page with search query for the specific dish
+    navigate('/', { state: { searchQuery: dishName } });
+  };
+
+  const renderDishNames = (items) => {
+    return items.map((item, index) => (
+      <span key={index}>
+        <span 
+          className="dish-name-link" 
+          onClick={() => handleDishClick(item.name)}
+          title={`Click to view ${item.name}`}
+        >
+          {item.name}
+        </span>
+        <span> x {item.quantity}</span>
+        {index < items.length - 1 && <span>, </span>}
+      </span>
+    ));
   };
 
   useEffect(()=>{
@@ -60,15 +83,7 @@ const MyOrders = () => {
             <div key={index} className='my-orders-order'>
                 <div className="order-number">#{data.length - index}</div>
                 <img src={assets.parcel_icon} alt="" />
-                <p>{order.items.map((item,index)=>{
-                  if (index === order.items.length-1) {
-                    return item.name+" x "+item.quantity
-                  }
-                  else{
-                    return item.name+" x "+item.quantity+", "
-                  }
-                  
-                })}</p>
+                <p>{renderDishNames(order.items)}</p>
                 <p>${order.amount}.00</p>
                 <p>Items: {order.items.length}</p>
                 <p>{getStatusIndicator(order.status)} <b>{order.status}</b></p>
@@ -110,7 +125,16 @@ const MyOrders = () => {
               <div className="order-items">
                 <h4>Items:</h4>
                 {trackingOrder.items.map((item, index) => (
-                  <p key={index}>{item.name} x {item.quantity}</p>
+                  <p key={index}>
+                    <span 
+                      className="dish-name-link" 
+                      onClick={() => handleDishClick(item.name)}
+                      title={`Click to view ${item.name}`}
+                    >
+                      {item.name}
+                    </span>
+                    <span> x {item.quantity}</span>
+                  </p>
                 ))}
               </div>
             </div>
