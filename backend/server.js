@@ -74,7 +74,7 @@ app.use('/api/order', orderRouter);
 app.get('/', (req, res) => {
 	res.json({
 		status: 'API Working',
-		version: '1.0.1',
+		version: '1.0.2',
 		environment: process.env.NODE_ENV || 'development',
 		timestamp: new Date().toISOString(),
 		mongodb: {

@@ -4,7 +4,7 @@ A full-stack MERN food delivery application with three main components: customer
 
 ## 🚀 Live Demo
 
-- **Customer App**: [https://frontend-beige-eight-62.vercel.app](https://frontend-beige-eight-62.vercel.app)
+- **Customer App**: [https://fooddelivery-2025.vercel.app](https://fooddelivery-2025.vercel.app)
 - **Admin Panel**: [https://admin-kappa-ivory.vercel.app](https://admin-kappa-ivory.vercel.app)
 - **Backend API**: [https://backend-ten-azure-58.vercel.app](https://backend-ten-azure-58.vercel.app)
 
