@@ -84,7 +84,21 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  font-weight: bold;
   transition: all 0.3s ease;
+}
+
+/* Track Order button specific styling */
+.order-actions button:first-child {
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.order-actions button:first-child:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
 }
 
 /* Retry payment button styles removed - functionality moved to Track Order modal */
@@ -700,10 +714,11 @@
   .order-actions {
     gap: 4px;
   }
-  /* Retry payment button mobile styles removed */
-  .edit-order-btn, .delete-order-btn {
+  /* Track Order and action buttons mobile styles */
+  .order-actions button {
     font-size: 8px;
     padding: 4px 6px;
+    font-weight: bold;
   }
   .tracking-content {
     padding: 20px;
