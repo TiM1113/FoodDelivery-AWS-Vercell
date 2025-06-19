@@ -53,8 +53,7 @@ function StoreContextProvider(props) {
       if (!currentItems[itemId]) {
         currentItems[itemId] = 1;
       } else {
-        // Cap quantity at 99 per item to prevent excessive amounts
-        currentItems[itemId] = Math.min(currentItems[itemId] + 1, 99);
+        currentItems[itemId] = currentItems[itemId] + 1;
       }
       setCartItems(currentItems);
 
@@ -89,18 +88,13 @@ function StoreContextProvider(props) {
     try {
       Object.entries(cartItems).forEach(([itemId, quantity]) => {
         // Add validation for quantity
-        const validQuantity = Math.max(0, Math.min(quantity, 999)); // Cap at 999 items
+        const validQuantity = Math.max(0, quantity);
         
         if (validQuantity > 0) {
           const itemInfo = food_list.find(product => product._id === itemId);
           if (itemInfo && itemInfo.price) {
             const itemTotal = itemInfo.price * validQuantity;
-            // Validate item total doesn't exceed reasonable limit
-            if (itemTotal <= 10000) { // Cap single item total at $10,000
-              totalAmount += itemTotal;
-            } else {
-              console.warn(`Item ${itemId} total ${itemTotal} exceeds limit, skipping`);
-            }
+            totalAmount += itemTotal;
           } else {
             console.warn(`Item ${itemId} not found in food list or missing price`);
           }
@@ -110,9 +104,8 @@ function StoreContextProvider(props) {
       console.error('Error calculating total amount:', error);
     }
     
-    // Cap total amount to prevent Stripe limit errors and round correctly
-    const cappedTotal = Math.min(totalAmount, 999999);
-    return Math.round(cappedTotal * 100) / 100;
+    // Round correctly for currency display
+    return Math.round(totalAmount * 100) / 100;
   };
 
   const fetchFoodList = useCallback(async () => {
@@ -178,7 +171,7 @@ function StoreContextProvider(props) {
           .reduce((acc, [itemId, quantity]) => {
             const itemExists = foodList.some(item => item._id === itemId);
             // Clean and validate quantity
-            const validQuantity = Math.max(0, Math.min(parseInt(quantity) || 0, 99));
+            const validQuantity = Math.max(0, parseInt(quantity) || 0);
             
             if (itemExists && validQuantity > 0) {
               acc[itemId] = validQuantity;

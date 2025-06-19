@@ -17,7 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // create a variable to store the frontend url
 //const frontend_url = 'http://localhost:5174'; // *****should be really care of extra slash "/" was added at the end of url which will lead a "No routes matched location '/verify?success=true&orderId=..." error on the Verify component page.*****
-const frontend_url = 'https://frontend-beige-eight-62.vercel.app';
+const frontend_url = 'https://fooddelivery-2025.vercel.app';
 // 1 - placing user order form frontend
 const placeOrder = async (req, res) => {
 	// create new order logic
@@ -103,7 +103,7 @@ const placeOrder = async (req, res) => {
 		const session = await stripe.checkout.sessions.create({
 			line_items: line_items,
 			mode: 'payment',
-			payment_method_types: ['card', 'au_becs_debit'],
+			payment_method_types: ['card'], // Remove au_becs_debit to support higher amounts
 			success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}`,
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}`,
 		});
