@@ -37,8 +37,6 @@ export const connectDB = async () => {
 			socketTimeoutMS: 30000,
 			connectTimeoutMS: 30000,
 			maxPoolSize: 10,
-			bufferCommands: false, // Disable mongoose buffering
-			bufferMaxEntries: 0, // Disable mongoose buffering
 		});
 
 		console.log(
