@@ -71,14 +71,16 @@ const Verify = () => {
           sessionStorage.removeItem('fromPayment');
           navigate("/myorders");
         } else {
-          // Payment failed, set marker and navigate to home
-          sessionStorage.setItem('fromPayment', 'failed');
-          navigate("/");
+          // Payment failed, return directly to orders page with fresh data
+          console.log('Payment failed, returning to orders page...');
+          sessionStorage.removeItem('fromPayment');
+          navigate("/myorders");
         }
       } catch (error) {
         console.error("❌ 验证请求失败:", error);
-        sessionStorage.setItem('fromPayment', 'error');
-        navigate("/");
+        // Even on error, return to orders page to show current state
+        sessionStorage.removeItem('fromPayment');
+        navigate("/myorders");
       }
     };
 
@@ -87,8 +89,9 @@ const Verify = () => {
       verifyPayment();
     } else {
       console.error("⚠️ 缺少 `success` 或 `orderId`，无法发送验证请求");
-      sessionStorage.setItem('fromPayment', 'invalid');
-      navigate("/");
+      // Return to orders page instead of home
+      sessionStorage.removeItem('fromPayment');
+      navigate("/myorders");
     }
   }, [success, orderId, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
 
