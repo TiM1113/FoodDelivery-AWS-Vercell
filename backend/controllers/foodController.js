@@ -94,8 +94,20 @@ const listFood = async (req, res) => {
 		console.log('MongoDB connection state:', mongoose.connection.readyState);
 		console.log('Attempting to fetch food list from MongoDB');
 
-		// Using foodModel model to fetch all the food items
-		const foods = await foodModel.find({}).sort({createdAt: -1});
+		// Ensure database connection is ready
+		if (mongoose.connection.readyState !== 1) {
+			console.log('Database not connected, attempting to connect...');
+			const { connectDB } = await import('../config/db.js');
+			await connectDB();
+		}
+
+		// Using foodModel model to fetch all the food items with timeout
+		const foods = await Promise.race([
+			foodModel.find({}).sort({createdAt: -1}),
+			new Promise((_, reject) => 
+				setTimeout(() => reject(new Error('Database query timeout')), 25000)
+			)
+		]);
 
 		// Map through foods to ensure all image URLs have the correct format
 		const processedFoods = foods.map((food) => {
