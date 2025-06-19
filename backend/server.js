@@ -18,7 +18,8 @@ app.use(express.json());
 // CORS configuration
 const allowedOrigins = [
 	'https://admin-kappa-ivory.vercel.app', // Admin production
-	'https://frontend-beige-eight-62.vercel.app', // Frontend production
+	'https://fooddelivery-2025.vercel.app', // Frontend production (NEW DOMAIN)
+	'https://frontend-beige-eight-62.vercel.app', // Frontend production (OLD DOMAIN - keep for transition)
 	'https://backend-ten-azure-58.vercel.app', // Backend production
 	'http://localhost:5173', // Frontend development
 	'http://localhost:5174', // Admin development
