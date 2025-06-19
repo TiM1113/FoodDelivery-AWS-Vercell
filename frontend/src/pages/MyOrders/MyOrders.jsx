@@ -207,21 +207,18 @@ const MyOrders = () => {
       console.log('MyOrders component mounted, fetching orders...');
       fetchOrders();
       
-      // Force component refresh if we detect potential cache issues
-      const fromPayment = sessionStorage.getItem('fromPayment');
-      const fromStripe = document.referrer.includes('stripe') || 
-                        document.referrer.includes('checkout.stripe.com') ||
-                        window.location.href.includes('success=') ||
-                        fromPayment;
+      // Check if we're coming from payment verification
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromVerify = document.referrer.includes('/verify') || 
+                        document.referrer.includes('stripe') || 
+                        document.referrer.includes('checkout.stripe.com');
       
-      if (fromStripe || fromPayment) {
-        console.log('Detected return from payment flow, forcing complete refresh...', {fromPayment, referrer: document.referrer});
-        sessionStorage.removeItem('fromPayment');
-        
-        // Force a hard refresh of the component
+      if (fromVerify) {
+        console.log('Detected return from payment verification, ensuring fresh data...', {referrer: document.referrer});
+        // Force immediate data refresh from payment verification
         setTimeout(() => {
-          window.location.reload();
-        }, 100);
+          fetchOrders();
+        }, 50);
       }
     }
   },[token, fetchOrders])
