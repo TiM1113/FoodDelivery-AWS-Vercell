@@ -4,6 +4,7 @@ import axios from 'axios'
 import { StoreContext } from '../../context/StoreContext';
 import { assets, menu_list } from '../../assets/assets';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const MyOrders = () => {
   
@@ -51,11 +52,11 @@ const MyOrders = () => {
         const { session_url } = response.data;
         window.location.replace(session_url); // Redirect to Stripe Payment Page
       } else {
-        alert(`Error: ${response.data.message || 'Payment retry failed'}`);
+        toast.error(response.data.message || 'Payment retry failed');
       }
     } catch (error) {
       console.error('Error retrying payment:', error);
-      alert(`Error: ${error.response?.data?.message || 'Failed to retry payment'}`);
+      toast.error(error.response?.data?.message || 'Failed to retry payment');
     }
   };
 
@@ -75,13 +76,13 @@ const MyOrders = () => {
         if (response.data.success) {
           // Refresh orders list
           await fetchOrders();
-          alert('Order deleted successfully');
+          toast.success('Order deleted successfully');
         } else {
-          alert(`Error: ${response.data.message || 'Failed to delete order'}`);
+          toast.error(response.data.message || 'Failed to delete order');
         }
       } catch (error) {
         console.error('Error deleting order:', error);
-        alert(`Error: ${error.response?.data?.message || 'Failed to delete order'}`);
+        toast.error(error.response?.data?.message || 'Failed to delete order');
       }
     }
   };
@@ -154,13 +155,13 @@ const MyOrders = () => {
       if (response.data.success) {
         await fetchOrders(); // Refresh orders list
         closeEditOrder();
-        alert('Order updated successfully');
+        toast.success('Order updated successfully');
       } else {
-        alert(`Error: ${response.data.message || 'Failed to update order'}`);
+        toast.error(response.data.message || 'Failed to update order');
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      alert(`Error: ${error.response?.data?.message || 'Failed to update order'}`);
+      toast.error(error.response?.data?.message || 'Failed to update order');
     }
   };
 
