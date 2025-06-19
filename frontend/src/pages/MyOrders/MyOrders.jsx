@@ -100,26 +100,31 @@ const MyOrders = () => {
     }
   };
 
+  // Internal function to actually delete the order without confirmation
+  const executeDeleteOrder = async (order) => {
+    try {
+      const response = await axios.post(url + "/api/order/delete", { orderId: order._id }, { headers: { token } });
+      
+      if (response.data.success) {
+        // Refresh orders list
+        await fetchOrders();
+        toast.success('Order deleted successfully');
+      } else {
+        toast.error(response.data.message || 'Failed to delete order');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete order');
+    }
+  };
+
   const handleDeleteOrder = async (order) => {
     const orderNumber = data.length - data.indexOf(order);
     showConfirmDialog(
       `Are you sure you want to delete order #${orderNumber}? This action cannot be undone.`,
       async () => {
         setConfirmDialog(null);
-        try {
-          const response = await axios.post(url + "/api/order/delete", { orderId: order._id }, { headers: { token } });
-          
-          if (response.data.success) {
-            // Refresh orders list
-            await fetchOrders();
-            toast.success('Order deleted successfully');
-          } else {
-            toast.error(response.data.message || 'Failed to delete order');
-          }
-        } catch (error) {
-          console.error('Error deleting order:', error);
-          toast.error(error.response?.data?.message || 'Failed to delete order');
-        }
+        await executeDeleteOrder(order);
       }
     );
   };
@@ -179,7 +184,7 @@ const MyOrders = () => {
         'All items have been removed. Do you want to delete this entire order?',
         async () => {
           setConfirmDialog(null);
-          await handleDeleteOrder(editingOrder);
+          await executeDeleteOrder(editingOrder);
           closeEditOrder();
         }
       );
