@@ -76,6 +76,9 @@ const PlaceOrder = () => {
       console.log('Making request to:', url + "/api/order/place");
       console.log('With headers:', { token });
       
+      // Mark that we're going to payment from cart/new order
+      sessionStorage.setItem('fromPayment', 'new');
+      
       let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
       
       console.log('Response received:', response);
@@ -86,6 +89,7 @@ const PlaceOrder = () => {
       }
       else {
         console.error("Order placement failed:", response.data);
+        sessionStorage.removeItem('fromPayment');
         alert(`Error: ${response.data.message || 'Payment session creation failed'}`);
       }
     } catch (error) {
@@ -93,6 +97,7 @@ const PlaceOrder = () => {
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
       
+      sessionStorage.removeItem('fromPayment');
       const errorMessage = error.response?.data?.message || error.message || "Failed to place order. Please try again.";
       alert(`Error: ${errorMessage}`);
     }
