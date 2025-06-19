@@ -54,10 +54,15 @@ const Verify = () => {
   const [searchParams] = useSearchParams(); // ✅ 确保 searchParams 只读
   const success = searchParams.get("success");
   const orderId = searchParams.get("orderId");
+  const source = searchParams.get("source"); // Get payment source from URL
   const { url } = useContext(StoreContext);
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('🔵 Verify component mounted');
+    console.log('🔵 URL params - success:', success, 'orderId:', orderId, 'source:', source);
+    console.log('🔵 Current sessionStorage fromPayment:', sessionStorage.getItem('fromPayment'));
+    
     const verifyPayment = async () => {
       try {
         console.log("🔄 发送 `GET` 请求到:", `${url}/api/order/verify?success=${success}&orderId=${orderId}`);
@@ -72,15 +77,20 @@ const Verify = () => {
           navigate("/myorders");
         } else {
           // Payment failed, determine where to return based on payment source
-          const paymentSource = sessionStorage.getItem('fromPayment');
-          console.log('Payment failed, payment source:', paymentSource);
+          const paymentSource = source || sessionStorage.getItem('fromPayment');
+          console.log('🔴 Payment failed!');
+          console.log('📍 Payment source from URL:', source);
+          console.log('📍 Payment source from sessionStorage:', sessionStorage.getItem('fromPayment'));
+          console.log('📍 Final payment source used:', paymentSource);
           
           if (paymentSource === 'retry') {
             // This was a retry payment from MyOrders, return to MyOrders
+            console.log('✅ Returning to MyOrders (retry payment)');
             sessionStorage.removeItem('fromPayment');
             navigate("/myorders");
           } else {
             // This was a new order from Cart, return to Cart
+            console.log('✅ Returning to Cart (new order)');
             sessionStorage.removeItem('fromPayment');
             navigate("/cart");
           }
@@ -88,7 +98,8 @@ const Verify = () => {
       } catch (error) {
         console.error("❌ 验证请求失败:", error);
         // On error, determine where to return based on payment source
-        const paymentSource = sessionStorage.getItem('fromPayment');
+        const paymentSource = source || sessionStorage.getItem('fromPayment');
+        console.log('❌ Error occurred, payment source:', paymentSource);
         
         if (paymentSource === 'retry') {
           sessionStorage.removeItem('fromPayment');
@@ -106,7 +117,8 @@ const Verify = () => {
     } else {
       console.error("⚠️ 缺少 `success` 或 `orderId`，无法发送验证请求");
       // Determine where to return based on payment source
-      const paymentSource = sessionStorage.getItem('fromPayment');
+      const paymentSource = source || sessionStorage.getItem('fromPayment');
+      console.log('⚠️ Missing success/orderId, payment source:', paymentSource);
       
       if (paymentSource === 'retry') {
         sessionStorage.removeItem('fromPayment');
@@ -116,7 +128,7 @@ const Verify = () => {
         navigate("/cart");
       }
     }
-  }, [success, orderId, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
+  }, [success, orderId, source, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
 
   return (
     <div className='verify'>

@@ -63,6 +63,7 @@ const MyOrders = () => {
       
       // Mark that we're going to payment from MyOrders
       sessionStorage.setItem('fromPayment', 'retry');
+      console.log('🟡 Set fromPayment to retry in MyOrders');
       
       // Create payment session for existing unpaid order
       const response = await axios.post(url + "/api/order/retry-payment", { orderId: order._id }, { headers: { token } });

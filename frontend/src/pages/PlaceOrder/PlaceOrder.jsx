@@ -78,6 +78,7 @@ const PlaceOrder = () => {
       
       // Mark that we're going to payment from cart/new order
       sessionStorage.setItem('fromPayment', 'new');
+      console.log('🟡 Set fromPayment to new in PlaceOrder');
       
       let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } })
       
