@@ -20,8 +20,17 @@ export const StoreContext = createContext(defaultContextValue);
 
 // StoreContext Provider Component
 function StoreContextProvider(props) {
+  // Always use production URLs for deployed frontend
   const url = import.meta.env.VITE_API_URL || "https://backend-ten-azure-58.vercel.app";
   const s3Url = import.meta.env.VITE_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
+  
+  // Force production URLs in production mode
+  const apiUrl = import.meta.env.PROD || window.location.hostname.includes('vercel.app') 
+    ? "https://backend-ten-azure-58.vercel.app" 
+    : url;
+  const s3BaseUrl = import.meta.env.PROD || window.location.hostname.includes('vercel.app')
+    ? "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com"
+    : s3Url;
   
   const [food_list, setFoodList] = useState([]);
   const [cartItems, setCartItems] = useState({});
@@ -50,7 +59,7 @@ function StoreContextProvider(props) {
       setCartItems(currentItems);
 
       if (token) {
-        await axios.post(`${url}/api/cart/add`, { itemId }, { headers: { token } });
+        await axios.post(`${apiUrl}/api/cart/add`, { itemId }, { headers: { token } });
       }
     } catch (error) {
       console.error('Error adding item to cart:', error);
@@ -65,7 +74,7 @@ function StoreContextProvider(props) {
         setCartItems(currentItems);
 
         if (token) {
-          await axios.post(`${url}/api/cart/remove`, { itemId }, { headers: { token } });
+          await axios.post(`${apiUrl}/api/cart/remove`, { itemId }, { headers: { token } });
         }
       }
     } catch (error) {
@@ -111,12 +120,14 @@ function StoreContextProvider(props) {
       console.log('🔍 Environment check v2:', {
         VITE_API_URL: import.meta.env.VITE_API_URL,
         url: url,
+        apiUrl: apiUrl,
         mode: import.meta.env.MODE,
         dev: import.meta.env.DEV,
+        hostname: window.location.hostname,
         timestamp: new Date().toISOString()
       });
-      console.log('Fetching food list from:', `${url}/api/food/list`);
-      const response = await axios.get(`${url}/api/food/list`);
+      console.log('Fetching food list from:', `${apiUrl}/api/food/list`);
+      const response = await axios.get(`${apiUrl}/api/food/list`);
       
       if (!response.data || !response.data.data) {
         console.error('Invalid food list response:', response);
@@ -130,7 +141,7 @@ function StoreContextProvider(props) {
         ...item,
         image: item.image?.startsWith('http') 
           ? item.image 
-          : `${s3Url}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
+          : `${s3BaseUrl}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
       }));
       
       console.log('✅ Successfully loaded', foodItems.length, 'food items');
@@ -150,17 +161,17 @@ function StoreContextProvider(props) {
         code: error.code,
         response: error.response?.data,
         status: error.response?.status,
-        url: `${url}/api/food/list`
+        url: `${apiUrl}/api/food/list`
       });
       
       // Set empty array on error to prevent undefined issues
       setFoodList([]);
     }
-  }, [url, s3Url]);
+  }, [apiUrl, s3BaseUrl]);
 
   const loadCartData = useCallback(async (userToken, foodList = []) => {
     try {
-      const response = await axios.post(`${url}/api/cart/get`, {}, { headers: { token: userToken } });
+      const response = await axios.post(`${apiUrl}/api/cart/get`, {}, { headers: { token: userToken } });
       if (response.data?.cartData) {
         // Verify all items in cart exist in food_list
         const validCartData = Object.entries(response.data.cartData)
@@ -183,7 +194,7 @@ function StoreContextProvider(props) {
     } catch (error) {
       console.error('Error loading cart data:', error);
     }
-  }, [url]);
+  }, [apiUrl]);
 
   useEffect(() => {
     async function loadData() {
@@ -211,8 +222,8 @@ function StoreContextProvider(props) {
     addToCart,
     removeFromCart,
     getTotalCartAmount,
-    url,
-    s3Url,
+    url: apiUrl,
+    s3Url: s3BaseUrl,
     token,
     setToken
   };
