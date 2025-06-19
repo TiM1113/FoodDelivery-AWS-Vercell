@@ -87,16 +87,7 @@
   transition: all 0.3s ease;
 }
 
-.retry-payment-btn {
-  background-color: tomato;
-  color: white;
-  font-weight: bold;
-}
-
-.retry-payment-btn:hover {
-  background-color: #ff4500;
-  transform: translateY(-1px);
-}
+/* Retry payment button styles removed - functionality moved to Track Order modal */
 
 .edit-order-btn {
   background-color: tomato;
@@ -709,10 +700,7 @@
   .order-actions {
     gap: 4px;
   }
-  .retry-payment-btn {
-    font-size: 8px;
-    padding: 4px 6px;
-  }
+  /* Retry payment button mobile styles removed */
   .edit-order-btn, .delete-order-btn {
     font-size: 8px;
     padding: 4px 6px;

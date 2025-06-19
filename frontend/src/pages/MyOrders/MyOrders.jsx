@@ -197,16 +197,29 @@ const MyOrders = () => {
   useEffect(() => {
     const handleFocus = () => {
       if (token) {
+        console.log('Window focused, refreshing orders...');
+        fetchOrders();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && token) {
+        console.log('Page became visible, refreshing orders...');
         fetchOrders();
       }
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [token, fetchOrders]);
 
   return (
-    <div className='my-orders'>
+    <div className='my-orders' data-version="2.0">
       
       <h2>My Orders</h2>
       <div className="container">
