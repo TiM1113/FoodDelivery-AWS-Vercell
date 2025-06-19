@@ -27,15 +27,25 @@ const MyOrders = () => {
   }, [url, token]);
 
   const handleTrackOrder = async (order) => {
-    // First refresh orders to get latest status
-    await fetchOrders();
+    // Immediately show the modal with current data for faster response
+    setTrackingOrder(order);
     
-    // Find the updated order from the refreshed data
-    const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
-    const updatedOrders = response.data.data;
-    const updatedOrder = updatedOrders.find(o => o._id === order._id);
-    
-    setTrackingOrder(updatedOrder || order);
+    // Then fetch latest data in background and update if needed
+    try {
+      const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
+      const updatedOrders = response.data.data;
+      const updatedOrder = updatedOrders.find(o => o._id === order._id);
+      
+      // Update modal with fresh data if different
+      if (updatedOrder && JSON.stringify(updatedOrder) !== JSON.stringify(order)) {
+        setTrackingOrder(updatedOrder);
+        // Also update the main orders list
+        setData(updatedOrders);
+      }
+    } catch (error) {
+      console.error('Error fetching latest order status:', error);
+      // Keep showing the modal with existing data
+    }
   };
 
   const closeTracking = () => {
@@ -51,6 +61,9 @@ const MyOrders = () => {
     try {
       console.log('Retrying payment for order:', order._id);
       
+      // Mark that we're going to payment
+      sessionStorage.setItem('fromPayment', 'true');
+      
       // Use the new retry payment endpoint that reuses existing order
       const response = await axios.post(url + "/api/order/retry-payment", { orderId: order._id }, { headers: { token } });
       
@@ -59,10 +72,12 @@ const MyOrders = () => {
         window.location.replace(session_url); // Redirect to Stripe Payment Page
       } else {
         toast.error(response.data.message || 'Payment retry failed');
+        sessionStorage.removeItem('fromPayment');
       }
     } catch (error) {
       console.error('Error retrying payment:', error);
       toast.error(error.response?.data?.message || 'Failed to retry payment');
+      sessionStorage.removeItem('fromPayment');
     }
   };
 
@@ -189,7 +204,22 @@ const MyOrders = () => {
 
   useEffect(()=>{
     if (token) {
+      console.log('MyOrders component mounted, fetching orders...');
       fetchOrders();
+      
+      // Force component refresh if we detect potential cache issues
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromStripe = document.referrer.includes('stripe') || 
+                        sessionStorage.getItem('fromPayment') === 'true';
+      
+      if (fromStripe) {
+        console.log('Detected return from payment, forcing data refresh...');
+        sessionStorage.removeItem('fromPayment');
+        // Small delay to ensure fresh data
+        setTimeout(() => {
+          fetchOrders();
+        }, 100);
+      }
     }
   },[token, fetchOrders])
 
