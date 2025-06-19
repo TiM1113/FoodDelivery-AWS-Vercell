@@ -139,6 +139,11 @@ const placeOrder = async (req, res) => {
 			payment_method_types: ['card'], // Remove au_becs_debit to support higher amounts
 			success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}&source=new`,
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}&source=new`,
+			locale: 'en', // Explicitly set locale to avoid module loading issues
+			billing_address_collection: 'required',
+			shipping_address_collection: {
+				allowed_countries: ['AU', 'US', 'CA', 'GB']
+			}
 		});
 
 		console.log('Stripe session created successfully:', session.id);
@@ -302,6 +307,11 @@ const retryPayment = async (req, res) => {
 			payment_method_types: ['card'],
 			success_url: `${frontend_url}/verify?success=true&orderId=${existingOrder._id}&source=retry`,
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}&source=retry`,
+			locale: 'en', // Explicitly set locale to avoid module loading issues
+			billing_address_collection: 'required',
+			shipping_address_collection: {
+				allowed_countries: ['AU', 'US', 'CA', 'GB']
+			}
 		});
 		
 		console.log('Retry payment session created for order:', existingOrder._id);
