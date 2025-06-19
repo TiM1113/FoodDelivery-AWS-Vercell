@@ -209,12 +209,33 @@ const MyOrders = () => {
       }
     };
 
+    // Handle browser back button from external pages (like Stripe)
+    const handlePageShow = (event) => {
+      if (event.persisted && token) {
+        // Page was loaded from bfcache (browser back button)
+        console.log('Page loaded from cache, forcing refresh...');
+        window.location.reload();
+      }
+    };
+
+    // Handle popstate for browser navigation
+    const handlePopState = () => {
+      if (token) {
+        console.log('Browser navigation detected, refreshing orders...');
+        fetchOrders();
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePopState);
     
     return () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, [token, fetchOrders]);
 
