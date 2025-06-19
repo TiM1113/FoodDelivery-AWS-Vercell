@@ -108,11 +108,12 @@ function StoreContextProvider(props) {
 
   const fetchFoodList = useCallback(async () => {
     try {
-      console.log('🔍 Environment check:', {
+      console.log('🔍 Environment check v2:', {
         VITE_API_URL: import.meta.env.VITE_API_URL,
         url: url,
         mode: import.meta.env.MODE,
-        dev: import.meta.env.DEV
+        dev: import.meta.env.DEV,
+        timestamp: new Date().toISOString()
       });
       console.log('Fetching food list from:', `${url}/api/food/list`);
       const response = await axios.get(`${url}/api/food/list`);
