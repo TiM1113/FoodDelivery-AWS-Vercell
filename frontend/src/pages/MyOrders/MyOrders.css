@@ -98,6 +98,28 @@
   transform: translateY(-1px);
 }
 
+.edit-order-btn {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.edit-order-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.delete-order-btn {
+  background-color: #6c757d;
+  color: white;
+  font-weight: bold;
+}
+
+.delete-order-btn:hover {
+  background-color: #545b62;
+  transform: translateY(-1px);
+}
+
 /* Status indicators */
 .status-indicator {
   margin-right: 8px;
@@ -131,6 +153,249 @@
   background-color: #FFE1E1;
   cursor: pointer;
   color: #454545;
+}
+
+/* Edit Order Modal */
+.edit-order-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+.edit-order-content {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.edit-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+.edit-order-header h3 {
+  margin: 0;
+  color: tomato;
+}
+
+.edit-order-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.current-items {
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.current-items h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.edit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+}
+
+.item-name {
+  font-weight: 500;
+  flex: 2;
+}
+
+.item-price {
+  color: tomato;
+  font-weight: bold;
+  flex: 1;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.quantity-btn {
+  background-color: tomato;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quantity-btn:hover {
+  background-color: #ff4500;
+}
+
+.quantity {
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.remove-item-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove-item-btn:hover {
+  background-color: #c82333;
+}
+
+.no-items {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.add-items {
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.add-items h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.food-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.food-item-add {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  background-color: #fafafa;
+}
+
+.food-item-add img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.food-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.food-name {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.food-price {
+  color: tomato;
+  font-weight: bold;
+  margin: 0;
+  font-size: 12px;
+}
+
+.add-food-btn {
+  background-color: tomato;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.add-food-btn:hover {
+  background-color: #ff4500;
+}
+
+.order-summary {
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.order-summary h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.order-summary p {
+  margin: 5px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.edit-order-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.save-changes-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.save-changes-btn:hover {
+  background-color: #218838;
+}
+
+.cancel-edit-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cancel-edit-btn:hover {
+  background-color: #545b62;
 }
 /* Order Tracking Modal */
 .tracking-modal {
@@ -297,6 +562,10 @@
     font-size: 8px;
     padding: 4px 6px;
   }
+  .edit-order-btn, .delete-order-btn {
+    font-size: 8px;
+    padding: 4px 6px;
+  }
   .tracking-content {
     padding: 20px;
     margin: 20px;
@@ -333,5 +602,26 @@
     justify-content: flex-end;
     flex-direction: row;
     gap: 8px;
+  }
+  
+  .edit-order-content {
+    padding: 20px;
+    margin: 10px;
+    max-height: 95vh;
+  }
+  
+  .food-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  
+  .edit-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .quantity-controls {
+    align-self: center;
   }
 }

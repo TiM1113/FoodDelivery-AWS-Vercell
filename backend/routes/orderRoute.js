@@ -6,7 +6,10 @@ import {
 	userOrders,
 	verifyOrder,
 	listOrders,
-  updateStatus
+  updateStatus,
+  retryPayment,
+  editOrder,
+  deleteOrder
 } from '../controllers/orderController.js';
 
 // Log that the order router is being initialized
@@ -35,6 +38,15 @@ orderRouter.get('/list', listOrders); //In Express, route paths must start with 
 
 // 5- update orders status in admin panel
 orderRouter.post('/update', updateStatus)
+
+// 6- retry payment for existing unpaid order
+orderRouter.post('/retry-payment', authMiddleware, retryPayment);
+
+// 7- edit unpaid order (add/remove items)
+orderRouter.post('/edit', authMiddleware, editOrder);
+
+// 8- delete unpaid order
+orderRouter.post('/delete', authMiddleware, deleteOrder);
 
 // export the place order router, and it will be used in service.js file
 export default orderRouter;

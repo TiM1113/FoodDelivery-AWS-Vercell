@@ -9,7 +9,9 @@ const MyOrders = () => {
   
   const [data,setData] =  useState([]);
   const [trackingOrder, setTrackingOrder] = useState(null);
-  const {url,token} = useContext(StoreContext);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editOrderItems, setEditOrderItems] = useState([]);
+  const {url,token,food_list} = useContext(StoreContext);
   const navigate = useNavigate();
 
   const fetchOrders = useCallback(async () => {
@@ -41,16 +43,8 @@ const MyOrders = () => {
     try {
       console.log('Retrying payment for order:', order._id);
       
-      // Create order data for retry payment
-      const orderData = {
-        address: order.address,
-        items: order.items,
-        amount: order.amount,
-        isRetry: true,
-        originalOrderId: order._id
-      };
-      
-      const response = await axios.post(url + "/api/order/place", orderData, { headers: { token } });
+      // Use the new retry payment endpoint that reuses existing order
+      const response = await axios.post(url + "/api/order/retry-payment", { orderId: order._id }, { headers: { token } });
       
       if (response.data.success) {
         const { session_url } = response.data;
@@ -69,6 +63,95 @@ const MyOrders = () => {
       return <span className="payment-status paid">💳 Paid</span>;
     } else {
       return <span className="payment-status unpaid">❌ Unpaid</span>;
+    }
+  };
+
+  const handleDeleteOrder = async (order) => {
+    if (window.confirm(`Are you sure you want to delete order #${data.length - data.indexOf(order)}? This action cannot be undone.`)) {
+      try {
+        const response = await axios.post(url + "/api/order/delete", { orderId: order._id }, { headers: { token } });
+        
+        if (response.data.success) {
+          // Refresh orders list
+          await fetchOrders();
+          alert('Order deleted successfully');
+        } else {
+          alert(`Error: ${response.data.message || 'Failed to delete order'}`);
+        }
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert(`Error: ${error.response?.data?.message || 'Failed to delete order'}`);
+      }
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setEditingOrder(order);
+    setEditOrderItems([...order.items]);
+  };
+
+  const closeEditOrder = () => {
+    setEditingOrder(null);
+    setEditOrderItems([]);
+  };
+
+  const updateItemQuantity = (itemIndex, newQuantity) => {
+    const updatedItems = [...editOrderItems];
+    if (newQuantity <= 0) {
+      updatedItems.splice(itemIndex, 1);
+    } else {
+      updatedItems[itemIndex].quantity = newQuantity;
+    }
+    setEditOrderItems(updatedItems);
+  };
+
+  const addFoodToOrder = (foodItem) => {
+    const existingItemIndex = editOrderItems.findIndex(item => item.name === foodItem.name);
+    const updatedItems = [...editOrderItems];
+    
+    if (existingItemIndex !== -1) {
+      updatedItems[existingItemIndex].quantity += 1;
+    } else {
+      updatedItems.push({
+        name: foodItem.name,
+        price: foodItem.price,
+        quantity: 1,
+        image: foodItem.image
+      });
+    }
+    setEditOrderItems(updatedItems);
+  };
+
+  const calculateOrderTotal = () => {
+    return editOrderItems.reduce((total, item) => total + (item.price * item.quantity), 0) + 2; // +2 for delivery
+  };
+
+  const saveOrderChanges = async () => {
+    if (editOrderItems.length === 0) {
+      if (window.confirm('All items have been removed. Do you want to delete this entire order?')) {
+        await handleDeleteOrder(editingOrder);
+        closeEditOrder();
+      }
+      return;
+    }
+
+    try {
+      const response = await axios.post(url + "/api/order/edit", {
+        orderId: editingOrder._id,
+        items: editOrderItems,
+        amount: calculateOrderTotal()
+      }, { headers: { token } });
+
+      if (response.data.success) {
+        await fetchOrders(); // Refresh orders list
+        closeEditOrder();
+        alert('Order updated successfully');
+      } else {
+        alert(`Error: ${response.data.message || 'Failed to update order'}`);
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert(`Error: ${error.response?.data?.message || 'Failed to update order'}`);
     }
   };
 
@@ -126,12 +209,26 @@ const MyOrders = () => {
                 <div className="order-actions">
                   <button onClick={() => handleTrackOrder(order)}>Track Order</button>
                   {!order.payment && (
-                    <button 
-                      className="retry-payment-btn" 
-                      onClick={() => handleRetryPayment(order)}
-                    >
-                      Retry Payment
-                    </button>
+                    <>
+                      <button 
+                        className="retry-payment-btn" 
+                        onClick={() => handleRetryPayment(order)}
+                      >
+                        Retry Payment
+                      </button>
+                      <button 
+                        className="edit-order-btn" 
+                        onClick={() => handleEditOrder(order)}
+                      >
+                        Edit Order
+                      </button>
+                      <button 
+                        className="delete-order-btn" 
+                        onClick={() => handleDeleteOrder(order)}
+                      >
+                        Delete Order
+                      </button>
+                    </>
                   )}
                 </div>
             </div>
@@ -182,6 +279,92 @@ const MyOrders = () => {
                     <span> x {item.quantity}</span>
                   </p>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <div className="edit-order-modal">
+          <div className="edit-order-content">
+            <div className="edit-order-header">
+              <h3>Edit Order #{data.length - data.indexOf(editingOrder)}</h3>
+              <button className="close-btn" onClick={closeEditOrder}>×</button>
+            </div>
+            
+            <div className="edit-order-body">
+              <div className="current-items">
+                <h4>Current Items:</h4>
+                {editOrderItems.map((item, index) => (
+                  <div key={index} className="edit-item">
+                    <span className="item-name">{item.name}</span>
+                    <span className="item-price">${item.price}</span>
+                    <div className="quantity-controls">
+                      <button 
+                        onClick={() => updateItemQuantity(index, item.quantity - 1)}
+                        className="quantity-btn"
+                      >
+                        -
+                      </button>
+                      <span className="quantity">{item.quantity}</span>
+                      <button 
+                        onClick={() => updateItemQuantity(index, item.quantity + 1)}
+                        className="quantity-btn"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => updateItemQuantity(index, 0)}
+                      className="remove-item-btn"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                
+                {editOrderItems.length === 0 && (
+                  <p className="no-items">No items in order</p>
+                )}
+              </div>
+
+              <div className="add-items">
+                <h4>Add More Items:</h4>
+                <div className="food-grid">
+                  {food_list.slice(0, 8).map((food, index) => (
+                    <div key={index} className="food-item-add">
+                      <img src={food.image} alt={food.name} />
+                      <div className="food-info">
+                        <p className="food-name">{food.name}</p>
+                        <p className="food-price">${food.price}</p>
+                        <button 
+                          onClick={() => addFoodToOrder(food)}
+                          className="add-food-btn"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="order-summary">
+                <h4>Order Summary:</h4>
+                <p>Items Total: ${editOrderItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2)}</p>
+                <p>Delivery: $2.00</p>
+                <p><strong>Total: ${calculateOrderTotal().toFixed(2)}</strong></p>
+              </div>
+
+              <div className="edit-order-actions">
+                <button onClick={saveOrderChanges} className="save-changes-btn">
+                  Save Changes
+                </button>
+                <button onClick={closeEditOrder} className="cancel-edit-btn">
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
