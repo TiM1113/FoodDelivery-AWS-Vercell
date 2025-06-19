@@ -256,24 +256,42 @@ const MyOrders = () => {
             </div>
             <div className="tracking-details">
               <p><strong>Order ID:</strong> {trackingOrder._id}</p>
-              <p><strong>Status:</strong> <span className={`status ${trackingOrder.status.toLowerCase().replace(' ', '-')}`}>{trackingOrder.status}</span></p>
+              <p><strong>Status:</strong> <span className={`status ${trackingOrder.payment ? trackingOrder.status.toLowerCase().replace(' ', '-') : 'payment-pending'}`}>{trackingOrder.payment ? trackingOrder.status : 'Payment Pending'}</span></p>
               <p><strong>Amount:</strong> ${trackingOrder.amount}.00</p>
               <p><strong>Payment:</strong> {trackingOrder.payment ? 'Paid' : 'Pending'}</p>
               
-              <div className="order-progress">
-                <div className={`progress-step ${['Food Processing', 'Out for delivery', 'Delivered'].includes(trackingOrder.status) ? 'completed' : ''}`}>
-                  <div className="step-icon">1</div>
-                  <div className="step-text">Food Processing</div>
+              {trackingOrder.payment ? (
+                <div className="order-progress">
+                  <div className={`progress-step ${['Food Processing', 'Out for delivery', 'Delivered'].includes(trackingOrder.status) ? 'completed' : ''}`}>
+                    <div className="step-icon">1</div>
+                    <div className="step-text">Food Processing</div>
+                  </div>
+                  <div className={`progress-step ${['Out for delivery', 'Delivered'].includes(trackingOrder.status) ? 'completed' : ''}`}>
+                    <div className="step-icon">2</div>
+                    <div className="step-text">Out for Delivery</div>
+                  </div>
+                  <div className={`progress-step ${trackingOrder.status === 'Delivered' ? 'completed' : ''}`}>
+                    <div className="step-icon">3</div>
+                    <div className="step-text">Delivered</div>
+                  </div>
                 </div>
-                <div className={`progress-step ${['Out for delivery', 'Delivered'].includes(trackingOrder.status) ? 'completed' : ''}`}>
-                  <div className="step-icon">2</div>
-                  <div className="step-text">Out for Delivery</div>
+              ) : (
+                <div className="payment-reminder">
+                  <div className="payment-warning">
+                    <h4>⚠️ Payment Required</h4>
+                    <p>This order cannot be processed until payment is completed. Please complete your payment to start order preparation.</p>
+                    <button 
+                      className="retry-payment-btn"
+                      onClick={() => {
+                        closeTracking();
+                        handleRetryPayment(trackingOrder);
+                      }}
+                    >
+                      Complete Payment
+                    </button>
+                  </div>
                 </div>
-                <div className={`progress-step ${trackingOrder.status === 'Delivered' ? 'completed' : ''}`}>
-                  <div className="step-icon">3</div>
-                  <div className="step-text">Delivered</div>
-                </div>
-              </div>
+              )}
 
               <div className="order-items">
                 <h4>Items:</h4>
