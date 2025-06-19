@@ -252,7 +252,7 @@ const MyOrders = () => {
           <div className="tracking-content">
             <div className="tracking-header">
               <h3>Order Tracking</h3>
-              <button className="close-btn" onClick={closeTracking}>×</button>
+              <button className="close-btn" onClick={closeTracking}>Close</button>
             </div>
             <div className="tracking-details">
               <p><strong>Order ID:</strong> {trackingOrder._id}</p>
@@ -301,7 +301,7 @@ const MyOrders = () => {
           <div className="edit-order-content">
             <div className="edit-order-header">
               <h3>Edit Order #{data.length - data.indexOf(editingOrder)}</h3>
-              <button className="close-btn" onClick={closeEditOrder}>×</button>
+              <button className="close-btn" onClick={closeEditOrder}>Close</button>
             </div>
             
             <div className="edit-order-body">
