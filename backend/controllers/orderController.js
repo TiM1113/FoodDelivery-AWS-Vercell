@@ -189,5 +189,153 @@ const updateStatus = async (req, res) => {
 	}
 };
 
+// Retry payment for existing unpaid order
+const retryPayment = async (req, res) => {
+	try {
+		const { orderId } = req.body;
+		
+		if (!orderId) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Order ID is required" 
+			});
+		}
+		
+		// Find the existing unpaid order
+		const existingOrder = await orderModel.findById(orderId);
+		
+		if (!existingOrder) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "Order not found" 
+			});
+		}
+		
+		if (existingOrder.payment === true) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Order is already paid" 
+			});
+		}
+		
+		// Create line items from existing order
+		const line_items = existingOrder.items.map((item) => ({
+			price_data: {
+				currency: 'aud',
+				product_data: {
+					name: item.name,
+				},
+				unit_amount: Math.round(item.price * 100),
+			},
+			quantity: item.quantity,
+		}));
+		
+		// Add delivery charges
+		line_items.push({
+			price_data: {
+				currency: 'aud',
+				product_data: {
+					name: 'Delivery Charges',
+				},
+				unit_amount: 2 * 100,
+			},
+			quantity: 1,
+		});
+		
+		// Create new Stripe session for existing order
+		const session = await stripe.checkout.sessions.create({
+			line_items: line_items,
+			mode: 'payment',
+			payment_method_types: ['card'],
+			success_url: `${frontend_url}/verify?success=true&orderId=${existingOrder._id}`,
+			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}`,
+		});
+		
+		console.log('Retry payment session created for order:', existingOrder._id);
+		res.json({success: true, session_url: session.url});
+	} catch (error) {
+		console.error("Retry payment error:", error);
+		res.status(500).json({ success: false, message: error.message || "Retry payment failed" });
+	}
+};
+
+// Edit unpaid order - add or remove items
+const editOrder = async (req, res) => {
+	try {
+		const { orderId, items, amount } = req.body;
+		
+		if (!orderId) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Order ID is required" 
+			});
+		}
+		
+		const existingOrder = await orderModel.findById(orderId);
+		
+		if (!existingOrder) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "Order not found" 
+			});
+		}
+		
+		if (existingOrder.payment === true) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Cannot edit paid orders" 
+			});
+		}
+		
+		// Update order with new items and amount
+		await orderModel.findByIdAndUpdate(orderId, {
+			items: items,
+			amount: amount
+		});
+		
+		res.json({success: true, message: 'Order updated successfully'});
+	} catch (error) {
+		console.error('Error editing order:', error);
+		res.status(500).json({success: false, message: 'Error editing order'});
+	}
+};
+
+// Delete unpaid order
+const deleteOrder = async (req, res) => {
+	try {
+		const { orderId } = req.body;
+		
+		if (!orderId) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Order ID is required" 
+			});
+		}
+		
+		const existingOrder = await orderModel.findById(orderId);
+		
+		if (!existingOrder) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "Order not found" 
+			});
+		}
+		
+		if (existingOrder.payment === true) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Cannot delete paid orders" 
+			});
+		}
+		
+		await orderModel.findByIdAndDelete(orderId);
+		
+		res.json({success: true, message: 'Order deleted successfully'});
+	} catch (error) {
+		console.error('Error deleting order:', error);
+		res.status(500).json({success: false, message: 'Error deleting order'});
+	}
+};
+
 // export placeOrder function and it will be imported in orderRoute.js
-export {placeOrder, userOrders, verifyOrder, listOrders, updateStatus};
+export {placeOrder, userOrders, verifyOrder, listOrders, updateStatus, retryPayment, editOrder, deleteOrder};
