@@ -108,6 +108,12 @@ function StoreContextProvider(props) {
 
   const fetchFoodList = useCallback(async () => {
     try {
+      console.log('🔍 Environment check:', {
+        VITE_API_URL: import.meta.env.VITE_API_URL,
+        url: url,
+        mode: import.meta.env.MODE,
+        dev: import.meta.env.DEV
+      });
       console.log('Fetching food list from:', `${url}/api/food/list`);
       const response = await axios.get(`${url}/api/food/list`);
       
@@ -126,12 +132,16 @@ function StoreContextProvider(props) {
           : `${s3Url}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
       }));
       
-      console.log('Successfully loaded', foodItems.length, 'food items');
+      console.log('✅ Successfully loaded', foodItems.length, 'food items');
+      console.log('🔄 Setting food list state...');
+      
       // Only log sample URLs in development
       if (import.meta.env.DEV) {
         console.log('Sample image URLs:', foodItems.slice(0, 2).map(item => ({ name: item.name, image: item.image })));
       }
+      
       setFoodList(foodItems);
+      console.log('✅ Food list state updated');
     } catch (error) {
       console.error('Error fetching food list:', error);
       console.error('Error details:', {
