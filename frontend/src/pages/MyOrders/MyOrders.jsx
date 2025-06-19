@@ -26,10 +26,16 @@ const MyOrders = () => {
     }
   }, [url, token]);
 
-  const handleTrackOrder = (order) => {
-    setTrackingOrder(order);
-    // Refresh orders to get latest status
-    fetchOrders();
+  const handleTrackOrder = async (order) => {
+    // First refresh orders to get latest status
+    await fetchOrders();
+    
+    // Find the updated order from the refreshed data
+    const response = await axios.post(url+"/api/order/userorders",{},{headers:{token}});
+    const updatedOrders = response.data.data;
+    const updatedOrder = updatedOrders.find(o => o._id === order._id);
+    
+    setTrackingOrder(updatedOrder || order);
   };
 
   const closeTracking = () => {
@@ -186,6 +192,18 @@ const MyOrders = () => {
       fetchOrders();
     }
   },[token, fetchOrders])
+
+  // Refresh data when user returns to the page (e.g., after payment)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (token) {
+        fetchOrders();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [token, fetchOrders]);
 
   return (
     <div className='my-orders'>
