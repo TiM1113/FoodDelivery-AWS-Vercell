@@ -13,8 +13,18 @@ const MyOrders = () => {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderItems, setEditOrderItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const {url,token,food_list} = useContext(StoreContext);
   const navigate = useNavigate();
+
+  // Custom confirmation dialog
+  const showConfirmDialog = (message, onConfirm) => {
+    setConfirmDialog({
+      message,
+      onConfirm,
+      onCancel: () => setConfirmDialog(null)
+    });
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -91,22 +101,27 @@ const MyOrders = () => {
   };
 
   const handleDeleteOrder = async (order) => {
-    if (window.confirm(`Are you sure you want to delete order #${data.length - data.indexOf(order)}? This action cannot be undone.`)) {
-      try {
-        const response = await axios.post(url + "/api/order/delete", { orderId: order._id }, { headers: { token } });
-        
-        if (response.data.success) {
-          // Refresh orders list
-          await fetchOrders();
-          toast.success('Order deleted successfully');
-        } else {
-          toast.error(response.data.message || 'Failed to delete order');
+    const orderNumber = data.length - data.indexOf(order);
+    showConfirmDialog(
+      `Are you sure you want to delete order #${orderNumber}? This action cannot be undone.`,
+      async () => {
+        setConfirmDialog(null);
+        try {
+          const response = await axios.post(url + "/api/order/delete", { orderId: order._id }, { headers: { token } });
+          
+          if (response.data.success) {
+            // Refresh orders list
+            await fetchOrders();
+            toast.success('Order deleted successfully');
+          } else {
+            toast.error(response.data.message || 'Failed to delete order');
+          }
+        } catch (error) {
+          console.error('Error deleting order:', error);
+          toast.error(error.response?.data?.message || 'Failed to delete order');
         }
-      } catch (error) {
-        console.error('Error deleting order:', error);
-        toast.error(error.response?.data?.message || 'Failed to delete order');
       }
-    }
+    );
   };
 
   const handleEditOrder = (order) => {
@@ -160,10 +175,14 @@ const MyOrders = () => {
 
   const saveOrderChanges = async () => {
     if (editOrderItems.length === 0) {
-      if (window.confirm('All items have been removed. Do you want to delete this entire order?')) {
-        await handleDeleteOrder(editingOrder);
-        closeEditOrder();
-      }
+      showConfirmDialog(
+        'All items have been removed. Do you want to delete this entire order?',
+        async () => {
+          setConfirmDialog(null);
+          await handleDeleteOrder(editingOrder);
+          closeEditOrder();
+        }
+      );
       return;
     }
 
@@ -499,6 +518,34 @@ const MyOrders = () => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Dialog */}
+      {confirmDialog && (
+        <div className="confirmation-modal">
+          <div className="confirmation-content">
+            <div className="confirmation-header">
+              <h3>Confirm Action</h3>
+            </div>
+            <div className="confirmation-body">
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className="confirmation-actions">
+              <button 
+                className="confirm-btn"
+                onClick={confirmDialog.onConfirm}
+              >
+                Confirm
+              </button>
+              <button 
+                className="cancel-btn"
+                onClick={confirmDialog.onCancel}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
