@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useCallback } from 'react'
 import './MyOrders.css'
 import axios from 'axios'
 import { StoreContext } from '../../context/StoreContext';
-import { assets } from '../../assets/assets';
+import { assets, menu_list } from '../../assets/assets';
 import { useNavigate } from 'react-router-dom';
 
 const MyOrders = () => {
@@ -11,6 +11,7 @@ const MyOrders = () => {
   const [trackingOrder, setTrackingOrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderItems, setEditOrderItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const {url,token,food_list} = useContext(StoreContext);
   const navigate = useNavigate();
 
@@ -93,6 +94,7 @@ const MyOrders = () => {
   const closeEditOrder = () => {
     setEditingOrder(null);
     setEditOrderItems([]);
+    setSelectedCategory("All");
   };
 
   const updateItemQuantity = (itemIndex, newQuantity) => {
@@ -124,6 +126,13 @@ const MyOrders = () => {
 
   const calculateOrderTotal = () => {
     return editOrderItems.reduce((total, item) => total + (item.price * item.quantity), 0) + 2; // +2 for delivery
+  };
+
+  const getFilteredFoodList = () => {
+    if (selectedCategory === "All") {
+      return food_list;
+    }
+    return food_list.filter(food => food.category === selectedCategory);
   };
 
   const saveOrderChanges = async () => {
@@ -332,8 +341,30 @@ const MyOrders = () => {
 
               <div className="add-items">
                 <h4>Add More Items:</h4>
+                
+                {/* Category Navigation */}
+                <div className="category-navigation">
+                  <button 
+                    className={`category-btn ${selectedCategory === "All" ? "active" : ""}`}
+                    onClick={() => setSelectedCategory("All")}
+                  >
+                    All
+                  </button>
+                  {menu_list.map((category, index) => (
+                    <button 
+                      key={index}
+                      className={`category-btn ${selectedCategory === category.menu_name ? "active" : ""}`}
+                      onClick={() => setSelectedCategory(category.menu_name)}
+                    >
+                      <img src={category.menu_image} alt={category.menu_name} />
+                      <span>{category.menu_name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Food Grid */}
                 <div className="food-grid">
-                  {food_list.slice(0, 8).map((food, index) => (
+                  {getFilteredFoodList().map((food, index) => (
                     <div key={index} className="food-item-add">
                       <img src={food.image} alt={food.name} />
                       <div className="food-info">
@@ -348,6 +379,10 @@ const MyOrders = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {getFilteredFoodList().length === 0 && (
+                    <p className="no-food-items">No items found in this category</p>
+                  )}
                 </div>
               </div>
 
