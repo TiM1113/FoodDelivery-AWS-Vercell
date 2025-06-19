@@ -201,8 +201,9 @@
 
 .current-items {
   border: 1px solid #eee;
-  padding: 15px;
+  padding: 20px;
   border-radius: 8px;
+  margin: 0 10px;
 }
 
 .current-items h4 {
@@ -282,8 +283,9 @@
 
 .add-items {
   border: 1px solid #eee;
-  padding: 15px;
+  padding: 20px;
   border-radius: 8px;
+  margin: 0 10px;
 }
 
 .add-items h4 {
@@ -348,9 +350,10 @@
 
 .order-summary {
   border: 1px solid #eee;
-  padding: 15px;
+  padding: 20px;
   border-radius: 8px;
   background-color: #f9f9f9;
+  margin: 0 10px;
 }
 
 .order-summary h4 {
@@ -368,6 +371,8 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  margin: 0 10px;
+  padding-top: 10px;
 }
 
 .save-changes-btn {
@@ -668,9 +673,18 @@
   }
   
   .edit-order-content {
-    padding: 20px;
-    margin: 10px;
+    padding: 15px;
+    margin: 5px;
     max-height: 95vh;
+  }
+  
+  .current-items, .add-items, .order-summary {
+    margin: 0 5px;
+    padding: 15px;
+  }
+  
+  .edit-order-actions {
+    margin: 0 5px;
   }
   
   .food-grid {
