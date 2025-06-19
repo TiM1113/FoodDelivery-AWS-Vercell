@@ -137,8 +137,8 @@ const placeOrder = async (req, res) => {
 			line_items: line_items,
 			mode: 'payment',
 			payment_method_types: ['card'], // Remove au_becs_debit to support higher amounts
-			success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}`,
-			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}`,
+			success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}&source=new`,
+			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}&source=new`,
 		});
 
 		console.log('Stripe session created successfully:', session.id);
@@ -300,8 +300,8 @@ const retryPayment = async (req, res) => {
 			line_items: line_items,
 			mode: 'payment',
 			payment_method_types: ['card'],
-			success_url: `${frontend_url}/verify?success=true&orderId=${existingOrder._id}`,
-			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}`,
+			success_url: `${frontend_url}/verify?success=true&orderId=${existingOrder._id}&source=retry`,
+			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}&source=retry`,
 		});
 		
 		console.log('Retry payment session created for order:', existingOrder._id);
