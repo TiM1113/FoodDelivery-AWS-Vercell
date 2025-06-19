@@ -146,6 +146,14 @@
   color: tomato;
 }
 
+.status-indicator.payment-pending {
+  color: #856404;
+  background-color: #fff3cd;
+  border-radius: 50%;
+  padding: 2px 4px;
+  font-weight: bold;
+}
+
 .my-orders button{
   border: none;
   padding: 12px 0px;

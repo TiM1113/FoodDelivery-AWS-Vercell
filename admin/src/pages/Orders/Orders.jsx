@@ -26,11 +26,21 @@ const Orders = ({ url }) => {
 
   const statusHandler = async (event, orderId) => {
     try {
-      console.log('Updating order status:', { orderId, status: event.target.value, url: `${url}/api/order/update` });
+      const newStatus = event.target.value;
+      const order = orders.find(o => o._id === orderId);
+      
+      // Prevent changing unpaid orders to processing states
+      if (!order.payment && newStatus !== "Payment Pending") {
+        toast.error("Cannot process unpaid orders. Payment must be completed first.");
+        event.target.value = order.status; // Reset to original status
+        return;
+      }
+      
+      console.log('Updating order status:', { orderId, status: newStatus, url: `${url}/api/order/update` });
       
       const response = await axios.post(`${url}/api/order/update`, {
         orderId,
-        status: event.target.value
+        status: newStatus
       });
       
       console.log('Status update response:', response.data);
@@ -84,7 +94,11 @@ const Orders = ({ url }) => {
             </div>
             <p>Items: {order.items.length}</p>
             <p>${order.amount}</p>
+            <p className={`payment-status ${order.payment ? 'paid' : 'unpaid'}`}>
+              {order.payment ? '💳 Paid' : '❌ Unpaid'}
+            </p>
             <select onChange={(event) => statusHandler(event, order._id)} value={order.status}>
+              <option value="Payment Pending">Payment Pending</option>
               <option value="Food Processing">Food Processing</option>
               <option value="Out for delivery">Out for delivery</option>
               <option value="Delivered">Delivered</option>

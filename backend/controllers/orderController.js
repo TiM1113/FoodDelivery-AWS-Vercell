@@ -143,7 +143,10 @@ const verifyOrder = async (req, res) => {
 
     try {
         if (success === 'true') {
-            await orderModel.findByIdAndUpdate(orderId, { payment: true });
+            await orderModel.findByIdAndUpdate(orderId, { 
+                payment: true,
+                status: "Food Processing"
+            });
             return res.json({ success: true, message: 'Paid' });
         } else {
             await orderModel.findByIdAndDelete(orderId);
@@ -175,6 +178,23 @@ const updateStatus = async (req, res) => {
 			return res.status(400).json({
 				success: false, 
 				message: 'Missing orderId or status'
+			});
+		}
+		
+		// Find the existing order first
+		const existingOrder = await orderModel.findById(orderId);
+		if (!existingOrder) {
+			return res.status(404).json({
+				success: false, 
+				message: 'Order not found'
+			});
+		}
+		
+		// Prevent updating unpaid orders to processing states
+		if (!existingOrder.payment && status !== "Payment Pending") {
+			return res.status(400).json({
+				success: false, 
+				message: 'Cannot process unpaid orders. Payment must be completed first.'
 			});
 		}
 		
