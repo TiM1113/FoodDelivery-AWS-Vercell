@@ -241,12 +241,6 @@ const MyOrders = () => {
                   {!order.payment && (
                     <>
                       <button 
-                        className="retry-payment-btn" 
-                        onClick={() => handleRetryPayment(order)}
-                      >
-                        Retry Payment
-                      </button>
-                      <button 
                         className="edit-order-btn" 
                         onClick={() => handleEditOrder(order)}
                       >

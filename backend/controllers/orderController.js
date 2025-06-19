@@ -46,20 +46,53 @@ const placeOrder = async (req, res) => {
 			});
 		}
 		
-		// Create a defensive copy of items to prevent any mutation issues
-		const orderItems = [...items];
-		console.log('Created defensive copy of items:', orderItems);
-		
-		const newOrder = new orderModel({
+		// Check for existing unpaid orders with same items and amount
+		const existingUnpaidOrder = await orderModel.findOne({
 			userId,
-			items: orderItems,
 			amount,
-			address,
+			payment: false,
+			// Check if created within last 30 minutes to avoid old unpaid orders
+			date: { $gte: new Date(Date.now() - 30 * 60 * 1000) }
 		});
-		await newOrder.save(); // saving the created new order in database
+
+		let newOrder;
+		if (existingUnpaidOrder) {
+			// Check if items are the same
+			const existingItemsStr = JSON.stringify(existingUnpaidOrder.items.sort((a, b) => a.name.localeCompare(b.name)));
+			const newItemsStr = JSON.stringify([...items].sort((a, b) => a.name.localeCompare(b.name)));
+			
+			if (existingItemsStr === newItemsStr) {
+				console.log('Found existing unpaid order with same items, reusing:', existingUnpaidOrder._id);
+				newOrder = existingUnpaidOrder;
+			} else {
+				// Different items, create new order
+				const orderItems = [...items];
+				console.log('Items different, creating new order');
+				newOrder = new orderModel({
+					userId,
+					items: orderItems,
+					amount,
+					address,
+				});
+				await newOrder.save();
+			}
+		} else {
+			// Create a defensive copy of items to prevent any mutation issues
+			const orderItems = [...items];
+			console.log('Created defensive copy of items:', orderItems);
+			
+			newOrder = new orderModel({
+				userId,
+				items: orderItems,
+				amount,
+				address,
+			});
+			await newOrder.save(); // saving the created new order in database
+		}
 		await userModel.findByIdAndUpdate(userId, {cartData: {}}); // using empty cartData:{} value to clear(delete) the user's cart data
 
 		// to create line items for the stripe payment
+		const orderItems = newOrder.items;
 		console.log('About to create line_items, orderItems is:', orderItems);
 		console.log('OrderItems type:', typeof orderItems, 'Array?', Array.isArray(orderItems));
 		
