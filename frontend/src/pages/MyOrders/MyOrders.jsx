@@ -295,7 +295,7 @@ const MyOrders = () => {
   }, [token, fetchOrders]);
 
   return (
-    <div className='my-orders' key={`orders-${Date.now()}`} data-version="3.0">
+    <div className='my-orders' key={`orders-${Date.now()}`} data-version="4.0">
       
       <h2>My Orders</h2>
       <div className="container">
