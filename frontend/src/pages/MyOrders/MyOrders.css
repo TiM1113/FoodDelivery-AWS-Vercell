@@ -89,13 +89,14 @@
 }
 
 /* Track Order button specific styling */
-.order-actions button:first-child {
+.track-order-btn {
   background-color: #f8f9fa;
   color: #495057;
   border: 1px solid #dee2e6;
+  font-weight: bold;
 }
 
-.order-actions button:first-child:hover {
+.track-order-btn:hover {
   background-color: #e9ecef;
   border-color: #adb5bd;
   color: #212529;

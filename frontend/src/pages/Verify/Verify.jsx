@@ -67,12 +67,17 @@ const Verify = () => {
         console.log("✅ 响应数据:", response.data);
 
         if (response.data.success) {
+          // Payment successful, clear any payment markers
+          sessionStorage.removeItem('fromPayment');
           navigate("/myorders");
         } else {
+          // Payment failed, set marker and navigate to home
+          sessionStorage.setItem('fromPayment', 'failed');
           navigate("/");
         }
       } catch (error) {
         console.error("❌ 验证请求失败:", error);
+        sessionStorage.setItem('fromPayment', 'error');
         navigate("/");
       }
     };
@@ -82,6 +87,7 @@ const Verify = () => {
       verifyPayment();
     } else {
       console.error("⚠️ 缺少 `success` 或 `orderId`，无法发送验证请求");
+      sessionStorage.setItem('fromPayment', 'invalid');
       navigate("/");
     }
   }, [success, orderId, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
