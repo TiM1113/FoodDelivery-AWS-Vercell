@@ -220,6 +220,8 @@ const MyOrders = () => {
                 return <span className="status-indicator out-for-delivery">🚚</span>;
               case 'Food Processing':
                 return <span className="status-indicator processing">⏳</span>;
+              case 'Payment Pending':
+                return <span className="status-indicator payment-pending">💳</span>;
               default:
                 return <span className="status-indicator default">●</span>;
             }
@@ -233,7 +235,7 @@ const MyOrders = () => {
                 <p>${order.amount}.00</p>
                 <p>Items: {order.items.length}</p>
                 <p>{getPaymentStatus(order.payment)}</p>
-                <p>{getStatusIndicator(order.status)} <b>{order.status}</b></p>
+                <p>{getStatusIndicator(order.payment ? order.status : 'Payment Pending')} <b>{order.payment ? order.status : 'Payment Pending'}</b></p>
                 <div className="order-actions">
                   <button onClick={() => handleTrackOrder(order)}>Track Order</button>
                   {!order.payment && (
