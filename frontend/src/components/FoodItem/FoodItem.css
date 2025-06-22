@@ -9,9 +9,10 @@
 
 .food-item-image{
   width: 100%;
-  height: 100%;
+  height: 200px;
   object-fit: cover;
   border-radius: 15px 15px 0px 0px;
+  display: block;
 }
 
 .food-item-info{
@@ -82,6 +83,7 @@
   width: 100%;
   height: 200px;
   overflow: hidden;
+  border-radius: 15px 15px 0px 0px;
 }
 
 .food-item-img-container .add{
