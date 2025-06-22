@@ -9,6 +9,8 @@
 
 .food-item-image{
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 15px 15px 0px 0px;
 }
 
@@ -77,6 +79,9 @@
 
 .food-item-img-container{
   position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
 }
 
 .food-item-img-container .add{
