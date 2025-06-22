@@ -54,40 +54,56 @@
 }
 
 .save-btn {
-  background-color: #4CAF50;
+  background-color: tomato;
   color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(255, 99, 71, 0.2);
 }
 
 .save-btn:hover {
-  background-color: #45a049;
+  background-color: #ff5733;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 99, 71, 0.3);
 }
 
 .cancel-btn {
-  background-color: #f44336;
+  background-color: #333;
   color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(51, 51, 51, 0.2);
 }
 
 .cancel-btn:hover {
-  background-color: #da190b;
+  background-color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .edit-btn {
-  background-color: #2196F3;
+  background-color: tomato;
   color: white;
   margin-right: 5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(255, 99, 71, 0.2);
 }
 
 .edit-btn:hover {
-  background-color: #0b7dda;
+  background-color: #ff5733;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 99, 71, 0.3);
 }
 
 .delete-btn {
-  background-color: #f44336;
+  background-color: #333;
   color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(51, 51, 51, 0.2);
 }
 
 .delete-btn:hover {
-  background-color: #da190b;
+  background-color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .action-buttons {
