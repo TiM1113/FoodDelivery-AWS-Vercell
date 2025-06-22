@@ -233,7 +233,6 @@ const MyOrders = () => {
       fetchOrders();
       
       // Check if we're coming from payment verification
-      const urlParams = new URLSearchParams(window.location.search);
       const fromVerify = document.referrer.includes('/verify') || 
                         document.referrer.includes('stripe') || 
                         document.referrer.includes('checkout.stripe.com');
