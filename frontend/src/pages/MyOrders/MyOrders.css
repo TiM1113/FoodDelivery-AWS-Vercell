@@ -8,29 +8,39 @@
   gap: 0;
   margin: 30px 0 20px 0;
   border-bottom: 2px solid #f0f0f0;
+  background: none;
 }
 
 .tab-button {
   padding: 15px 30px;
   border: none;
-  background: none;
+  background: transparent !important;
   color: #666;
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.3s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  outline: none;
 }
 
 .tab-button:hover {
   color: #333;
+  background: transparent !important;
+}
+
+.tab-button:focus {
+  background: transparent !important;
+  outline: none;
 }
 
 .tab-button.active {
-  color: #333;
-  font-weight: 700;
-  border-bottom-color: #333;
+  color: #333 !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid #333 !important;
+  background: transparent !important;
+  text-decoration: underline;
 }
 
 /* Orders Container */
@@ -139,7 +149,7 @@
 }
 
 .star-btn-v2.active {
-  background: #E55A47;
+  background: #FF6347;
 }
 
 .star-icon {
@@ -158,7 +168,7 @@
   font-size: 15px;
   color: #666666;
   font-weight: 400;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Row 3: Order Number + Status + Reorder Button */
@@ -175,7 +185,7 @@
   font-weight: 400;
   font-size: 15px;
   color: #666666;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .order-number-status {
@@ -224,7 +234,7 @@
 }
 
 .reorder-btn-v2 {
-  background: #E55A47;
+  background: #FF6347;
   color: white;
   border: none;
   padding: 14px 36px;
@@ -233,16 +243,16 @@
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(229, 90, 71, 0.3);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 2px 8px rgba(255, 99, 71, 0.3);
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .reorder-btn-v2:hover {
-  background: #d14833;
+  background: #E55A47;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(229, 90, 71, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 99, 71, 0.4);
 }
 
 
@@ -251,7 +261,7 @@
   font-weight: 800;
   color: #1a1a1a;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.5px;
 }
 
@@ -259,7 +269,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 20px 24px;
   background: #fafafa;
   border-top: 1px solid #e8e8e8;
 }
@@ -268,7 +278,7 @@
   font-size: 14px;
   color: #666666;
   font-weight: 400;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .action-buttons {
@@ -280,7 +290,7 @@
 .action-btn {
   background: none;
   border: none;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border-radius: 6px;
   font-size: 14px;
   color: #666666;
@@ -289,9 +299,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Outfit, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 400;
-  margin: 0 4px;
+  margin: 0;
 }
 
 .action-btn:hover {
@@ -319,8 +329,8 @@
 }
 
 .expand-btn:hover {
-  background: #ff6b35;
-  border-color: #ff6b35;
+  background: #FF6347;
+  border-color: #FF6347;
   color: white;
 }
 
