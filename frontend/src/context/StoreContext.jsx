@@ -108,6 +108,49 @@ function StoreContextProvider(props) {
     return Math.round(totalAmount * 100) / 100;
   };
 
+  const addOrderToCart = async (orderItems) => {
+    try {
+      if (!orderItems || !Array.isArray(orderItems)) {
+        console.error('Invalid order items provided');
+        return { success: false, message: 'Invalid order items' };
+      }
+
+      let itemsAdded = 0;
+      let itemsNotFound = 0;
+
+      // Process each item in the order
+      for (const orderItem of orderItems) {
+        // Find the corresponding food item by name
+        const foodItem = food_list.find(food => food.name === orderItem.name);
+        
+        if (foodItem) {
+          // Add the item to cart with the specified quantity
+          for (let i = 0; i < orderItem.quantity; i++) {
+            await addToCart(foodItem._id);
+          }
+          itemsAdded += orderItem.quantity;
+        } else {
+          console.warn(`Food item not found: ${orderItem.name}`);
+          itemsNotFound++;
+        }
+      }
+
+      const message = itemsNotFound > 0 
+        ? `${itemsAdded} items added to cart. ${itemsNotFound} items not found.`
+        : `${itemsAdded} items added to cart successfully!`;
+
+      return { 
+        success: itemsAdded > 0, 
+        message,
+        itemsAdded,
+        itemsNotFound
+      };
+    } catch (error) {
+      console.error('Error adding order to cart:', error);
+      return { success: false, message: 'Error adding items to cart' };
+    }
+  };
+
   const fetchFoodList = useCallback(async () => {
     try {
       console.log('🔍 Environment check v2:', {
@@ -215,6 +258,7 @@ function StoreContextProvider(props) {
     addToCart,
     removeFromCart,
     getTotalCartAmount,
+    addOrderToCart,
     url: apiUrl,
     s3Url: s3BaseUrl,
     token,
