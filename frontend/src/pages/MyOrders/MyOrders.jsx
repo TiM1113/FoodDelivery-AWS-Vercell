@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useCallback } from 'react'
 import './MyOrders.css'
 import axios from 'axios'
 import { StoreContext } from '../../context/StoreContext';
-import { assets, menu_list } from '../../assets/assets';
+import { menu_list } from '../../assets/assets';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -95,29 +95,6 @@ const MyOrders = () => {
     }
   };
 
-  const getPaymentStatus = (payment) => {
-    if (payment === true) {
-      return <span className="payment-status paid">✅ Paid</span>;
-    } else {
-      return <span className="payment-status unpaid">❌ Unpaid</span>;
-    }
-  };
-
-  const getDeliveryStatus = (order) => {
-    if (!order.payment) {
-      return <span className="delivery-status pending">⏳ Payment Pending</span>;
-    }
-    switch(order.status) {
-      case 'Delivered':
-        return <span className="delivery-status delivered">📦 Delivered</span>;
-      case 'Out for delivery':
-        return <span className="delivery-status shipping">🚚 Out for Delivery</span>;
-      case 'Food Processing':
-        return <span className="delivery-status processing">👨‍🍳 Processing</span>;
-      default:
-        return <span className="delivery-status default">📋 {order.status}</span>;
-    }
-  };
 
   const toggleOrderExpansion = (orderId) => {
     setExpandedOrders(prev => ({
@@ -397,39 +374,51 @@ const MyOrders = () => {
             const isFavourite = favouriteOrders.some(fav => fav._id === order._id);
             
             return (
-              <div key={order._id} className='order-card'>
-                <div className="order-card-header">
-                  <div className="order-info">
-                    <div className="order-image">
-                      <img src={assets.parcel_icon} alt="Order" />
+              <div key={order._id} className='order-card-v2'>
+                <div className="order-main-content">
+                  <div className="order-left-section">
+                    <div className="order-icon-container">
+                      <div className="order-box-icon">📦</div>
                       <span className="order-number">#{orderNumber}</span>
                     </div>
-                    <div className="order-details">
-                      <h3 className="order-title">
+                  </div>
+                  
+                  <div className="order-center-section">
+                    <div className="order-title-row">
+                      <h3 className="order-name">
                         {order.items.length === 1 ? 
                           order.items[0].name : 
                           `${order.items[0].name} + ${order.items.length - 1} item${order.items.length > 2 ? 's' : ''}`
                         }
                       </h3>
-                      <p className="order-date">{formatOrderDate(order._id)}</p>
                       <button 
-                        className="view-details-btn"
-                        onClick={() => toggleOrderExpansion(order._id)}
+                        className={`star-btn ${isFavourite ? 'active' : ''}`}
+                        onClick={() => toggleFavourite(order)}
+                        title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
                       >
-                        {isExpanded ? 'Hide details ▲' : 'View details ▼'}
+                        ⭐
                       </button>
                     </div>
+                    
+                    <p className="order-datetime">{formatOrderDate(order._id)}</p>
+                    
+                    <div className="order-status-row">
+                      <div className="status-labels">
+                        {!order.payment ? (
+                          <span className="status-badge payment-pending">Payment Pending</span>
+                        ) : (
+                          <span className={`status-badge ${order.status.toLowerCase().replace(' ', '-')}`}>
+                            {order.status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="order-price-display">${order.amount}.00</div>
+                    </div>
                   </div>
-                  <div className="order-actions-header">
+                  
+                  <div className="order-right-section">
                     <button 
-                      className={`favourite-btn ${isFavourite ? 'active' : ''}`}
-                      onClick={() => toggleFavourite(order)}
-                      title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
-                    >
-                      {isFavourite ? '★' : '☆'}
-                    </button>
-                    <button 
-                      className="reorder-btn"
+                      className="reorder-btn-v2"
                       onClick={() => handleReorder(order)}
                     >
                       Reorder
@@ -452,34 +441,39 @@ const MyOrders = () => {
                   </div>
                 )}
 
-                {/* Order Status Footer */}
-                <div className="order-card-footer">
-                  <div className="order-status-info">
-                    <span className="order-price">${order.amount}.00</span>
-                    <span className="order-items-count">Items: {order.items.length}</span>
-                    {getPaymentStatus(order.payment)}
-                    {getDeliveryStatus(order)}
-                  </div>
-                  <div className="order-actions">
-                    <button className="track-order-btn" onClick={() => handleTrackOrder(order)}>
-                      Track Order
+                {/* Bottom Action Bar */}
+                <div className="order-bottom-actions">
+                  <span className="order-date-label">Ex {formatOrderDate(order._id)}</span>
+                  
+                  <div className="action-buttons">
+                    <button 
+                      className="action-btn track-btn" 
+                      onClick={() => handleTrackOrder(order)}
+                    >
+                      🔍 Track
                     </button>
                     {!order.payment && (
                       <>
                         <button 
-                          className="edit-order-btn" 
+                          className="action-btn edit-btn" 
                           onClick={() => handleEditOrder(order)}
                         >
-                          Edit Order
+                          ✏️ Edit
                         </button>
                         <button 
-                          className="delete-order-btn" 
+                          className="action-btn delete-btn" 
                           onClick={() => handleDeleteOrder(order)}
                         >
-                          Delete Order
+                          🗑️ Delete
                         </button>
                       </>
                     )}
+                    <button 
+                      className="expand-btn"
+                      onClick={() => toggleOrderExpansion(order._id)}
+                    >
+                      {isExpanded ? '▲' : '▼'}
+                    </button>
                   </div>
                 </div>
               </div>
