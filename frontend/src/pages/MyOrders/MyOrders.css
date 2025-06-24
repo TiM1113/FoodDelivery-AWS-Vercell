@@ -161,9 +161,14 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Row 3: Order Number */
+/* Row 3: Order Number + Status + Reorder Button */
 .order-row-3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .order-number-v2 {
@@ -179,12 +184,9 @@
   gap: 12px;
 }
 
-/* Row 4: Reorder Button */
+/* Row 4: Price */
 .order-row-4 {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
 }
 
 .status-section {
@@ -243,10 +245,6 @@
   box-shadow: 0 4px 12px rgba(229, 90, 71, 0.4);
 }
 
-/* Row 5: Price */
-.order-row-5 {
-  margin-bottom: 4px;
-}
 
 .order-price-v2 {
   font-size: 32px;
@@ -275,24 +273,25 @@
 
 .action-buttons {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
 .action-btn {
   background: none;
   border: none;
-  padding: 8px 12px;
+  padding: 12px 16px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: #666666;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 400;
+  margin: 0 4px;
 }
 
 .action-btn:hover {
@@ -301,7 +300,7 @@
 }
 
 .action-icon {
-  font-size: 14px;
+  font-size: 16px;
   color: #666666;
 }
 
@@ -1298,6 +1297,10 @@
     gap: 8px;
   }
   
+  .order-row-3 {
+    gap: 8px;
+  }
+  
   .order-price-v2 {
     font-size: 24px;
   }
@@ -1466,7 +1469,7 @@
     gap: 6px;
   }
   
-  .order-row-4 {
+  .order-row-3 {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
