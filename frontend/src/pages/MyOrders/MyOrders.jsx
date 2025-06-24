@@ -405,7 +405,7 @@ const MyOrders = () => {
                       <p className="order-datetime">{formatOrderDate(order._id)}</p>
                     </div>
                     
-                    {/* Row 3: Order Number + Status */}
+                    {/* Row 3: Order Number + Status + Reorder Button */}
                     <div className="order-row-3">
                       <div className="order-number-status">
                         <span className="order-number-v2">#{order._id.slice(-6)}</span>
@@ -417,10 +417,6 @@ const MyOrders = () => {
                           </span>
                         )}
                       </div>
-                    </div>
-                    
-                    {/* Row 4: Reorder Button */}
-                    <div className="order-row-4">
                       <button 
                         className="reorder-btn-v2"
                         onClick={() => handleReorder(order)}
@@ -429,8 +425,8 @@ const MyOrders = () => {
                       </button>
                     </div>
                     
-                    {/* Row 5: Price */}
-                    <div className="order-row-5">
+                    {/* Row 4: Price */}
+                    <div className="order-row-4">
                       <div className="order-price-v2">${order.amount}.00</div>
                     </div>
                   </div>
