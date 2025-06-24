@@ -378,13 +378,7 @@ const MyOrders = () => {
                 <div className="order-main-content">
                   {/* Left Section: Box Icon */}
                   <div className="order-left-section">
-                    <div className="order-box-icon">
-                      <div className="box-3d">
-                        <div className="box-top"></div>
-                        <div className="box-front"></div>
-                        <div className="box-right"></div>
-                      </div>
-                    </div>
+                    <div className="order-box-icon">📦</div>
                   </div>
                   
                   {/* Right Section: Content */}
@@ -411,14 +405,10 @@ const MyOrders = () => {
                       <p className="order-datetime">{formatOrderDate(order._id)}</p>
                     </div>
                     
-                    {/* Row 3: Order Number */}
+                    {/* Row 3: Order Number + Status */}
                     <div className="order-row-3">
-                      <span className="order-number-v2">#{orderNumber}</span>
-                    </div>
-                    
-                    {/* Row 4: Status + Reorder Button */}
-                    <div className="order-row-4">
-                      <div className="status-section">
+                      <div className="order-number-status">
+                        <span className="order-number-v2">#{order._id.slice(-6)}</span>
                         {!order.payment ? (
                           <span className="status-badge-v2 payment-pending">Payment Pending</span>
                         ) : (
@@ -427,6 +417,10 @@ const MyOrders = () => {
                           </span>
                         )}
                       </div>
+                    </div>
+                    
+                    {/* Row 4: Reorder Button */}
+                    <div className="order-row-4">
                       <button 
                         className="reorder-btn-v2"
                         onClick={() => handleReorder(order)}

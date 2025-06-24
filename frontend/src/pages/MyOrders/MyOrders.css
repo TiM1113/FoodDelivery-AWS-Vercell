@@ -16,21 +16,21 @@
   background: none;
   color: #666;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   transition: all 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .tab-button:hover {
-  color: tomato;
-  background-color: #fff5f5;
+  color: #333;
 }
 
 .tab-button.active {
-  color: tomato;
-  border-bottom-color: tomato;
-  background-color: #fff5f5;
+  color: #333;
+  font-weight: 700;
+  border-bottom-color: #333;
 }
 
 /* Orders Container */
@@ -88,47 +88,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 4px;
-}
-
-/* 3D Box Icon exactly matching pic 60 */
-.box-3d {
-  position: relative;
-  width: 48px;
-  height: 48px;
-}
-
-.box-top {
-  position: absolute;
-  top: 0;
-  left: 4px;
-  width: 44px;
-  height: 20px;
-  background: linear-gradient(135deg, #F4A460 0%, #D2691E 100%);
-  transform: perspective(100px) rotateX(45deg);
-  border-radius: 2px;
-}
-
-.box-front {
-  position: absolute;
-  top: 15px;
-  left: 0;
-  width: 44px;
-  height: 28px;
-  background: linear-gradient(to bottom, #D2691E 0%, #A0522D 100%);
-  border-radius: 2px;
-  border-left: 2px solid #8B4513;
-  border-bottom: 2px solid #8B4513;
-}
-
-.box-right {
-  position: absolute;
-  top: 15px;
-  right: 0;
-  width: 20px;
-  height: 28px;
-  background: linear-gradient(to right, #A0522D 0%, #8B4513 100%);
-  transform: perspective(100px) rotateY(-45deg);
-  border-radius: 0 2px 2px 0;
+  font-size: 48px;
 }
 
 /* Right Content: All other content */
@@ -207,16 +167,22 @@
 }
 
 .order-number-v2 {
-  font-weight: 700;
-  font-size: 18px;
-  color: #E55A47;
+  font-weight: 400;
+  font-size: 15px;
+  color: #666666;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Row 4: Status + Reorder Button */
+.order-number-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Row 4: Reorder Button */
 .order-row-4 {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 20px;
 }
@@ -1325,7 +1291,11 @@
   }
   
   .order-number-v2 {
-    font-size: 14px;
+    font-size: 13px;
+  }
+  
+  .order-number-status {
+    gap: 8px;
   }
   
   .order-price-v2 {
@@ -1487,7 +1457,13 @@
   }
   
   .order-number-v2 {
-    font-size: 13px;
+    font-size: 12px;
+  }
+  
+  .order-number-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
   
   .order-row-4 {
