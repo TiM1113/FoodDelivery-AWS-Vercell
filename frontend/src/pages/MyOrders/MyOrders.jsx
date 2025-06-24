@@ -14,7 +14,10 @@ const MyOrders = () => {
   const [editOrderItems, setEditOrderItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const {url,token,food_list} = useContext(StoreContext);
+  const [activeTab, setActiveTab] = useState('recent');
+  const [favouriteOrders, setFavouriteOrders] = useState([]);
+  const [expandedOrders, setExpandedOrders] = useState({});
+  const {url,token,food_list,addOrderToCart} = useContext(StoreContext);
   const navigate = useNavigate();
 
   // Custom confirmation dialog
@@ -94,9 +97,90 @@ const MyOrders = () => {
 
   const getPaymentStatus = (payment) => {
     if (payment === true) {
-      return <span className="payment-status paid">💳 Paid</span>;
+      return <span className="payment-status paid">✅ Paid</span>;
     } else {
       return <span className="payment-status unpaid">❌ Unpaid</span>;
+    }
+  };
+
+  const getDeliveryStatus = (order) => {
+    if (!order.payment) {
+      return <span className="delivery-status pending">⏳ Payment Pending</span>;
+    }
+    switch(order.status) {
+      case 'Delivered':
+        return <span className="delivery-status delivered">📦 Delivered</span>;
+      case 'Out for delivery':
+        return <span className="delivery-status shipping">🚚 Out for Delivery</span>;
+      case 'Food Processing':
+        return <span className="delivery-status processing">👨‍🍳 Processing</span>;
+      default:
+        return <span className="delivery-status default">📋 {order.status}</span>;
+    }
+  };
+
+  const toggleOrderExpansion = (orderId) => {
+    setExpandedOrders(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+  };
+
+  const toggleFavourite = (order) => {
+    setFavouriteOrders(prev => {
+      const isFavourite = prev.some(fav => fav._id === order._id);
+      if (isFavourite) {
+        return prev.filter(fav => fav._id !== order._id);
+      } else {
+        return [...prev, order];
+      }
+    });
+  };
+
+  const getOrdersToDisplay = () => {
+    if (activeTab === 'favourites') {
+      return favouriteOrders;
+    }
+    return data;
+  };
+
+  const formatOrderDate = (orderId) => {
+    // Extract timestamp from MongoDB ObjectID or use current date
+    try {
+      const timestamp = parseInt(orderId.substring(0, 8), 16) * 1000;
+      const date = new Date(timestamp);
+      return date.toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return new Date().toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  const handleReorder = async (order) => {
+    try {
+      const result = await addOrderToCart(order.items);
+      
+      if (result.success) {
+        toast.success(result.message);
+        // Navigate to cart page to show the added items
+        navigate('/cart');
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error reordering:', error);
+      toast.error('Failed to add items to cart');
     }
   };
 
@@ -211,21 +295,6 @@ const MyOrders = () => {
     }
   };
 
-  const renderDishNames = (items) => {
-    return items.map((item, index) => (
-      <span key={index}>
-        <span 
-          className="dish-name-link" 
-          onClick={() => handleDishClick(item.name)}
-          title={`Click to view ${item.name}`}
-        >
-          {item.name}
-        </span>
-        <span> x {item.quantity}</span>
-        {index < items.length - 1 && <span>, </span>}
-      </span>
-    ));
-  };
 
   useEffect(()=>{
     if (token) {
@@ -294,58 +363,129 @@ const MyOrders = () => {
   }, [token, fetchOrders]);
 
   return (
-    <div className='my-orders' key={`orders-${Date.now()}`} data-version="4.0">
-      
+    <div className='my-orders' key={`orders-${Date.now()}`} data-version="5.0">
       <h2>My Orders</h2>
-      <div className="container">
-        {data.map((order,index)=>{
-          // Helper function to get status indicator
-          const getStatusIndicator = (status) => {
-            switch(status) {
-              case 'Delivered':
-                return <span className="status-indicator delivered">✓</span>;
-              case 'Out for delivery':
-                return <span className="status-indicator out-for-delivery">🚚</span>;
-              case 'Food Processing':
-                return <span className="status-indicator processing">⏳</span>;
-              case 'Payment Pending':
-                return <span className="status-indicator payment-pending">💳</span>;
-              default:
-                return <span className="status-indicator default">●</span>;
-            }
-          };
+      
+      {/* Tab Navigation */}
+      <div className="order-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'recent' ? 'active' : ''}`}
+          onClick={() => setActiveTab('recent')}
+        >
+          Recent Orders
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'favourites' ? 'active' : ''}`}
+          onClick={() => setActiveTab('favourites')}
+        >
+          Favourites
+        </button>
+      </div>
 
-          return (
-            <div key={index} className='my-orders-order'>
-                <div className="order-number">#{data.length - index}</div>
-                <img src={assets.parcel_icon} alt="" />
-                <p>{renderDishNames(order.items)}</p>
-                <p>${order.amount}.00</p>
-                <p>Items: {order.items.length}</p>
-                <p>{getPaymentStatus(order.payment)}</p>
-                <p>{getStatusIndicator(order.payment ? order.status : 'Payment Pending')} <b>{order.payment ? order.status : 'Payment Pending'}</b></p>
-                <div className="order-actions">
-                  <button className="track-order-btn" onClick={() => handleTrackOrder(order)}>Track Order</button>
-                  {!order.payment && (
-                    <>
+      <div className="orders-container">
+        {getOrdersToDisplay().length === 0 ? (
+          <div className="no-orders">
+            {activeTab === 'favourites' ? 
+              <p>No favourite orders yet. Add some orders to your favourites!</p> :
+              <p>No orders found.</p>
+            }
+          </div>
+        ) : (
+          getOrdersToDisplay().map((order, index) => {
+            const orderNumber = activeTab === 'recent' ? data.length - data.indexOf(order) : index + 1;
+            const isExpanded = expandedOrders[order._id];
+            const isFavourite = favouriteOrders.some(fav => fav._id === order._id);
+            
+            return (
+              <div key={order._id} className='order-card'>
+                <div className="order-card-header">
+                  <div className="order-info">
+                    <div className="order-image">
+                      <img src={assets.parcel_icon} alt="Order" />
+                      <span className="order-number">#{orderNumber}</span>
+                    </div>
+                    <div className="order-details">
+                      <h3 className="order-title">
+                        {order.items.length === 1 ? 
+                          order.items[0].name : 
+                          `${order.items[0].name} + ${order.items.length - 1} item${order.items.length > 2 ? 's' : ''}`
+                        }
+                      </h3>
+                      <p className="order-date">{formatOrderDate(order._id)}</p>
                       <button 
-                        className="edit-order-btn" 
-                        onClick={() => handleEditOrder(order)}
+                        className="view-details-btn"
+                        onClick={() => toggleOrderExpansion(order._id)}
                       >
-                        Edit Order
+                        {isExpanded ? 'Hide details ▲' : 'View details ▼'}
                       </button>
-                      <button 
-                        className="delete-order-btn" 
-                        onClick={() => handleDeleteOrder(order)}
-                      >
-                        Delete Order
-                      </button>
-                    </>
-                  )}
+                    </div>
+                  </div>
+                  <div className="order-actions-header">
+                    <button 
+                      className={`favourite-btn ${isFavourite ? 'active' : ''}`}
+                      onClick={() => toggleFavourite(order)}
+                      title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                    >
+                      {isFavourite ? '★' : '☆'}
+                    </button>
+                    <button 
+                      className="reorder-btn"
+                      onClick={() => handleReorder(order)}
+                    >
+                      Reorder
+                    </button>
+                  </div>
                 </div>
-            </div>
-          )
-        })}
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="order-expanded-details">
+                    <div className="order-items-list">
+                      <h4>Items:</h4>
+                      {order.items.map((item, itemIndex) => (
+                        <div key={itemIndex} className="order-item">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-quantity">x {item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Order Status Footer */}
+                <div className="order-card-footer">
+                  <div className="order-status-info">
+                    <span className="order-price">${order.amount}.00</span>
+                    <span className="order-items-count">Items: {order.items.length}</span>
+                    {getPaymentStatus(order.payment)}
+                    {getDeliveryStatus(order)}
+                  </div>
+                  <div className="order-actions">
+                    <button className="track-order-btn" onClick={() => handleTrackOrder(order)}>
+                      Track Order
+                    </button>
+                    {!order.payment && (
+                      <>
+                        <button 
+                          className="edit-order-btn" 
+                          onClick={() => handleEditOrder(order)}
+                        >
+                          Edit Order
+                        </button>
+                        <button 
+                          className="delete-order-btn" 
+                          onClick={() => handleDeleteOrder(order)}
+                        >
+                          Delete Order
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Order Tracking Modal */}
