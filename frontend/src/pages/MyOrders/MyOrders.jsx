@@ -376,53 +376,69 @@ const MyOrders = () => {
             return (
               <div key={order._id} className='order-card-v2'>
                 <div className="order-main-content">
+                  {/* Left Section: Box Icon */}
                   <div className="order-left-section">
-                    <div className="order-icon-container">
-                      <div className="order-box-icon">📦</div>
-                      <span className="order-number">#{orderNumber}</span>
+                    <div className="order-box-icon">
+                      <div className="box-3d">
+                        <div className="box-top"></div>
+                        <div className="box-front"></div>
+                        <div className="box-right"></div>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="order-center-section">
-                    <div className="order-title-row">
+                  {/* Right Section: Content */}
+                  <div className="order-right-content">
+                    {/* Row 1: Order Name + Star Button */}
+                    <div className="order-row-1">
                       <h3 className="order-name">
                         {order.items.length === 1 ? 
                           order.items[0].name : 
-                          `${order.items[0].name} + ${order.items.length - 1} item${order.items.length > 2 ? 's' : ''}`
+                          `${order.items[0].name}`
                         }
                       </h3>
                       <button 
-                        className={`star-btn ${isFavourite ? 'active' : ''}`}
+                        className={`star-btn-v2 ${isFavourite ? 'active' : ''}`}
                         onClick={() => toggleFavourite(order)}
                         title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
                       >
-                        ⭐
+                        <span className="star-icon">★</span>
                       </button>
                     </div>
                     
-                    <p className="order-datetime">{formatOrderDate(order._id)}</p>
+                    {/* Row 2: Date Time */}
+                    <div className="order-row-2">
+                      <p className="order-datetime">{formatOrderDate(order._id)}</p>
+                    </div>
                     
-                    <div className="order-status-row">
-                      <div className="status-labels">
+                    {/* Row 3: Order Number */}
+                    <div className="order-row-3">
+                      <span className="order-number-v2">#{orderNumber}</span>
+                    </div>
+                    
+                    {/* Row 4: Status + Reorder Button */}
+                    <div className="order-row-4">
+                      <div className="status-section">
                         {!order.payment ? (
-                          <span className="status-badge payment-pending">Payment Pending</span>
+                          <span className="status-badge-v2 payment-pending">Payment Pending</span>
                         ) : (
-                          <span className={`status-badge ${order.status.toLowerCase().replace(' ', '-')}`}>
+                          <span className={`status-badge-v2 ${order.status.toLowerCase().replace(' ', '-')}`}>
                             {order.status}
                           </span>
                         )}
                       </div>
-                      <div className="order-price-display">${order.amount}.00</div>
+                      <button 
+                        className="reorder-btn-v2"
+                        onClick={() => handleReorder(order)}
+                      >
+                        Reorder
+                      </button>
                     </div>
-                  </div>
-                  
-                  <div className="order-right-section">
-                    <button 
-                      className="reorder-btn-v2"
-                      onClick={() => handleReorder(order)}
-                    >
-                      Reorder
-                    </button>
+                    
+                    {/* Row 5: Price */}
+                    <div className="order-row-5">
+                      <div className="order-price-v2">${order.amount}.00</div>
+                    </div>
                   </div>
                 </div>
 
@@ -443,14 +459,14 @@ const MyOrders = () => {
 
                 {/* Bottom Action Bar */}
                 <div className="order-bottom-actions">
-                  <span className="order-date-label">Ex {formatOrderDate(order._id)}</span>
+                  <span className="order-date-label">{formatOrderDate(order._id)}</span>
                   
                   <div className="action-buttons">
                     <button 
                       className="action-btn track-btn" 
                       onClick={() => handleTrackOrder(order)}
                     >
-                      🔍 Track
+                      <span className="action-icon">👁</span> Track
                     </button>
                     {!order.payment && (
                       <>
@@ -458,13 +474,13 @@ const MyOrders = () => {
                           className="action-btn edit-btn" 
                           onClick={() => handleEditOrder(order)}
                         >
-                          ✏️ Edit
+                          <span className="action-icon">✎</span> Edit
                         </button>
                         <button 
                           className="action-btn delete-btn" 
                           onClick={() => handleDeleteOrder(order)}
                         >
-                          🗑️ Delete
+                          <span className="action-icon">🗑</span> Delete
                         </button>
                       </>
                     )}
