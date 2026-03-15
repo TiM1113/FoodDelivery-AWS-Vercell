@@ -3,6 +3,7 @@
 .claude/
 .playwright/
 .playwright-cli/
+dev-notes/
 
 # Screenshots and documentation files that should not be tracked
 errorscreenshorts/
