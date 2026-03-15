@@ -1,5 +1,8 @@
 .DS_Store
 .vercel
+.claude/
+.playwright/
+.playwright-cli/
 
 # Screenshots and documentation files that should not be tracked
 errorscreenshorts/
