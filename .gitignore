@@ -22,6 +22,10 @@ TEST_DEPLOYMENT.md
 # Node modules
 node_modules/
 */node_modules/
+packages/*/node_modules/
+
+# pnpm
+pnpm-debug.log*
 
 # Build directories
 dist/

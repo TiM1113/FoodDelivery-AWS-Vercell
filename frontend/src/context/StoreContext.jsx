@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
+import { API_BASE_URL, S3_BASE_URL } from '@food-delivery/shared';
 
 // Create the context with initial default values
 const defaultContextValue = {
@@ -20,17 +21,8 @@ export const StoreContext = createContext(defaultContextValue);
 
 // StoreContext Provider Component
 function StoreContextProvider(props) {
-  // Always use production URLs for deployed frontend
-  const url = import.meta.env.VITE_API_URL || "https://backend-ten-azure-58.vercel.app";
-  const s3Url = import.meta.env.VITE_S3_URL || "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
-  
-  // Force production URLs in production mode
-  const apiUrl = import.meta.env.PROD || window.location.hostname.includes('vercel.app') 
-    ? "https://backend-ten-azure-58.vercel.app" 
-    : url;
-  const s3BaseUrl = import.meta.env.PROD || window.location.hostname.includes('vercel.app')
-    ? "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com"
-    : s3Url;
+  const apiUrl = import.meta.env.VITE_API_URL || API_BASE_URL;
+  const s3BaseUrl = import.meta.env.VITE_S3_URL || S3_BASE_URL;
   
   const [food_list, setFoodList] = useState([]);
   const [cartItems, setCartItems] = useState({});
