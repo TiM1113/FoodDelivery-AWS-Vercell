@@ -8,14 +8,6 @@ import PropTypes from 'prop-types';
 const FoodDisplay = ({category, searchQuery, setSearchQuery}) => {
 	const {food_list} = useContext(StoreContext);
 	
-	// Debug logging
-	console.log('🍽️ FoodDisplay rendered with:', {
-		food_list_length: food_list.length,
-		category,
-		searchQuery,
-		food_list_sample: food_list.slice(0, 2)
-	});
-
 	// Filter food items based on category and search query
 	const filteredFoodList = food_list.filter(item => {
 		const matchesCategory = category === 'All' || category === item.category;
