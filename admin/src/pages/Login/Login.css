@@ -51,7 +51,6 @@
 }
 
 .admin-login-field input:focus {
-  border-color: #tomato;
   border-color: #ff6347;
 }
 
