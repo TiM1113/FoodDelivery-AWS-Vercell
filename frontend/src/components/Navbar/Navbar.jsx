@@ -4,24 +4,26 @@ import { assets } from '../../assets/assets'
 import { Link, useNavigate } from 'react-router-dom';
 import { StoreContext } from '../../context/StoreContext';
 import PropTypes from 'prop-types';
+import axios from 'axios';
 
 const Navbar = ({ setShowLogin }) => {
 
   const [menu, setMenu] = useState("home");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { getTotalCartAmount, token, setToken } = useContext(StoreContext);
-  console.log("Current Token:", token);
-
-  // create navigate function to guide back to home page
+  const { getTotalCartAmount, token, setToken, url } = useContext(StoreContext);
   const navigate = useNavigate();
 
-  // this logout function will be executed when click on Logout icon
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken("");// reset token as empty
-    navigate("/");// back to home page
-  }
+  const logout = async () => {
+    try {
+      await axios.post(`${url}/api/user/logout`, {}, { withCredentials: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('isLoggedIn');
+    setToken('');
+    navigate('/');
+  };
 
   // Function to handle navigation to home page sections
   const navigateToSection = (sectionId, menuName) => {

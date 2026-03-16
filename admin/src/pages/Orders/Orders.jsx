@@ -10,62 +10,48 @@ const Orders = ({ url }) => {
 
   const fetchAllOrders = async () => {
     try {
-      console.log('Fetching orders from:', `${url}/api/order/list`);
-      const response = await axios.get(`${url}/api/order/list`);
+      const response = await axios.get(`${url}/api/order/list`, { withCredentials: true });
       if (response.data.success) {
         setOrders(response.data.data);
-        console.log('Orders fetched:', response.data.data);
       } else {
-        toast.error("Error loading orders");
+        toast.error(response.data.message || "Error loading orders");
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error("Error connecting to server");
     }
-  }
+  };
 
   const statusHandler = async (event, orderId) => {
     try {
       const newStatus = event.target.value;
       const order = orders.find(o => o._id === orderId);
-      
-      // Prevent changing unpaid orders to processing states
+
       if (!order.payment && newStatus !== "Payment Pending") {
         toast.error("Cannot process unpaid orders. Payment must be completed first.");
-        event.target.value = order.status; // Reset to original status
+        event.target.value = order.status;
         return;
       }
-      
-      console.log('Updating order status:', { orderId, status: newStatus, url: `${url}/api/order/update` });
-      
-      const response = await axios.post(`${url}/api/order/update`, {
-        orderId,
-        status: newStatus
-      });
-      
-      console.log('Status update response:', response.data);
-      
+
+      const response = await axios.post(
+        `${url}/api/order/update`,
+        { orderId, status: newStatus },
+        { withCredentials: true }
+      );
+
       if (response.data.success) {
         toast.success("Order status updated");
         await fetchAllOrders();
       } else {
-        console.error('Status update failed:', response.data);
         toast.error(response.data.message || "Error updating order status");
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        url: `${url}/api/order/update`
-      });
-      toast.error(`Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`);
+      toast.error("Error updating order status");
     }
-  }
+  };
 
   useEffect(() => {
-    console.log('Orders component mounted with URL:', url);
     fetchAllOrders();
   }, [url]);
 
