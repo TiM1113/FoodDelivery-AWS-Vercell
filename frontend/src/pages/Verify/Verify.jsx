@@ -50,85 +50,66 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { StoreContext } from '../../context/StoreContext';
 import axios from 'axios';
 
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_ATTEMPTS = 30; // 60 seconds total
+
 const Verify = () => {
-  const [searchParams] = useSearchParams(); // ✅ 确保 searchParams 只读
-  const success = searchParams.get("success");
+  const [searchParams] = useSearchParams();
+  const success = searchParams.get("success"); // only present on cancellation
   const orderId = searchParams.get("orderId");
-  const source = searchParams.get("source"); // Get payment source from URL
+  const source = searchParams.get("source");
   const { url } = useContext(StoreContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('🔵 Verify component mounted');
-    console.log('🔵 URL params - success:', success, 'orderId:', orderId, 'source:', source);
-    console.log('🔵 Current sessionStorage fromPayment:', sessionStorage.getItem('fromPayment'));
-    
-    const verifyPayment = async () => {
-      try {
-        console.log("🔄 发送 `GET` 请求到:", `${url}/api/order/verify?success=${success}&orderId=${orderId}`);
-
-        const response = await axios.get(`${url}/api/order/verify?success=${success}&orderId=${orderId}`);
-
-        console.log("✅ 响应数据:", response.data);
-
-        if (response.data.success) {
-          // Payment successful, always go to orders page to see the updated status
-          sessionStorage.removeItem('fromPayment');
-          navigate("/myorders");
-        } else {
-          // Payment failed, determine where to return based on payment source
-          const paymentSource = source || sessionStorage.getItem('fromPayment');
-          console.log('🔴 Payment failed!');
-          console.log('📍 Payment source from URL:', source);
-          console.log('📍 Payment source from sessionStorage:', sessionStorage.getItem('fromPayment'));
-          console.log('📍 Final payment source used:', paymentSource);
-          
-          if (paymentSource === 'retry') {
-            // This was a retry payment from MyOrders, return to MyOrders
-            console.log('✅ Returning to MyOrders (retry payment)');
-            sessionStorage.removeItem('fromPayment');
-            navigate("/myorders");
-          } else {
-            // This was a new order from Cart, return to Cart
-            console.log('✅ Returning to Cart (new order)');
-            sessionStorage.removeItem('fromPayment');
-            navigate("/cart");
-          }
-        }
-      } catch (error) {
-        console.error("❌ 验证请求失败:", error);
-        // On error, determine where to return based on payment source
-        const paymentSource = source || sessionStorage.getItem('fromPayment');
-        console.log('❌ Error occurred, payment source:', paymentSource);
-        
-        if (paymentSource === 'retry') {
-          sessionStorage.removeItem('fromPayment');
-          navigate("/myorders");
-        } else {
-          sessionStorage.removeItem('fromPayment');
-          navigate("/cart");
-        }
-      }
+    const paymentSource = source || sessionStorage.getItem('fromPayment');
+    const returnOnFailure = () => {
+      sessionStorage.removeItem('fromPayment');
+      navigate(paymentSource === 'retry' ? '/myorders' : '/cart');
     };
 
-    // ✅ 只有当 success 和 orderId 存在时才执行请求
-    if (success && orderId) {
-      verifyPayment();
-    } else {
-      console.error("⚠️ 缺少 `success` 或 `orderId`，无法发送验证请求");
-      // Determine where to return based on payment source
-      const paymentSource = source || sessionStorage.getItem('fromPayment');
-      console.log('⚠️ Missing success/orderId, payment source:', paymentSource);
-      
-      if (paymentSource === 'retry') {
-        sessionStorage.removeItem('fromPayment');
-        navigate("/myorders");
-      } else {
-        sessionStorage.removeItem('fromPayment');
-        navigate("/cart");
-      }
+    // User cancelled payment on Stripe page
+    if (success === 'false') {
+      axios.get(`${url}/api/order/verify?success=false&orderId=${orderId}`)
+        .catch(err => console.error('Cancel order error:', err))
+        .finally(returnOnFailure);
+      return;
     }
-  }, [success, orderId, source, url, navigate]); // ✅ 确保 useEffect 只在相关参数变化时触发
+
+    if (!orderId) {
+      returnOnFailure();
+      return;
+    }
+
+    // Poll for webhook confirmation (Stripe → backend → DB)
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const response = await axios.get(
+          `${url}/api/order/status/${orderId}`,
+          { withCredentials: true }
+        );
+        if (response.data.payment === true) {
+          clearInterval(poll);
+          sessionStorage.removeItem('fromPayment');
+          navigate('/myorders');
+        } else if (attempts >= POLL_MAX_ATTEMPTS) {
+          clearInterval(poll);
+          sessionStorage.removeItem('fromPayment');
+          navigate('/myorders');
+        }
+      } catch (error) {
+        console.error('Error polling order status:', error);
+        if (attempts >= POLL_MAX_ATTEMPTS) {
+          clearInterval(poll);
+          returnOnFailure();
+        }
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(poll);
+  }, [orderId, success, source, url, navigate]);
 
   return (
     <div className='verify'>
