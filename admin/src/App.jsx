@@ -6,13 +6,10 @@ import List from './pages/List/List';
 import Orders from './pages/Orders/Orders';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { API_BASE_URL } from '@food-delivery/shared';
 
 const App = () => {
-  // Get the base URL for API calls
-  const apiUrl = import.meta.env.VITE_API_URL || "https://backend-ten-azure-58.vercel.app";
-  
-  // Log the URL for debugging
-  console.log('API URL:', apiUrl);
+  const apiUrl = import.meta.env.VITE_API_URL || API_BASE_URL;
 
   return (
     <div>
