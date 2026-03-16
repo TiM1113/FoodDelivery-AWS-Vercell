@@ -137,9 +137,11 @@ function StoreContextProvider(props) {
 
       const foodItems = response.data.data.map(item => ({
         ...item,
-        image: item.image?.startsWith('http')
-          ? item.image
-          : `${s3BaseUrl}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
+        image: !item.image
+          ? null
+          : item.image.startsWith('http')
+            ? item.image
+            : `${s3BaseUrl}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
       }));
 
       setFoodList(foodItems);
