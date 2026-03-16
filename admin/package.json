@@ -1,5 +1,5 @@
 {
-  "name": "admin",
+  "name": "@food-delivery/admin",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@food-delivery/shared": "workspace:*",
     "axios": "^1.7.8",
+    "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1",
