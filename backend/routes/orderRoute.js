@@ -1,5 +1,6 @@
-import express from 'express'; // this express used for creating a router
-import authMiddleware from '../middleware/auth.js'
+import express from 'express';
+import authMiddleware from '../middleware/auth.js';
+import adminMiddleware from '../middleware/adminMiddleware.js';
 // import placeOrder from orderController.js
 import {
 	placeOrder,
@@ -29,15 +30,11 @@ orderRouter.get('/verify', verifyOrder);
 // 3- create end point for userOrders
 orderRouter.post('/userorders', authMiddleware, userOrders);
 
-// 4- List orders endpoint
-orderRouter.get('/list', listOrders); //In Express, route paths must start with a / to be valid
-// orderRouter.get('/list', (req, res, next) => {
-// 	console.log('GET /list called');
-// 	next(); // Proceed to the actual `listOrders` handler
-// }, listOrders);
+// 4- List orders endpoint (admin only)
+orderRouter.get('/list', authMiddleware, adminMiddleware, listOrders);
 
-// 5- update orders status in admin panel
-orderRouter.post('/update', updateStatus)
+// 5- update orders status in admin panel (admin only)
+orderRouter.post('/update', authMiddleware, adminMiddleware, updateStatus);
 
 // 6- retry payment for existing unpaid order
 orderRouter.post('/retry-payment', authMiddleware, retryPayment);

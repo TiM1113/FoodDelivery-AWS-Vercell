@@ -1,4 +1,3 @@
-// import React, { useEffect, useState } from 'react' - in this  { useEffect, useState } import, the useEffect function only used for testing state variables, while the verification is finished useEffect function will be delete ad below showed.
 import { useContext, useState } from 'react'
 import './LoginPopup.css'
 import { assets } from '../../assets/assets'
@@ -41,12 +40,11 @@ const LoginPopup = ({ setShowLogin }) => {
         newUrl += "/api/user/register"
       }
 
-      // call the API will be working in Login and Register
-      const response = await axios.post(newUrl, data);
+      const response = await axios.post(newUrl, data, { withCredentials: true });
 
       if (response.data.success) {
-        setToken(response.data.token);// Save token to context
-        localStorage.setItem("token", response.data.token);// Save token to localStorage
+        setToken('logged-in');
+        localStorage.setItem('isLoggedIn', 'true');
         setShowLogin(false);
       }
       else{
