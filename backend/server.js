@@ -1,6 +1,6 @@
-// Create the basic express server
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import {connectDB} from './config/db.js';
 import foodRouter from './routes/foodRoute.js';
@@ -40,7 +40,6 @@ const corsOptions = {
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: [
 		'Content-Type',
-		'token',
 		'Authorization',
 		'Origin',
 		'Accept',
@@ -49,17 +48,8 @@ const corsOptions = {
 	maxAge: 86400,
 };
 
-// Apply CORS middleware first
 app.use(cors(corsOptions));
-
-// Add request logging middleware
-app.use((req, res, next) => {
-	console.log('Request from:', req.headers.origin);
-	console.log('Request method:', req.method);
-	console.log('Request path:', req.path);
-	console.log('Request headers:', req.headers);
-	next();
-});
+app.use(cookieParser());
 
 // DB connection
 connectDB();

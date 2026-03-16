@@ -3,7 +3,6 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { API_BASE_URL, S3_BASE_URL } from '@food-delivery/shared';
 
-// Create the context with initial default values
 const defaultContextValue = {
   food_list: [],
   cartItems: {},
@@ -19,23 +18,21 @@ const defaultContextValue = {
 
 export const StoreContext = createContext(defaultContextValue);
 
-// StoreContext Provider Component
 function StoreContextProvider(props) {
   const apiUrl = import.meta.env.VITE_API_URL || API_BASE_URL;
   const s3BaseUrl = import.meta.env.VITE_S3_URL || S3_BASE_URL;
-  
+
   const [food_list, setFoodList] = useState([]);
   const [cartItems, setCartItems] = useState({});
-  const [token, setToken] = useState("");
+  // token is a flag: "" = logged out, "logged-in" = authenticated via httpOnly Cookie
+  const [token, setToken] = useState('');
 
-  // Verify if an item exists in food_list
   const verifyItemExists = useCallback((itemId) => {
     return food_list.some(item => item._id === itemId);
   }, [food_list]);
 
   const addToCart = async (itemId) => {
     try {
-      // Verify item exists before adding
       if (!verifyItemExists(itemId)) {
         console.warn(`Attempted to add non-existent item: ${itemId}`);
         return;
@@ -50,7 +47,7 @@ function StoreContextProvider(props) {
       setCartItems(currentItems);
 
       if (token) {
-        await axios.post(`${apiUrl}/api/cart/add`, { itemId }, { headers: { token } });
+        await axios.post(`${apiUrl}/api/cart/add`, { itemId }, { withCredentials: true });
       }
     } catch (error) {
       console.error('Error adding item to cart:', error);
@@ -65,7 +62,7 @@ function StoreContextProvider(props) {
         setCartItems(currentItems);
 
         if (token) {
-          await axios.post(`${apiUrl}/api/cart/remove`, { itemId }, { headers: { token } });
+          await axios.post(`${apiUrl}/api/cart/remove`, { itemId }, { withCredentials: true });
         }
       }
     } catch (error) {
@@ -76,17 +73,14 @@ function StoreContextProvider(props) {
   const getTotalCartAmount = () => {
     let totalAmount = 0;
     if (!food_list || !food_list.length || !cartItems) return 0;
-    
+
     try {
       Object.entries(cartItems).forEach(([itemId, quantity]) => {
-        // Add validation for quantity
         const validQuantity = Math.max(0, quantity);
-        
         if (validQuantity > 0) {
           const itemInfo = food_list.find(product => product._id === itemId);
           if (itemInfo && itemInfo.price) {
-            const itemTotal = itemInfo.price * validQuantity;
-            totalAmount += itemTotal;
+            totalAmount += itemInfo.price * validQuantity;
           } else {
             console.warn(`Item ${itemId} not found in food list or missing price`);
           }
@@ -95,28 +89,22 @@ function StoreContextProvider(props) {
     } catch (error) {
       console.error('Error calculating total amount:', error);
     }
-    
-    // Round correctly for currency display
+
     return Math.round(totalAmount * 100) / 100;
   };
 
   const addOrderToCart = async (orderItems) => {
     try {
       if (!orderItems || !Array.isArray(orderItems)) {
-        console.error('Invalid order items provided');
         return { success: false, message: 'Invalid order items' };
       }
 
       let itemsAdded = 0;
       let itemsNotFound = 0;
 
-      // Process each item in the order
       for (const orderItem of orderItems) {
-        // Find the corresponding food item by name
         const foodItem = food_list.find(food => food.name === orderItem.name);
-        
         if (foodItem) {
-          // Add the item to cart with the specified quantity
           for (let i = 0; i < orderItem.quantity; i++) {
             await addToCart(foodItem._id);
           }
@@ -127,16 +115,11 @@ function StoreContextProvider(props) {
         }
       }
 
-      const message = itemsNotFound > 0 
+      const message = itemsNotFound > 0
         ? `${itemsAdded} items added to cart. ${itemsNotFound} items not found.`
         : `${itemsAdded} items added to cart successfully!`;
 
-      return { 
-        success: itemsAdded > 0, 
-        message,
-        itemsAdded,
-        itemsNotFound
-      };
+      return { success: itemsAdded > 0, message, itemsAdded, itemsNotFound };
     } catch (error) {
       console.error('Error adding order to cart:', error);
       return { success: false, message: 'Error adding items to cart' };
@@ -146,62 +129,50 @@ function StoreContextProvider(props) {
   const fetchFoodList = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/api/food/list`);
-      
+
       if (!response.data || !response.data.data) {
         console.error('Invalid food list response:', response);
-        console.error('Response status:', response.status);
-        console.error('Response headers:', response.headers);
         return;
       }
-      
-      // Map over the food items and ensure image URLs are correct
+
       const foodItems = response.data.data.map(item => ({
         ...item,
-        image: item.image?.startsWith('http') 
-          ? item.image 
+        image: item.image?.startsWith('http')
+          ? item.image
           : `${s3BaseUrl}/${item.image.startsWith('uploads/') ? item.image : 'uploads/' + item.image}`
       }));
-      
+
       setFoodList(foodItems);
     } catch (error) {
       console.error('Error fetching food list:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        status: error.response?.status,
-        url: `${apiUrl}/api/food/list`
-      });
-      
-      // Set empty array on error to prevent undefined issues
       setFoodList([]);
     }
   }, [apiUrl, s3BaseUrl]);
 
-  const loadCartData = useCallback(async (userToken, foodList = []) => {
+  const loadCartData = useCallback(async (foodList = []) => {
     try {
-      const response = await axios.post(`${apiUrl}/api/cart/get`, {}, { headers: { token: userToken } });
+      const response = await axios.post(
+        `${apiUrl}/api/cart/get`,
+        {},
+        { withCredentials: true }
+      );
       if (response.data?.cartData) {
-        // Verify all items in cart exist in food_list
         const validCartData = Object.entries(response.data.cartData)
           .reduce((acc, [itemId, quantity]) => {
             const itemExists = foodList.some(item => item._id === itemId);
-            // Clean and validate quantity
             const validQuantity = Math.max(0, parseInt(quantity) || 0);
-            
             if (itemExists && validQuantity > 0) {
               acc[itemId] = validQuantity;
-            } else if (!itemExists) {
-              console.warn(`Removing non-existent item from cart: ${itemId}`);
-            } else if (validQuantity <= 0) {
-              console.warn(`Removing invalid quantity for item ${itemId}: ${quantity}`);
             }
             return acc;
           }, {});
         setCartItems(validCartData);
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error loading cart data:', error);
+      return false;
     }
   }, [apiUrl]);
 
@@ -212,13 +183,16 @@ function StoreContextProvider(props) {
     loadData();
   }, [fetchFoodList]);
 
-  // Separate effect for loading cart data when token is set and food_list is available
   useEffect(() => {
     async function loadCart() {
-      const savedToken = localStorage.getItem("token");
-      if (savedToken && food_list.length > 0) {
-        setToken(savedToken);
-        await loadCartData(savedToken, food_list);
+      const wasLoggedIn = localStorage.getItem('isLoggedIn');
+      if (wasLoggedIn && food_list.length > 0) {
+        const isAuth = await loadCartData(food_list);
+        if (isAuth) {
+          setToken('logged-in');
+        } else {
+          localStorage.removeItem('isLoggedIn');
+        }
       }
     }
     loadCart();
@@ -250,6 +224,3 @@ StoreContextProvider.propTypes = {
 };
 
 export default StoreContextProvider;
-
-
-
