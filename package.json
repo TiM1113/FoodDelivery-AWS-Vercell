@@ -7,7 +7,9 @@
     "dev:frontend": "pnpm --filter @food-delivery/frontend dev",
     "dev:admin": "pnpm --filter @food-delivery/admin dev",
     "build": "pnpm --filter @food-delivery/frontend build && pnpm --filter @food-delivery/admin build",
-    "install:all": "pnpm install"
+    "build:shared": "pnpm --filter @food-delivery/shared build",
+    "install:all": "pnpm install",
+    "typecheck": "pnpm --filter @food-delivery/shared typecheck && pnpm --filter @food-delivery/backend exec tsc --noEmit"
   },
   "engines": {
     "node": ">=18.0.0",
