@@ -137,8 +137,9 @@ const placeOrder = async (req, res) => {
 			line_items: line_items,
 			mode: 'payment',
 			payment_method_types: ['card'], // Remove au_becs_debit to support higher amounts
-			success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}&source=new`,
+			success_url: `${frontend_url}/verify?orderId=${newOrder._id}&source=new`,
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}&source=new`,
+			metadata: { orderId: newOrder._id.toString() },
 			locale: 'en', // Explicitly set locale to avoid module loading issues
 			billing_address_collection: 'required',
 			shipping_address_collection: {
@@ -175,25 +176,75 @@ const userOrders = async (req, res) => {
 	}
 };
 
-//6- create one temporary payment verification system to verify the order(this is not the perfect way, the perfect way is to use B hooks)
+// Handle payment cancellation only - payment confirmation is done via webhook
 const verifyOrder = async (req, res) => {
-	const { orderId, success } = req.query;  // ✅ 改成 req.query，适配 GET 请求
+	const { orderId, success } = req.query;
 
     try {
-        if (success === 'true') {
-            await orderModel.findByIdAndUpdate(orderId, { 
-                payment: true,
-                status: "Food Processing"
-            });
-            return res.json({ success: true, message: 'Paid' });
-        } else {
+        if (success === 'false') {
+            // User cancelled payment - delete the unpaid order
             await orderModel.findByIdAndDelete(orderId);
-            return res.json({ success: false, message: 'Not Paid' });
+            return res.json({ success: false, message: 'Order cancelled' });
         }
+        // For any other case, return current payment status from DB (read-only)
+        const order = await orderModel.findById(orderId);
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+        return res.json({ success: order.payment, message: order.payment ? 'Paid' : 'Pending' });
     } catch (error) {
         console.error("Order verification error:", error);
         return res.status(500).json({ success: false, message: error.message || 'Error' });
     }
+};
+
+// Poll order payment status - called by frontend while waiting for webhook
+const getOrderStatus = async (req, res) => {
+	const { orderId } = req.params;
+	try {
+		const order = await orderModel.findById(orderId);
+		if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+		return res.json({ success: true, payment: order.payment, status: order.status });
+	} catch (error) {
+		console.error('Error fetching order status:', error);
+		return res.status(500).json({ success: false, message: error.message || 'Error' });
+	}
+};
+
+// Handle Stripe webhook - the only place that sets payment: true
+const handleWebhook = async (req, res) => {
+	const sig = req.headers['stripe-signature'];
+	if (!process.env.STRIPE_WEBHOOK_SECRET) {
+		console.error('STRIPE_WEBHOOK_SECRET is not set');
+		return res.status(500).json({ success: false, message: 'Webhook secret not configured' });
+	}
+
+	let event;
+	try {
+		event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+	} catch (err) {
+		console.error('Webhook signature verification failed:', err.message);
+		return res.status(400).send(`Webhook Error: ${err.message}`);
+	}
+
+	if (event.type === 'checkout.session.completed') {
+		const session = event.data.object;
+		const orderId = session.metadata?.orderId;
+		if (!orderId) {
+			console.error('Webhook: missing orderId in session metadata');
+			return res.json({ received: true });
+		}
+		try {
+			await orderModel.findByIdAndUpdate(orderId, {
+				payment: true,
+				status: 'Food Processing'
+			});
+			console.log(`Webhook: order ${orderId} marked as paid`);
+		} catch (error) {
+			console.error('Webhook: error updating order:', error);
+			return res.status(500).json({ success: false, message: 'Error updating order' });
+		}
+	}
+
+	res.json({ received: true });
 };
 
 //2- API: Listing orders for admin panel - fetch all the orders of all the users
@@ -305,8 +356,9 @@ const retryPayment = async (req, res) => {
 			line_items: line_items,
 			mode: 'payment',
 			payment_method_types: ['card'],
-			success_url: `${frontend_url}/verify?success=true&orderId=${existingOrder._id}&source=retry`,
+			success_url: `${frontend_url}/verify?orderId=${existingOrder._id}&source=retry`,
 			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}&source=retry`,
+			metadata: { orderId: existingOrder._id.toString() },
 			locale: 'en', // Explicitly set locale to avoid module loading issues
 			billing_address_collection: 'required',
 			shipping_address_collection: {
@@ -401,4 +453,4 @@ const deleteOrder = async (req, res) => {
 };
 
 // export placeOrder function and it will be imported in orderRoute.js
-export {placeOrder, userOrders, verifyOrder, listOrders, updateStatus, retryPayment, editOrder, deleteOrder};
+export {placeOrder, userOrders, verifyOrder, getOrderStatus, handleWebhook, listOrders, updateStatus, retryPayment, editOrder, deleteOrder};

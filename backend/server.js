@@ -12,6 +12,10 @@ import orderRouter from './routes/orderRoute.js';
 // app config
 const app = express();
 
+// Webhook route must receive raw body for Stripe signature verification
+// Must be registered BEFORE express.json() parses the body
+app.use('/api/order/webhook', express.raw({ type: 'application/json' }));
+
 // initialize the middleware
 app.use(express.json());
 

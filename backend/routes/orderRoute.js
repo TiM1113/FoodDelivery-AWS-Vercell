@@ -6,6 +6,8 @@ import {
 	placeOrder,
 	userOrders,
 	verifyOrder,
+	getOrderStatus,
+	handleWebhook,
 	listOrders,
   updateStatus,
   retryPayment,
@@ -23,9 +25,12 @@ const orderRouter = express.Router();
 
 // 1- place order end point
 orderRouter.post('/place', authMiddleware, placeOrder);
-// 2- place order verification end point
-orderRouter.post('/verify', verifyOrder);
+// 2- Stripe webhook - no auth, raw body already handled in server.js
+orderRouter.post('/webhook', handleWebhook);
+// 3- cancellation check only - no longer sets payment:true
 orderRouter.get('/verify', verifyOrder);
+// 4- poll order payment status (frontend polls after redirect from Stripe)
+orderRouter.get('/status/:orderId', authMiddleware, getOrderStatus);
 
 // 3- create end point for userOrders
 orderRouter.post('/userorders', authMiddleware, userOrders);
