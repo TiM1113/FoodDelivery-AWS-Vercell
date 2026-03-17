@@ -3,6 +3,7 @@
 // import { verify } from 'jsonwebtoken';
 import orderModel from '../models/orderModel.js';
 import userModel from '../models/userModel.js';
+import foodModel from '../models/foodModel.js';
 import Stripe from 'stripe'; // in importing package we use capital Strip
 
 // This API will be linked with frontend
@@ -91,26 +92,25 @@ const placeOrder = async (req, res) => {
 		}
 		await userModel.findByIdAndUpdate(userId, {cartData: {}}); // using empty cartData:{} value to clear(delete) the user's cart data
 
-		// to create line items for the stripe payment
-		const orderItems = newOrder.items;
-		console.log('About to create line_items, orderItems is:', orderItems);
-		console.log('OrderItems type:', typeof orderItems, 'Array?', Array.isArray(orderItems));
-		
-		if (!Array.isArray(orderItems) || orderItems.length === 0) {
-			throw new Error('OrderItems is not a valid array at Stripe processing stage');
+		// Fetch authoritative prices from DB — never trust client-supplied prices
+		const foodIds = newOrder.items.map(item => item._id);
+		const dbFoods = await foodModel.find({ _id: { $in: foodIds } });
+		const foodMap = Object.fromEntries(dbFoods.map(f => [f._id.toString(), f]));
+
+		// Verify all food items exist in DB
+		const missingIds = foodIds.filter(id => !foodMap[id.toString()]);
+		if (missingIds.length > 0) {
+			await orderModel.findByIdAndDelete(newOrder._id);
+			return res.status(400).json({ success: false, message: `Food items not found: ${missingIds.join(', ')}` });
 		}
-		
-		const line_items = orderItems.map((item) => {
-			if (!item.name || !item.price || !item.quantity) {
-				throw new Error(`Invalid item data: ${JSON.stringify(item)}`);
-			}
+
+		const line_items = newOrder.items.map((item) => {
+			const dbFood = foodMap[item._id.toString()];
 			return {
 				price_data: {
 					currency: 'aud',
-					product_data: {
-						name: item.name,
-					},
-					unit_amount: Math.round(item.price * 100), // Ensure it's an integer
+					product_data: { name: dbFood.name },
+					unit_amount: Math.round(dbFood.price * 100), // DB price, not client price
 				},
 				quantity: item.quantity,
 			};
