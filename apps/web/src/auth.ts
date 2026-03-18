@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_URL = process.env.API_URL ?? "";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -13,26 +13,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const res = await fetch(`${API_URL}/api/user/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: credentials.email,
-            password: credentials.password,
-          }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        if (!res.ok) return null;
+        try {
+          const res = await fetch(`${API_URL}/api/user/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+            signal: controller.signal,
+          });
 
-        const data = await res.json();
-        if (!data.success) return null;
+          clearTimeout(timeoutId);
 
-        return {
-          id: String(data.userId),
-          name: data.name,
-          email: String(credentials.email),
-          role: data.role as string,
-        };
+          if (!res.ok) return null;
+
+          const data = await res.json();
+          if (!data.success) return null;
+
+          return {
+            id: String(data.userId),
+            name: data.name,
+            email: String(credentials.email),
+            role: data.role as string,
+          };
+        } catch {
+          clearTimeout(timeoutId);
+          return null;
+        }
       },
     }),
   ],

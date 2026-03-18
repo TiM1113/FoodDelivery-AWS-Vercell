@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const raw = searchParams.get("callbackUrl") ?? "/";
+  const callbackUrl =
+    raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,19 +22,23 @@ export function LoginForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Invalid email or password");
-    } else {
-      router.push(callbackUrl);
-      router.refresh();
+      if (result?.error) {
+        setError("Invalid email or password");
+      } else {
+        router.push(callbackUrl);
+        router.refresh();
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 

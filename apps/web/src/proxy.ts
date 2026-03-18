@@ -4,11 +4,11 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname + req.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 });
 
 export const config = {
-  matcher: ["/cart", "/order", "/myorders"],
+  matcher: ["/cart/:path*", "/order/:path*", "/myorders/:path*"],
 };
