@@ -37,33 +37,37 @@ const getIp = (req) => {
 
 // Middleware factory: takes a limiter and an identifier function
 const makeRateLimiter = (limiter, getIdentifier) => async (req, res, next) => {
+	const identifier = getIdentifier(req);
+
+	let result;
 	try {
-		const identifier = getIdentifier(req);
-		const { success, limit, remaining, reset } = await limiter.limit(identifier);
-
-		res.setHeader('X-RateLimit-Limit', limit);
-		res.setHeader('X-RateLimit-Remaining', remaining);
-		res.setHeader('X-RateLimit-Reset', reset);
-
-		if (!success) {
-			const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-			res.setHeader('Retry-After', retryAfter);
-			return res.status(429).json({
-				success: false,
-				message: 'Too many requests, please try again later',
-				retryAfter,
-			});
-		}
-
-		next();
+		result = await limiter.limit(identifier);
 	} catch (err) {
-		// If Redis is unreachable, fail open (allow request) to avoid blocking users
-		console.error('Rate limiter error:', err.message);
-		next();
+		// Fail open only for Redis/Upstash errors — do not mask code bugs
+		console.error('Rate limiter Redis error:', err.message);
+		return next();
 	}
+
+	const { success, limit, remaining, reset } = result;
+
+	res.setHeader('X-RateLimit-Limit', limit);
+	res.setHeader('X-RateLimit-Remaining', remaining);
+	res.setHeader('X-RateLimit-Reset', reset);
+
+	if (!success) {
+		const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+		res.setHeader('Retry-After', retryAfter);
+		return res.status(429).json({
+			success: false,
+			message: 'Too many requests, please try again later',
+			retryAfter,
+		});
+	}
+
+	next();
 };
 
 // Exported middleware — each bound to its limiter and identifier strategy
 export const loginRateLimit    = makeRateLimiter(loginLimiter,    getIp);
 export const registerRateLimit = makeRateLimiter(registerLimiter, getIp);
-export const orderRateLimit    = makeRateLimiter(orderLimiter,    (req) => req.userId ?? getIp(req));
+export const orderRateLimit    = makeRateLimiter(orderLimiter,    (req) => req.body.userId ?? getIp(req));
