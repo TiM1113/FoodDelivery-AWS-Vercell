@@ -6,19 +6,10 @@ import userModel from '../models/userModel.js';
 import foodModel from '../models/foodModel.js';
 import Stripe from 'stripe'; // in importing package we use capital Strip
 
-// This API will be linked with frontend
-// set up a strip support in orderController component
-if (!process.env.STRIPE_SECRET_KEY) {
-	console.error('STRIPE_SECRET_KEY is not set in environment variables');
-} else {
-	console.log('STRIPE_SECRET_KEY is configured');
-}
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// create a variable to store the frontend url
-//const frontend_url = 'http://localhost:5174'; // *****should be really care of extra slash "/" was added at the end of url which will lead a "No routes matched location '/verify?success=true&orderId=..." error on the Verify component page.*****
-const frontend_url = 'https://fooddelivery-2025.vercel.app';
+// Frontend URL for Stripe redirect — read from environment variable
+const frontend_url = process.env.FRONTEND_URL;
 // 1 - placing user order form frontend
 const placeOrder = async (req, res) => {
 	// create new order logic
