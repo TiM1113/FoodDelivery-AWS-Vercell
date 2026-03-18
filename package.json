@@ -16,7 +16,7 @@
     "postinstall": "pnpm --filter @food-delivery/shared build"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.9.0",
     "pnpm": ">=8.0.0"
   },
   "pnpm": {
