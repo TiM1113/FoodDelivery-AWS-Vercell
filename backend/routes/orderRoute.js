@@ -2,6 +2,7 @@ import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import adminMiddleware from '../middleware/adminMiddleware.js';
 import validateRequest, { placeOrderSchema } from '../middleware/validateRequest.js';
+import { orderRateLimit } from '../middleware/rateLimiter.js';
 // import placeOrder from orderController.js
 import {
 	placeOrder,
@@ -25,7 +26,7 @@ console.log('Order router initialized');
 const orderRouter = express.Router();
 
 // 1- place order end point
-orderRouter.post('/place', authMiddleware, validateRequest(placeOrderSchema), placeOrder);
+orderRouter.post('/place', authMiddleware, orderRateLimit, validateRequest(placeOrderSchema), placeOrder);
 // 2- Stripe webhook - no auth, raw body already handled in server.js
 orderRouter.post('/webhook', handleWebhook);
 // 3- cancellation check only - no longer sets payment:true
