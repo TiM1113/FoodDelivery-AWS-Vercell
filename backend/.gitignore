@@ -35,3 +35,4 @@ temp/
 # Uploads directory
 uploads/*
 !uploads/.gitkeep
+.vercel

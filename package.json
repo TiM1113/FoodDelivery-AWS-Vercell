@@ -6,14 +6,17 @@
     "dev:backend": "pnpm --filter @food-delivery/backend dev",
     "dev:frontend": "pnpm --filter @food-delivery/frontend dev",
     "dev:admin": "pnpm --filter @food-delivery/admin dev",
+    "dev:web": "pnpm --filter @food-delivery/web dev",
     "build": "pnpm --filter @food-delivery/frontend build && pnpm --filter @food-delivery/admin build",
+    "build:web": "pnpm --filter @food-delivery/web build",
     "build:shared": "pnpm --filter @food-delivery/shared build",
     "install:all": "pnpm install",
     "typecheck": "pnpm --filter @food-delivery/shared typecheck && pnpm --filter @food-delivery/backend exec tsc --noEmit",
+    "typecheck:web": "pnpm --filter @food-delivery/web exec tsc --noEmit",
     "postinstall": "pnpm --filter @food-delivery/shared build"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.9.0",
     "pnpm": ">=8.0.0"
   },
   "pnpm": {
