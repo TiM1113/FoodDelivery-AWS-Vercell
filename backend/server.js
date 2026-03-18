@@ -33,10 +33,11 @@ const productionOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
 	.map((s) => s.trim())
 	.filter(Boolean);
 
-const developmentOrigins =
-	process.env.NODE_ENV !== 'production'
-		? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
-		: [];
+const nodeEnv = process.env.NODE_ENV;
+const isDevLike = nodeEnv === 'development' || nodeEnv === 'test';
+const developmentOrigins = isDevLike
+	? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
+	: [];
 
 const allowedOrigins = [...productionOrigins, ...developmentOrigins];
 
