@@ -1,12 +1,14 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
 
 export function SignOutButton() {
   return (
-    <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>
+    <button
+      onClick={() => signOut({ callbackUrl: "/" })}
+      className="cursor-pointer rounded-full border border-primary bg-transparent px-7 py-2.5 text-sm font-medium text-[#49557e] transition-colors hover:bg-accent"
+    >
       Sign Out
-    </Button>
+    </button>
   );
 }
