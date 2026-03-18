@@ -1,3 +1,7 @@
+import 'dotenv/config';
+import { validateEnv } from './config/validateEnv.js';
+validateEnv();
+
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -5,7 +9,6 @@ import mongoose from 'mongoose';
 import {connectDB} from './config/db.js';
 import foodRouter from './routes/foodRoute.js';
 import userRouter from './routes/userRoute.js';
-import 'dotenv/config';
 import cartRouter from './routes/cartRoute.js';
 import orderRouter from './routes/orderRoute.js';
 
@@ -23,15 +26,20 @@ app.use('/api/order/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 // CORS configuration
-const allowedOrigins = [
-	'https://admin-kappa-ivory.vercel.app', // Admin production
-	'https://fooddelivery-2025.vercel.app', // Frontend production (NEW DOMAIN)
-	'https://frontend-beige-eight-62.vercel.app', // Frontend production (OLD DOMAIN - keep for transition)
-	'https://backend-ten-azure-58.vercel.app', // Backend production
-	'http://localhost:5173', // Frontend development
-	'http://localhost:5174', // Admin development
-	'http://localhost:3000', // Alternative development port
-];
+// Production origins come from CORS_ALLOWED_ORIGINS (comma-separated).
+// In development, localhost ports are always allowed.
+const productionOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+	.split(',')
+	.map((s) => s.trim())
+	.filter(Boolean);
+
+const nodeEnv = process.env.NODE_ENV;
+const isDevLike = nodeEnv === 'development' || nodeEnv === 'test';
+const developmentOrigins = isDevLike
+	? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
+	: [];
+
+const allowedOrigins = [...productionOrigins, ...developmentOrigins];
 
 const corsOptions = {
 	origin: function (origin, callback) {
