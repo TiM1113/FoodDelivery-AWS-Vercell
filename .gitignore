@@ -12,6 +12,9 @@ errorscreenshorts/
 *.jpeg
 *.gif
 
+# Allow production image assets in apps/web
+!apps/web/public/images/**/*.png
+
 # Documentation files (keep only essential ones)
 CLAUDE.md
 DEPLOYMENT_GUIDE.md
