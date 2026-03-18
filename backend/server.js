@@ -12,6 +12,9 @@ import orderRouter from './routes/orderRoute.js';
 // app config
 const app = express();
 
+// Trust Vercel's reverse proxy so req.ip reflects the real client IP
+app.set('trust proxy', 1);
+
 // Webhook route must receive raw body for Stripe signature verification
 // Must be registered BEFORE express.json() parses the body
 app.use('/api/order/webhook', express.raw({ type: 'application/json' }));

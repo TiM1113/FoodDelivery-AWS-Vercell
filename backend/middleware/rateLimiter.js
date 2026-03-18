@@ -28,12 +28,8 @@ const orderLimiter = new Ratelimit({
 	prefix: 'rl:order',
 });
 
-// Extract real client IP — Vercel puts it in x-forwarded-for header
-const getIp = (req) => {
-	const forwarded = req.headers['x-forwarded-for'];
-	if (forwarded) return forwarded.split(',')[0].trim();
-	return req.socket?.remoteAddress ?? 'unknown';
-};
+// Extract real client IP — requires app.set('trust proxy', 1) in server.js
+const getIp = (req) => req.ip ?? req.socket?.remoteAddress ?? 'unknown';
 
 // Middleware factory: takes a limiter and an identifier function
 const makeRateLimiter = (limiter, getIdentifier) => async (req, res, next) => {
@@ -55,7 +51,7 @@ const makeRateLimiter = (limiter, getIdentifier) => async (req, res, next) => {
 	res.setHeader('X-RateLimit-Reset', reset);
 
 	if (!success) {
-		const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+		const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
 		res.setHeader('Retry-After', retryAfter);
 		return res.status(429).json({
 			success: false,
@@ -70,4 +66,4 @@ const makeRateLimiter = (limiter, getIdentifier) => async (req, res, next) => {
 // Exported middleware — each bound to its limiter and identifier strategy
 export const loginRateLimit    = makeRateLimiter(loginLimiter,    getIp);
 export const registerRateLimit = makeRateLimiter(registerLimiter, getIp);
-export const orderRateLimit    = makeRateLimiter(orderLimiter,    (req) => req.body.userId ?? getIp(req));
+export const orderRateLimit    = makeRateLimiter(orderLimiter,    (req) => req.body?.userId ?? getIp(req));
