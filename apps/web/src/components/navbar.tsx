@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { auth } from "@/auth";
+import { SignInLink } from "@/components/auth/sign-in-link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export async function Navbar() {
@@ -33,9 +33,7 @@ export async function Navbar() {
               <SignOutButton />
             </>
           ) : (
-            <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Sign In
-            </Link>
+            <SignInLink />
           )}
         </div>
       </div>
