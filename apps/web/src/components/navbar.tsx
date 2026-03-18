@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { auth } from "@/auth";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
-export function Navbar() {
+export async function Navbar() {
+  const session = await auth();
+
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -23,9 +27,16 @@ export function Navbar() {
           <Link href="/cart" aria-label="Cart">
             <ShoppingCart className="h-5 w-5" />
           </Link>
-          <Button variant="outline" size="sm">
-            Sign In
-          </Button>
+          {session?.user ? (
+            <>
+              <span className="text-sm font-medium">{session.user.name}</span>
+              <SignOutButton />
+            </>
+          ) : (
+            <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
     </nav>

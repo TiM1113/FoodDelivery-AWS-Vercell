@@ -29,7 +29,7 @@ const loginUser = async (req, res) => {
 
 		const token = createToken(user._id);
 		res.cookie('token', token, COOKIE_OPTIONS);
-		res.json({ success: true, role: user.role });
+		res.json({ success: true, role: user.role, userId: user._id, name: user.name });
 	} catch (error) {
 		console.log(error);
 		res.json({ success: false, message: 'Error' });
