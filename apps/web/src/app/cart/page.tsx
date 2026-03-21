@@ -152,10 +152,10 @@ export default function CartPage() {
               {/* Desktop: remove all button */}
               <button
                 type="button"
-                onClick={() => {
-                  // Remove all units of this item
+                onClick={async () => {
+                  // Remove all units sequentially to avoid race conditions
                   for (let i = 0; i < qty; i++) {
-                    removeItem(food._id!);
+                    await removeItem(food._id!);
                   }
                 }}
                 className="hidden h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:flex"
