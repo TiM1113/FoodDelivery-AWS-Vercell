@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { CategoryFilter } from "./category-filter";
 import { FoodGrid } from "./food-grid";
+import { AddToCartButton } from "./add-to-cart-button";
 import type { Food, FoodCategory, FoodListResponse } from "@/types/food";
 
 interface FoodSectionProps {
@@ -80,7 +81,10 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
             Failed to load dishes. Please try refreshing the page.
           </p>
         )}
-        <FoodGrid foods={filteredFoods} />
+        <FoodGrid
+          foods={filteredFoods}
+          renderAction={(foodId) => <AddToCartButton foodId={foodId} />}
+        />
       </div>
     </section>
   );

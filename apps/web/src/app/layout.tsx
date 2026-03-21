@@ -4,6 +4,8 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { QueryProvider } from "@/lib/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SessionProvider } from "@/components/session-provider";
+import { CartInitializer } from "@/components/cart-initializer";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -25,11 +27,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${outfit.variable} flex min-h-screen flex-col antialiased`}>
         <ThemeProvider>
-          <QueryProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </QueryProvider>
+          <SessionProvider>
+            <QueryProvider>
+              <CartInitializer />
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </QueryProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

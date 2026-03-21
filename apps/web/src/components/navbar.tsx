@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
 import { auth } from "@/auth";
 import { SignInLink } from "@/components/auth/sign-in-link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CartBadge } from "@/components/cart-badge";
 
 export async function Navbar() {
   const session = await auth();
@@ -27,9 +27,7 @@ export async function Navbar() {
 
         <div className="flex items-center gap-8">
           <ThemeToggle />
-          <Link href="/cart" aria-label="Cart" className="relative">
-            <ShoppingCart className="h-5 w-5" />
-          </Link>
+          <CartBadge />
           {session?.user ? (
             <>
               <span className="text-sm font-medium">{session.user.name}</span>
