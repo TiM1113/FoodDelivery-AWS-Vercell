@@ -25,7 +25,7 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<FoodCategory | "All">("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: foods } = useQuery({
+  const { data: foods, isError } = useQuery({
     queryKey: ["foods"],
     queryFn: fetchFoodsClient,
     initialData: initialFoods,
@@ -66,6 +66,7 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
+              aria-label="Search dishes"
               placeholder="Search dishes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -74,6 +75,11 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
           </div>
         </div>
 
+        {isError && (
+          <p className="text-sm text-destructive">
+            Failed to load dishes. Please try refreshing the page.
+          </p>
+        )}
         <FoodGrid foods={filteredFoods} />
       </div>
     </section>
