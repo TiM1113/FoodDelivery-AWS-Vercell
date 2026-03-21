@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cart-store";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,10 +25,73 @@ export default function CartPage() {
   const removeItem = useCartStore((s) => s.removeItem);
   const getTotalAmount = useCartStore((s) => s.getTotalAmount);
 
-  const { data: foods = [] } = useQuery({
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+
+  const guardedAdd = useCallback(
+    async (id: string) => {
+      if (pendingIds.has(id)) return;
+      setPendingIds((prev) => new Set(prev).add(id));
+      try {
+        await addItem(id);
+      } finally {
+        setPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [addItem, pendingIds],
+  );
+
+  const guardedRemove = useCallback(
+    async (id: string) => {
+      if (pendingIds.has(id)) return;
+      setPendingIds((prev) => new Set(prev).add(id));
+      try {
+        await removeItem(id);
+      } finally {
+        setPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [removeItem, pendingIds],
+  );
+
+  const {
+    data: foods = [],
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: ["foods"],
     queryFn: fetchFoods,
   });
+
+  if (isPending) {
+    return (
+      <div className="mx-auto flex w-[80%] flex-col items-center justify-center gap-4 py-24 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">Loading your cart…</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mx-auto flex w-[80%] flex-col items-center justify-center gap-4 py-24 text-center">
+        <h1 className="text-2xl font-semibold">Something went wrong</h1>
+        <p className="text-muted-foreground">
+          We couldn&apos;t load the menu data. Please try again later.
+        </p>
+        <Link href="/" className={buttonVariants()}>
+          Back to Home
+        </Link>
+      </div>
+    );
+  }
 
   const cartFoods = foods.filter((f) => f._id && items[f._id] > 0);
   const subtotal = getTotalAmount(foods);
@@ -67,6 +131,7 @@ export default function CartPage() {
         {cartFoods.map((food) => {
           const qty = items[food._id!];
           const lineTotal = Math.round(food.price * qty * 100) / 100;
+          const isPendingItem = pendingIds.has(food._id!);
 
           return (
             <div
@@ -97,18 +162,22 @@ export default function CartPage() {
                 <div className="flex items-center gap-2 rounded-full border px-2 py-1">
                   <button
                     type="button"
-                    onClick={() => removeItem(food._id!)}
+                    disabled={isPendingItem}
+                    onClick={() => guardedRemove(food._id!)}
                     aria-label="Remove one"
+                    className="disabled:opacity-50"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="min-w-[1rem] text-center text-sm font-medium">
+                  <span className="min-w-4 text-center text-sm font-medium">
                     {qty}
                   </span>
                   <button
                     type="button"
-                    onClick={() => addItem(food._id!)}
+                    disabled={isPendingItem}
+                    onClick={() => guardedAdd(food._id!)}
                     aria-label="Add one more"
+                    className="disabled:opacity-50"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -125,19 +194,21 @@ export default function CartPage() {
               <div className="hidden items-center justify-center gap-2 sm:flex">
                 <button
                   type="button"
-                  onClick={() => removeItem(food._id!)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border transition-colors hover:bg-muted"
+                  disabled={isPendingItem}
+                  onClick={() => guardedRemove(food._id!)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:opacity-50"
                   aria-label="Remove one"
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
-                <span className="min-w-[1.25rem] text-center font-medium">
+                <span className="min-w-5 text-center font-medium">
                   {qty}
                 </span>
                 <button
                   type="button"
-                  onClick={() => addItem(food._id!)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border transition-colors hover:bg-muted"
+                  disabled={isPendingItem}
+                  onClick={() => guardedAdd(food._id!)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border transition-colors hover:bg-muted disabled:opacity-50"
                   aria-label="Add one more"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -152,13 +223,23 @@ export default function CartPage() {
               {/* Desktop: remove all button */}
               <button
                 type="button"
+                disabled={isPendingItem}
                 onClick={async () => {
-                  // Remove all units sequentially to avoid race conditions
-                  for (let i = 0; i < qty; i++) {
-                    await removeItem(food._id!);
+                  if (isPendingItem) return;
+                  setPendingIds((prev) => new Set(prev).add(food._id!));
+                  try {
+                    for (let i = 0; i < qty; i++) {
+                      await removeItem(food._id!);
+                    }
+                  } finally {
+                    setPendingIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(food._id!);
+                      return next;
+                    });
                   }
                 }}
-                className="hidden h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive sm:flex"
+                className="hidden h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 sm:flex"
                 aria-label={`Remove ${food.name} from cart`}
               >
                 <Trash2 className="h-4 w-4" />
