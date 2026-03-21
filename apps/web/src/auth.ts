@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { jwtVerify } from "jose";
 
 const API_URL = process.env.API_URL ?? "";
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "");
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -34,9 +36,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const data = await res.json();
           if (!data.success) return null;
 
+          // Prefer userId from body; fall back to decoding the Set-Cookie JWT
+          let userId = data.userId ? String(data.userId) : undefined;
+
+          if (!userId) {
+            const setCookie = res.headers.getSetCookie?.() ?? [];
+            const tokenCookie = setCookie
+              .find((c) => c.startsWith("token="))
+              ?.split(";")[0]
+              ?.slice("token=".length);
+            if (tokenCookie) {
+              try {
+                const { payload } = await jwtVerify(tokenCookie, JWT_SECRET);
+                userId = String(payload.id);
+              } catch {
+                /* JWT decode failed — userId stays undefined */
+              }
+            }
+          }
+
+          if (!userId) return null;
+
           return {
-            id: String(data.userId),
-            name: data.name,
+            id: userId,
+            name: data.name ?? "",
             email: String(credentials.email),
             role: data.role as string,
           };
