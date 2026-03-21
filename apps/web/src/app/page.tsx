@@ -1,6 +1,18 @@
 import Image from "next/image";
+import { fetchFoodList } from "@/lib/api";
+import { FoodSection } from "@/components/food/food-section";
 
-export default function Home() {
+export const revalidate = 300;
+
+export default async function Home() {
+  let foods: import("@/types/food").Food[] = [];
+  try {
+    const res = await fetchFoodList();
+    foods = res.data;
+  } catch {
+    // API unreachable — render page with empty list; client-side TanStack Query will retry
+  }
+
   return (
     <div className="mx-auto w-[80%]">
       {/* Hero Section */}
@@ -28,6 +40,9 @@ export default function Home() {
           </a>
         </div>
       </div>
+
+      {/* Food Listing */}
+      <FoodSection initialFoods={foods} />
     </div>
   );
 }
