@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { auth } from "@/auth";
 import { SignInLink } from "@/components/auth/sign-in-link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function Navbar() {
   const session = await auth();
@@ -16,15 +17,16 @@ export async function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-5 text-lg font-medium">
-          <Link href="/" className="text-[#49557e] hover:text-foreground transition-colors">
+          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
             Menu
           </Link>
-          <Link href="/myorders" className="text-[#49557e] hover:text-foreground transition-colors">
+          <Link href="/myorders" className="text-muted-foreground hover:text-foreground transition-colors">
             My Orders
           </Link>
         </div>
 
         <div className="flex items-center gap-8">
+          <ThemeToggle />
           <Link href="/cart" aria-label="Cart" className="relative">
             <ShoppingCart className="h-5 w-5" />
           </Link>
