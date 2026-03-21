@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { QueryProvider } from "@/lib/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -21,13 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${outfit.variable} flex min-h-screen flex-col antialiased`}>
-        <QueryProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
