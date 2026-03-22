@@ -10,5 +10,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/cart/:path*", "/order/:path*", "/myorders/:path*"],
+  matcher: ["/cart/:path*", "/checkout/:path*", "/verify/:path*", "/order/:path*", "/myorders/:path*"],
 };
