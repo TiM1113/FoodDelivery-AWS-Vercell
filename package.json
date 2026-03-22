@@ -13,13 +13,30 @@
     "install:all": "pnpm install",
     "typecheck": "pnpm --filter @food-delivery/shared typecheck && pnpm --filter @food-delivery/backend exec tsc --noEmit",
     "typecheck:web": "pnpm --filter @food-delivery/web exec tsc --noEmit",
-    "postinstall": "pnpm --filter @food-delivery/shared build"
+    "test": "pnpm --filter @food-delivery/web test",
+    "test:watch": "pnpm --filter @food-delivery/web test:watch",
+    "test:coverage": "pnpm --filter @food-delivery/web test:coverage",
+    "lint:web": "pnpm --filter @food-delivery/web lint",
+    "postinstall": "pnpm --filter @food-delivery/shared build",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "apps/web/src/**/*.{ts,tsx}": [
+      "pnpm --filter @food-delivery/web exec eslint --fix"
+    ]
   },
   "engines": {
     "node": ">=20.9.0",
     "pnpm": ">=8.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["bcrypt", "esbuild"]
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   }
 }
