@@ -18,8 +18,10 @@ export async function GET(req: NextRequest) {
   const success = searchParams.get("success") || "";
   const orderId = searchParams.get("orderId") || "";
 
+  const params = new URLSearchParams({ success, orderId });
+
   const res = await fetch(
-    `${API_URL}/api/order/verify?success=${success}&orderId=${orderId}`,
+    `${API_URL}/api/order/verify?${params.toString()}`,
   );
 
   const data = await res.json();

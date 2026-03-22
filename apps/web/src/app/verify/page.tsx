@@ -30,7 +30,7 @@ function VerifyContent() {
     if (!orderId) return;
     try {
       await fetch(
-        `/api/order/verify?success=false&orderId=${orderId}`,
+        `/api/order/verify?success=false&orderId=${encodeURIComponent(orderId)}`,
       );
     } catch {
       // Best effort — order stays unpaid, no harm
@@ -50,7 +50,7 @@ function VerifyContent() {
       attemptRef.current += 1;
 
       try {
-        const res = await fetch(`/api/order/status/${orderId}`);
+        const res = await fetch(`/api/order/status/${encodeURIComponent(orderId)}`);
         const data = await res.json();
 
         if (data.payment === true) {
