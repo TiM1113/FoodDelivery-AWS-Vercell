@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -11,7 +11,7 @@ const POLL_MAX_ATTEMPTS = 30; // 60 seconds total
 
 type VerifyStatus = "polling" | "success" | "cancelled" | "timeout" | "error";
 
-export default function VerifyPage() {
+function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -137,5 +137,20 @@ export default function VerifyPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto flex w-[80%] flex-col items-center justify-center gap-4 py-24 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground">Loading…</p>
+        </div>
+      }
+    >
+      <VerifyContent />
+    </Suspense>
   );
 }
