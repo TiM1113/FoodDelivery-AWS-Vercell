@@ -36,10 +36,59 @@ jobs:
       - name: Type check backend
         run: pnpm --filter @food-delivery/backend exec tsc --noEmit
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @food-delivery/shared build
+
+      - name: Lint apps/web
+        run: pnpm --filter @food-delivery/web lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @food-delivery/shared build
+
+      - name: Run tests
+        run: pnpm --filter @food-delivery/web test
+
   build:
     name: Build check
     runs-on: ubuntu-latest
-    needs: typecheck
+    needs: [typecheck, lint, test]
     steps:
       - uses: actions/checkout@v4
 
@@ -63,3 +112,6 @@ jobs:
 
       - name: Build admin
         run: pnpm --filter @food-delivery/admin build
+
+      - name: Build apps/web
+        run: pnpm --filter @food-delivery/web build
