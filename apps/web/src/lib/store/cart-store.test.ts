@@ -132,7 +132,7 @@ describe("removeItem", () => {
     expect(useCartStore.getState().items).toEqual({});
   });
 
-  it("does nothing when item quantity is already zero", async () => {
+  it("does nothing when item is missing from cart (treated as zero)", async () => {
     useCartStore.setState({ items: {} });
     const spy = vi.spyOn(globalThis, "fetch");
 
@@ -226,10 +226,11 @@ describe("getTotalAmount", () => {
     expect(useCartStore.getState().getTotalAmount(foods)).toBe(30.48);
   });
 
-  it("rounds to 2 decimal places", () => {
-    useCartStore.setState({ items: { b: 3 } });
-    // 8.99 * 3 = 26.97 (already 2 decimals, but tests the rounding logic)
-    expect(useCartStore.getState().getTotalAmount(foods)).toBe(26.97);
+  it("rounds to 2 decimal places (floating-point edge case)", () => {
+    // 0.1 * 3 = 0.30000000000000004 in JS — Math.round(x * 100) / 100 → 0.3
+    const roundingFoods: Food[] = [mockFood({ _id: "x", price: 0.1 })];
+    useCartStore.setState({ items: { x: 3 } });
+    expect(useCartStore.getState().getTotalAmount(roundingFoods)).toBe(0.3);
   });
 
   it("ignores items not found in food list", () => {
