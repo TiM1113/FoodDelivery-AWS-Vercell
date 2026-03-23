@@ -32,15 +32,25 @@ export async function POST(req: NextRequest) {
     .setExpirationTime("7d")
     .sign(JWT_SECRET);
 
-  const res = await fetch(`${API_URL}/api/order/userorders`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: `token=${backendJwt}`,
-    },
-    body: JSON.stringify({ userId: token.id }),
-  });
+  try {
+    const res = await fetch(`${API_URL}/api/order/userorders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `token=${backendJwt}`,
+      },
+      body: JSON.stringify({ userId: token.id }),
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  const data = await res.json();
-  return Response.json(data, { status: res.status });
+    const data = await res.json();
+    return Response.json(data, { status: res.status });
+  } catch (error) {
+    const status =
+      error instanceof DOMException && error.name === "TimeoutError" ? 504 : 502;
+    return Response.json(
+      { success: false, message: "Order service unavailable" },
+      { status },
+    );
+  }
 }

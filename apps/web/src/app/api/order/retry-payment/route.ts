@@ -34,15 +34,25 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  const res = await fetch(`${API_URL}/api/order/retry-payment`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: `token=${backendJwt}`,
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const res = await fetch(`${API_URL}/api/order/retry-payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `token=${backendJwt}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  const data = await res.json();
-  return Response.json(data, { status: res.status });
+    const data = await res.json();
+    return Response.json(data, { status: res.status });
+  } catch (error) {
+    const status =
+      error instanceof DOMException && error.name === "TimeoutError" ? 504 : 502;
+    return Response.json(
+      { success: false, message: "Order service unavailable" },
+      { status },
+    );
+  }
 }
