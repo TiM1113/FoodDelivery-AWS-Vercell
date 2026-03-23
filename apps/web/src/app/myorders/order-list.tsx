@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Package } from "lucide-react";
 
 import type { Order } from "@/types/order";
@@ -13,17 +13,30 @@ interface OrderListProps {
 export function OrderList({ initialOrders }: OrderListProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [activeTab, setActiveTab] = useState<"recent" | "favourites">("recent");
-  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set<string>();
+    try {
+      const raw = window.localStorage.getItem("myorders:favourites");
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch {
+      window.localStorage.removeItem("myorders:favourites");
+    }
+    return new Set<string>();
+  });
+
+  // Sync favourites to localStorage on change
+  useEffect(() => {
+    window.localStorage.setItem(
+      "myorders:favourites",
+      JSON.stringify([...favouriteIds]),
+    );
+  }, [favouriteIds]);
 
   const refreshOrders = useCallback(async () => {
-    try {
-      const res = await fetch("/api/order/userorders", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        setOrders(data.data);
-      }
-    } catch {
-      // Keep current data on error
+    const res = await fetch("/api/order/userorders", { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      setOrders(data.data);
     }
   }, []);
 

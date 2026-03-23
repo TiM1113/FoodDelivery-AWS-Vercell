@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const { mockGetToken, mockSign } = vi.hoisted(() => ({
@@ -21,6 +21,14 @@ import { POST } from "./route";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("API_URL", "http://localhost:4000");
+  vi.stubEnv("AUTH_SECRET", "test-secret");
+  vi.stubEnv("JWT_SECRET", "test-jwt-secret");
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function makeRequest(): NextRequest {

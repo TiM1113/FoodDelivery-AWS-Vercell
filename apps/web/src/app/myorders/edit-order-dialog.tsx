@@ -104,7 +104,9 @@ export function EditOrderDialog({
 
   const addFood = (food: Food) => {
     setItems((prev) => {
-      const existing = prev.findIndex((item) => item.name === food.name);
+      const existing = prev.findIndex((item) =>
+        item._id && food._id ? item._id === food._id : item.name === food.name,
+      );
       if (existing !== -1) {
         const next = [...prev];
         next[existing] = {
@@ -225,6 +227,7 @@ export function EditOrderDialog({
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => updateQuantity(index, -1)}
+                          aria-label={`Decrease quantity of ${item.name}`}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -236,6 +239,7 @@ export function EditOrderDialog({
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => updateQuantity(index, 1)}
+                          aria-label={`Increase quantity of ${item.name}`}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -244,6 +248,7 @@ export function EditOrderDialog({
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={() => removeItem(index)}
+                          aria-label={`Remove ${item.name} from order`}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>

@@ -196,7 +196,7 @@ export function OrderCard({
             </div>
 
             {/* Row 4: Price */}
-            <p className="text-lg font-semibold">${order.amount.toFixed(2)}</p>
+            <p className="text-lg font-semibold">${(order.amount ?? 0).toFixed(2)}</p>
           </div>
         </div>
 

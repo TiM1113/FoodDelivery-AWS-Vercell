@@ -11,6 +11,13 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "");
  * Only unpaid orders can be edited (modify items / amounts).
  */
 export async function POST(req: NextRequest) {
+  if (!process.env.API_URL || !process.env.AUTH_SECRET || !process.env.JWT_SECRET) {
+    return Response.json(
+      { success: false, message: "Server configuration error" },
+      { status: 500 },
+    );
+  }
+
   const token = await getToken({ req, secret: AUTH_SECRET });
 
   if (!token?.id) {
@@ -37,5 +44,5 @@ export async function POST(req: NextRequest) {
   });
 
   const data = await res.json();
-  return Response.json(data);
+  return Response.json(data, { status: res.status });
 }

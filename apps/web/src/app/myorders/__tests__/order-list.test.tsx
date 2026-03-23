@@ -1,8 +1,27 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Order } from "@/types/order";
 import { OrderList } from "../order-list";
+
+// Mock localStorage for test environment
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; }),
+    get length() { return Object.keys(store).length; },
+    key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
+  };
+})();
+Object.defineProperty(window, "localStorage", { value: localStorageMock });
+
+beforeEach(() => {
+  localStorageMock.clear();
+  vi.clearAllMocks();
+});
 
 // Mock child components to isolate OrderList logic
 vi.mock("../order-card", () => ({
