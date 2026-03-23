@@ -32,9 +32,8 @@ export async function POST(req: NextRequest) {
     .setExpirationTime("7d")
     .sign(JWT_SECRET);
 
-  const body = await req.json();
-
   try {
+    const body = await req.json();
     const res = await fetch(`${API_URL}/api/order/edit`, {
       method: "POST",
       headers: {
