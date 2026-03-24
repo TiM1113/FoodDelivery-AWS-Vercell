@@ -1,11 +1,13 @@
 import { Context } from 'hono';
-import mongoose from 'mongoose';
+import { eq, desc } from 'drizzle-orm';
 import {
 	S3Client,
 	PutObjectCommand,
 	DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import foodModel from '../models/foodModel';
+import { db } from '../db';
+import { foods } from '../db/schema';
+import { formatFood } from '../db/helpers';
 import type { AppEnv } from '../types';
 
 const s3Client = new S3Client({
@@ -20,8 +22,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const addFood = async (c: Context<AppEnv>) => {
 	try {
-		console.log('MongoDB connection state:', mongoose.connection.readyState);
-
 		const body = await c.req.parseBody();
 		const file = body['image'];
 
@@ -51,22 +51,20 @@ export const addFood = async (c: Context<AppEnv>) => {
 		const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${filename}`;
 		console.log('Image uploaded successfully:', imageUrl);
 
-		const food = new foodModel({
-			name: body['name'],
-			description: body['description'],
-			price: body['price'],
-			category: body['category'],
+		const [savedFood] = await db.insert(foods).values({
+			name: body['name'] as string,
+			description: body['description'] as string,
+			price: Number(body['price']),
+			category: body['category'] as string,
 			image: imageUrl,
-		});
+		}).returning();
 
-		console.log('Attempting to save to MongoDB...');
-		const savedFood = await food.save();
-		console.log('Food item saved successfully:', savedFood);
+		console.log('Food item saved successfully:', savedFood.id);
 
 		return c.json({
 			success: true,
 			message: 'Food Added',
-			data: savedFood,
+			data: formatFood(savedFood),
 		}, 201);
 	} catch (error) {
 		const err = error as Error;
@@ -81,28 +79,21 @@ export const addFood = async (c: Context<AppEnv>) => {
 
 export const listFood = async (c: Context<AppEnv>) => {
 	try {
-		console.log('MongoDB connection state:', mongoose.connection.readyState);
-		console.log('Attempting to fetch food list from MongoDB');
+		console.log('Attempting to fetch food list');
 
-		if (mongoose.connection.readyState !== 1) {
-			console.log('Database not connected, attempting to connect...');
-			const { connectDB } = await import('../config/db');
-			await connectDB();
-		}
-
-		const foods = await Promise.race([
-			foodModel.find({}).sort({ createdAt: -1 }),
+		const foodList = await Promise.race([
+			db.select().from(foods).orderBy(desc(foods.createdAt)),
 			new Promise<never>((_, reject) =>
 				setTimeout(() => reject(new Error('Database query timeout')), 25000)
 			),
 		]);
 
-		const processedFoods = foods.map((food) => {
-			const foodObj = food.toObject();
-			if (!foodObj.image.startsWith('https://')) {
-				foodObj.image = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${foodObj.image}`;
+		const processedFoods = foodList.map((food) => {
+			const formatted = formatFood(food);
+			if (!formatted.image.startsWith('https://')) {
+				formatted.image = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${formatted.image}`;
 			}
-			return foodObj;
+			return formatted;
 		});
 
 		console.log('Processed foods count:', processedFoods.length);
@@ -129,7 +120,7 @@ export const removeFood = async (c: Context<AppEnv>) => {
 		const { id } = await c.req.json();
 		console.log('Attempting to remove food item:', id);
 
-		const food = await foodModel.findById(id);
+		const [food] = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
 		if (!food) {
 			return c.json({ success: false, message: 'Food not found' }, 404);
 		}
@@ -145,13 +136,13 @@ export const removeFood = async (c: Context<AppEnv>) => {
 			})
 		);
 
-		const deletedFood = await foodModel.findByIdAndDelete(id);
-		console.log('Food item deleted successfully:', deletedFood);
+		await db.delete(foods).where(eq(foods.id, id));
+		console.log('Food item deleted successfully:', id);
 
 		return c.json({
 			success: true,
 			message: 'Food Removed',
-			data: deletedFood,
+			data: formatFood(food),
 		});
 	} catch (error) {
 		const err = error as Error;
@@ -180,7 +171,7 @@ export const updateFood = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Food ID is required' }, 400);
 		}
 
-		const existingFood = await foodModel.findById(id);
+		const [existingFood] = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
 		if (!existingFood) {
 			return c.json({ success: false, message: 'Food not found' }, 404);
 		}
@@ -224,24 +215,20 @@ export const updateFood = async (c: Context<AppEnv>) => {
 			}
 		}
 
-		const updatedFood = await foodModel.findByIdAndUpdate(
-			id,
-			{
-				name: name || existingFood.name,
-				description: description || existingFood.description,
-				price: price || existingFood.price,
-				category: category || existingFood.category,
-				image: imageUrl,
-			},
-			{ new: true }
-		);
+		const [updatedFood] = await db.update(foods).set({
+			name: name || existingFood.name,
+			description: description || existingFood.description,
+			price: price ? Number(price) : existingFood.price,
+			category: category || existingFood.category,
+			image: imageUrl,
+		}).where(eq(foods.id, id)).returning();
 
-		console.log('Food item updated successfully:', updatedFood);
+		console.log('Food item updated successfully:', updatedFood.id);
 
 		return c.json({
 			success: true,
 			message: 'Food Updated',
-			data: updatedFood,
+			data: formatFood(updatedFood),
 		});
 	} catch (error) {
 		const err = error as Error;
