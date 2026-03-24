@@ -53,7 +53,8 @@ function fillForm(name: string, email: string, password: string) {
 }
 
 function submitForm() {
-  const form = screen.getByRole("button", { name: /create account/i }).closest("form")!;
+  const form = screen.getByRole("button", { name: /create account/i }).closest("form");
+  if (!form) throw new Error("Could not find form element");
   fireEvent.submit(form);
 }
 

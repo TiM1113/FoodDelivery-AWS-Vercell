@@ -18,18 +18,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   let res: globalThis.Response;
   try {
     res = await fetch(`${API_URL}/api/user/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch {
     return Response.json(
       { success: false, message: "Registration service unavailable" },
       { status: 503 },
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   let data: unknown;
