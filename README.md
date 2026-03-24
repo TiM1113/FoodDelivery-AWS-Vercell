@@ -1,182 +1,149 @@
 # Food Delivery Application
 
-A full-stack MERN food delivery application with three main components: customer frontend, admin panel, and backend API. The application is deployed on Vercel and uses MongoDB as the database and AWS S3 for image storage.
+A full-stack food delivery platform built with Next.js 15, Express.js, and MongoDB. Features modern authentication (NextAuth.js v5), Stripe payments, and a separate admin panel. Deployed on Vercel.
 
-## 🚀 Live Demo
+## Live Demo
 
-- **Customer App**: [https://fooddelivery-2025.vercel.app](https://fooddelivery-2025.vercel.app)
-- **Admin Panel**: [https://admin-kappa-ivory.vercel.app](https://admin-kappa-ivory.vercel.app)
-- **Backend API**: [https://backend-ten-azure-58.vercel.app](https://backend-ten-azure-58.vercel.app)
+- **Customer App**: [food-delivery-web-eosin.vercel.app](https://food-delivery-web-eosin.vercel.app)
+- **Admin Panel**: [admin-kappa-ivory.vercel.app](https://admin-kappa-ivory.vercel.app)
+- **Backend API**: [backend-ten-azure-58.vercel.app](https://backend-ten-azure-58.vercel.app)
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-### Frontend (Customer App)
-- **Framework**: React 18 with Vite
-- **Routing**: React Router DOM v6
-- **State Management**: React Context API
-- **HTTP Client**: Axios
-- **Styling**: CSS3
-- **Deployment**: Vercel
+### Customer App (`apps/web`)
+- **Framework**: Next.js 15 (App Router, SSG + ISR)
+- **Language**: TypeScript 5
+- **Authentication**: NextAuth.js v5 (httpOnly cookies, JWT strategy)
+- **Data Fetching**: TanStack Query v5
+- **State Management**: Zustand 5 (cart)
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Form Validation**: Zod (shared schemas)
+- **Image Optimization**: Next.js Image
+- **Testing**: Vitest + React Testing Library
 
-### Backend (API)
+### Backend (`backend`)
 - **Runtime**: Node.js with Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT with bcrypt
+- **Language**: TypeScript 5
+- **Database**: MongoDB Atlas with Mongoose
+- **Authentication**: JWT + bcrypt + RBAC
 - **File Storage**: AWS S3
-- **Payment**: Stripe
-- **Deployment**: Vercel (Serverless Functions)
+- **Payment**: Stripe (Webhook verification)
+- **Validation**: Zod (shared schemas)
+- **Rate Limiting**: Upstash Redis
 
-### Admin Panel
+### Admin Panel (`admin`)
 - **Framework**: React 18 with Vite
-- **Routing**: React Router DOM v7
-- **Notifications**: React Toastify
 - **Styling**: CSS3
 - **Deployment**: Vercel
 
-## 🏗️ Project Structure
+### Shared Package (`packages/shared`)
+- Zod schemas for API contracts (User, Food, Order, Cart)
+- TypeScript type inference from schemas
 
-```
-├── frontend/          # Customer-facing React app
-├── admin/            # Admin panel React app
-├── backend/          # Node.js Express API
-├── CLAUDE.md         # Development instructions
-└── README.md         # This file
+## Project Structure
+
+```text
+FoodDelivery-AWS-Vercell/
+├── apps/
+│   └── web/               Next.js 15 customer app
+│       ├── src/app/        App Router (layouts + pages + API routes)
+│       ├── src/auth.ts     NextAuth.js v5 config
+│       ├── src/proxy.ts    Route protection middleware
+│       └── src/components/ UI components (shadcn/ui)
+├── backend/               Express.js API server
+│   ├── controllers/       Business logic
+│   ├── middleware/         Auth + RBAC + rate limiting
+│   ├── models/            Mongoose schemas
+│   └── api/index.js       Vercel serverless adapter
+├── admin/                 Admin panel (React + Vite)
+├── packages/shared/       Zod schemas + TypeScript types
+└── CLAUDE.md              Development instructions
 ```
 
-## 🔑 Key Features
+## Key Features
 
 ### Customer App
-- Browse food items by category
-- Add/remove items to/from cart
-- User authentication (register/login)
-- Place orders with Stripe payment
-- View order history
-- Responsive design
+- Browse food items by category with search
+- Shopping cart with backend sync
+- User authentication (register / login)
+- Checkout with Stripe payment
+- Order history with status tracking
+- Dark mode support
+- Responsive design (mobile / tablet / desktop)
 
 ### Admin Panel
-- Add/edit/delete food items
+- Add / edit / delete food items with image upload (AWS S3)
 - View and manage all orders
 - Update order status
-- Image upload to AWS S3
-- Real-time order notifications
+- RBAC-protected endpoints
 
-### Backend API
-- RESTful API endpoints
-- JWT authentication
-- MongoDB data persistence with Mongoose
-- File upload to AWS S3
-- Stripe payment integration
-- Serverless deployment
+### Security
+- httpOnly cookie authentication (no localStorage JWT)
+- RBAC middleware for admin routes
+- Stripe Webhook signature verification
+- Zod input validation on all endpoints
+- API rate limiting (Upstash Redis)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- Node.js (>= 14.0.0)
+- Node.js >= 20.9.0
+- pnpm >= 8.0.0
 - MongoDB Atlas account
 - AWS S3 bucket
 - Stripe account
 
+### Installation
+
+```bash
+pnpm install
+```
+
+### Development
+
+```bash
+# Start backend
+pnpm dev:backend
+
+# Start customer app
+pnpm dev:web
+
+# Start admin panel
+pnpm dev:admin
+```
+
+### Testing
+
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # Coverage report
+```
+
 ### Environment Variables
 
-Create `.env` files in the backend directory:
+See `.env.example` files in each package for required variables.
 
-```bash
-# Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+## Deployment
 
-# Authentication
-JWT_SECRET=your_jwt_secret_key
+All services are deployed on Vercel:
+- **Customer App** (`apps/web`): Next.js serverless
+- **Backend** (`backend`): Serverless functions
+- **Admin** (`admin`): Static site
+- **Database**: MongoDB Atlas
+- **Storage**: AWS S3
+- **Payments**: Stripe
 
-# AWS S3
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=your_region
-AWS_BUCKET_NAME=your_bucket_name
+## CI/CD
 
-# Payment
-STRIPE_SECRET_KEY=sk_test_or_live_key
-```
+GitHub Actions runs on every PR:
+1. TypeScript type check
+2. ESLint
+3. Vitest tests
+4. Build verification
 
-For frontend and admin, create `.env` files:
+Branch protection requires all checks to pass before merging.
 
-```bash
-VITE_API_URL=https://backend-ten-azure-58.vercel.app
-VITE_S3_URL=https://your-bucket-name.s3.your-region.amazonaws.com
-```
-
-### Installation & Development
-
-1. **Backend**
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-2. **Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-3. **Admin**
-```bash
-cd admin
-npm install
-npm run dev
-```
-
-## 📡 API Endpoints
-
-### Authentication
-- `POST /api/user/register` - User registration
-- `POST /api/user/login` - User login
-
-### Food Management
-- `POST /api/food/add` - Add food item (with image upload)
-- `GET /api/food/list` - Get all food items
-- `POST /api/food/remove` - Remove food item
-
-### Cart Operations
-- `POST /api/cart/add` - Add item to cart
-- `POST /api/cart/remove` - Remove item from cart
-- `POST /api/cart/get` - Get user's cart
-
-### Order Management
-- `POST /api/order/place` - Place order with payment
-- `POST /api/order/verify` - Verify payment status
-- `POST /api/order/userorders` - Get user's orders
-- `GET /api/order/list` - Get all orders (admin)
-- `POST /api/order/update` - Update order status
-
-## 🎨 Screenshots
-
-The application includes:
-- Modern, responsive design
-- Intuitive user interface
-- Real-time order tracking
-- Secure payment processing
-- Comprehensive admin dashboard
-
-## 🔧 Deployment
-
-The application is deployed using Vercel:
-
-1. **Frontend & Admin**: Static site deployment
-2. **Backend**: Serverless functions deployment
-3. **Database**: MongoDB Atlas cloud database
-4. **Storage**: AWS S3
-5. **Payments**: Stripe
-
-## 📝 License
+## License
 
 This project is licensed under the MIT License.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📧 Contact
-
-For any questions or support, please contact the project maintainer.
