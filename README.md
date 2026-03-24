@@ -42,7 +42,7 @@ A full-stack food delivery platform built with Next.js 15, Express.js, and Mongo
 
 ## Project Structure
 
-```
+```text
 FoodDelivery-AWS-Vercell/
 ├── apps/
 │   └── web/               Next.js 15 customer app

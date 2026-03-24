@@ -6,7 +6,7 @@
     "dev:backend": "pnpm --filter @food-delivery/backend dev",
     "dev:admin": "pnpm --filter @food-delivery/admin dev",
     "dev:web": "pnpm --filter @food-delivery/web dev",
-    "build": "pnpm --filter @food-delivery/admin build",
+    "build": "pnpm --filter @food-delivery/admin build && pnpm --filter @food-delivery/web build",
     "build:web": "pnpm --filter @food-delivery/web build",
     "build:shared": "pnpm --filter @food-delivery/shared build",
     "install:all": "pnpm install",
