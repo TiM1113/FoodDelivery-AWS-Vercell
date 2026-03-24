@@ -41,11 +41,17 @@ const Add = ({ url }) => {
       const { uploadUrl, key } = presignRes.data;
 
       // Step 2: Upload image directly to S3
-      await fetch(uploadUrl, {
+      const s3Res = await fetch(uploadUrl, {
         method: 'PUT',
         body: image,
         headers: { 'Content-Type': image.type },
       });
+
+      if (!s3Res.ok) {
+        toast.error('Failed to upload image');
+        setUploading(false);
+        return;
+      }
 
       // Step 3: Save food item with the S3 key
       const response = await axios.post(`${url}/api/food/add`, {

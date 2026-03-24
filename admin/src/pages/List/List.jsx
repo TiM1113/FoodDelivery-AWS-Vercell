@@ -105,11 +105,16 @@ const List = ({ url }) => {
           return;
         }
 
-        await fetch(presignRes.data.uploadUrl, {
+        const s3Res = await fetch(presignRes.data.uploadUrl, {
           method: 'PUT',
           body: selectedImage,
           headers: { 'Content-Type': selectedImage.type },
         });
+
+        if (!s3Res.ok) {
+          toast.error('Failed to upload image');
+          return;
+        }
 
         imageKey = presignRes.data.key;
       }

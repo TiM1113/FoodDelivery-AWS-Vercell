@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Context } from 'hono';
 import { eq, desc } from 'drizzle-orm';
 import {
@@ -44,9 +45,8 @@ export const presignUpload = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}` }, 400);
 		}
 
-		const timestamp = Date.now();
-		const safeName = fileName.replace(/\s+/g, '_');
-		const key = `uploads/${timestamp}-${safeName}`;
+		const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')) : '';
+		const key = `uploads/${randomUUID()}${ext}`;
 
 		const command = new PutObjectCommand({
 			Bucket: process.env.AWS_BUCKET_NAME,
@@ -188,6 +188,7 @@ export const updateFood = async (c: Context<AppEnv>) => {
 		}
 
 		let imageUrl = existingFood.image;
+		let oldKeyToDelete: string | null = null;
 
 		if (imageKey) {
 			if (typeof imageKey !== 'string' || !imageKey.startsWith('uploads/')) {
@@ -195,19 +196,7 @@ export const updateFood = async (c: Context<AppEnv>) => {
 			}
 
 			imageUrl = buildImageUrl(imageKey);
-
-			// Delete old image from S3
-			const oldKey = extractS3Key(existingFood.image);
-			try {
-				await s3Client.send(
-					new DeleteObjectCommand({
-						Bucket: process.env.AWS_BUCKET_NAME,
-						Key: oldKey,
-					})
-				);
-			} catch (deleteError) {
-				console.warn('Warning: Could not delete old image:', (deleteError as Error).message);
-			}
+			oldKeyToDelete = extractS3Key(existingFood.image);
 		}
 
 		const [updatedFood] = await db.update(foods).set({
@@ -217,6 +206,20 @@ export const updateFood = async (c: Context<AppEnv>) => {
 			category: category || existingFood.category,
 			image: imageUrl,
 		}).where(eq(foods.id, id)).returning();
+
+		// Delete old image AFTER successful DB update
+		if (oldKeyToDelete) {
+			try {
+				await s3Client.send(
+					new DeleteObjectCommand({
+						Bucket: process.env.AWS_BUCKET_NAME,
+						Key: oldKeyToDelete,
+					})
+				);
+			} catch (deleteError) {
+				console.warn('Warning: Could not delete old image:', (deleteError as Error).message);
+			}
+		}
 
 		return c.json({
 			success: true,
