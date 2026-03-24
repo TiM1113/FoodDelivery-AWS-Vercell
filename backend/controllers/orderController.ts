@@ -18,7 +18,7 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 		const body = await c.req.json();
 		const { items, address } = body;
 
-		console.log('Extracted fields:', { userId, itemsCount: items?.length, address });
+		console.log('Extracted fields:', { userId, itemsCount: items?.length });
 
 		if (!userId || !items || !address) {
 			return c.json({
@@ -93,8 +93,10 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 					.sort((a, b) => a.name.localeCompare(b.name))
 			);
 
-			if (existingItemsStr === newItemsStr) {
-				console.log('Found existing unpaid order with same items, reusing:', existingUnpaidOrder.id);
+			const addressMatch = JSON.stringify(existingUnpaidOrder.address) === JSON.stringify(address);
+
+			if (existingItemsStr === newItemsStr && addressMatch) {
+				console.log('Found existing unpaid order with same items and address, reusing:', existingUnpaidOrder.id);
 				orderId = existingUnpaidOrder.id;
 				await db.update(users).set({ cartData: {} }).where(eq(users.id, userId));
 			} else {
