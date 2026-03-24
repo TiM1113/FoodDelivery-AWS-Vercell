@@ -8,14 +8,39 @@ const API_URL = process.env.API_URL || "";
  * After success, the client calls signIn() to establish a NextAuth session.
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json(
+      { success: false, message: "Invalid request body" },
+      { status: 400 },
+    );
+  }
 
-  const res = await fetch(`${API_URL}/api/user/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let res: globalThis.Response;
+  try {
+    res = await fetch(`${API_URL}/api/user/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    return Response.json(
+      { success: false, message: "Registration service unavailable" },
+      { status: 503 },
+    );
+  }
 
-  const data = await res.json();
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    return Response.json(
+      { success: false, message: "Invalid response from server" },
+      { status: 502 },
+    );
+  }
+
   return Response.json(data, { status: res.status });
 }
