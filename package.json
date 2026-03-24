@@ -4,10 +4,9 @@
   "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev:backend": "pnpm --filter @food-delivery/backend dev",
-    "dev:frontend": "pnpm --filter @food-delivery/frontend dev",
     "dev:admin": "pnpm --filter @food-delivery/admin dev",
     "dev:web": "pnpm --filter @food-delivery/web dev",
-    "build": "pnpm --filter @food-delivery/frontend build && pnpm --filter @food-delivery/admin build",
+    "build": "pnpm --filter @food-delivery/admin build && pnpm --filter @food-delivery/web build",
     "build:web": "pnpm --filter @food-delivery/web build",
     "build:shared": "pnpm --filter @food-delivery/shared build",
     "install:all": "pnpm install",
