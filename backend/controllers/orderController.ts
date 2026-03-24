@@ -1,8 +1,9 @@
 import { Context } from 'hono';
 import Stripe from 'stripe';
-import orderModel from '../models/orderModel';
-import userModel from '../models/userModel';
-import foodModel from '../models/foodModel';
+import { eq, and, gte, desc, inArray } from 'drizzle-orm';
+import { db } from '../db';
+import { orders, orderItems, users, foods } from '../db/schema';
+import { formatOrder } from '../db/helpers';
 import type { AppEnv } from '../types';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -32,65 +33,106 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			}, 400);
 		}
 
-		const existingUnpaidOrder = await orderModel.findOne({
-			userId,
-			amount,
-			payment: false,
-			date: { $gte: new Date(Date.now() - 30 * 60 * 1000) },
-		});
+		// Validate all food items exist and get authoritative prices
+		const foodIds = items.map((item: { _id: string }) => item._id);
+		const dbFoods = await db.select().from(foods).where(inArray(foods.id, foodIds));
+		const foodMap = Object.fromEntries(dbFoods.map((f) => [f.id, f]));
 
-		let newOrder;
-		if (existingUnpaidOrder) {
-			const existingItemsStr = JSON.stringify(
-				existingUnpaidOrder.items.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
-			);
-			const newItemsStr = JSON.stringify(
-				[...items].sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
-			);
-
-			if (existingItemsStr === newItemsStr) {
-				console.log('Found existing unpaid order with same items, reusing:', existingUnpaidOrder._id);
-				newOrder = existingUnpaidOrder;
-			} else {
-				console.log('Items different, creating new order');
-				newOrder = new orderModel({
-					userId,
-					items: [...items],
-					amount,
-					address,
-				});
-				await newOrder.save();
-			}
-		} else {
-			const orderItems = [...items];
-			console.log('Created defensive copy of items:', orderItems);
-
-			newOrder = new orderModel({
-				userId,
-				items: orderItems,
-				amount,
-				address,
-			});
-			await newOrder.save();
-		}
-		await userModel.findByIdAndUpdate(userId, { cartData: {} });
-
-		const foodIds = newOrder.items.map((item: { _id: string }) => item._id);
-		const dbFoods = await foodModel.find({ _id: { $in: foodIds } });
-		const foodMap = Object.fromEntries(dbFoods.map((f) => [f._id.toString(), f]));
-
-		const missingIds = foodIds.filter((id: string) => !foodMap[id.toString()]);
+		const missingIds = foodIds.filter((id: string) => !foodMap[id]);
 		if (missingIds.length > 0) {
-			await orderModel.findByIdAndDelete(newOrder._id);
 			return c.json({
 				success: false,
 				message: `Food items not found: ${missingIds.join(', ')}`,
 			}, 400);
 		}
 
-		const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = newOrder.items.map(
+		// Check for existing unpaid duplicate order
+		const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+		const [existingUnpaidOrder] = await db
+			.select()
+			.from(orders)
+			.where(
+				and(
+					eq(orders.userId, userId),
+					eq(orders.amount, amount),
+					eq(orders.payment, false),
+					gte(orders.createdAt, thirtyMinutesAgo)
+				)
+			)
+			.limit(1);
+
+		let orderId: string;
+
+		if (existingUnpaidOrder) {
+			const existingItems = await db
+				.select()
+				.from(orderItems)
+				.where(eq(orderItems.orderId, existingUnpaidOrder.id));
+
+			const existingItemsStr = JSON.stringify(
+				existingItems
+					.map((i) => ({ name: i.name, quantity: i.quantity }))
+					.sort((a, b) => a.name.localeCompare(b.name))
+			);
+			const newItemsStr = JSON.stringify(
+				[...items]
+					.map((i: { _id: string; quantity: number }) => ({
+						name: foodMap[i._id].name,
+						quantity: i.quantity,
+					}))
+					.sort((a, b) => a.name.localeCompare(b.name))
+			);
+
+			if (existingItemsStr === newItemsStr) {
+				console.log('Found existing unpaid order with same items, reusing:', existingUnpaidOrder.id);
+				orderId = existingUnpaidOrder.id;
+			} else {
+				console.log('Items different, creating new order');
+				const [newOrder] = await db.insert(orders).values({
+					userId,
+					amount,
+					address,
+				}).returning();
+
+				await db.insert(orderItems).values(
+					items.map((item: { _id: string; quantity: number }) => ({
+						orderId: newOrder.id,
+						foodId: item._id,
+						name: foodMap[item._id].name,
+						price: foodMap[item._id].price,
+						quantity: item.quantity,
+					}))
+				);
+
+				orderId = newOrder.id;
+			}
+		} else {
+			const [newOrder] = await db.insert(orders).values({
+				userId,
+				amount,
+				address,
+			}).returning();
+
+			await db.insert(orderItems).values(
+				items.map((item: { _id: string; quantity: number }) => ({
+					orderId: newOrder.id,
+					foodId: item._id,
+					name: foodMap[item._id].name,
+					price: foodMap[item._id].price,
+					quantity: item.quantity,
+				}))
+			);
+
+			orderId = newOrder.id;
+		}
+
+		// Clear user cart
+		await db.update(users).set({ cartData: {} }).where(eq(users.id, userId));
+
+		// Create Stripe line items using authoritative DB prices
+		const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(
 			(item: { _id: string; quantity: number }) => {
-				const dbFood = foodMap[item._id.toString()];
+				const dbFood = foodMap[item._id];
 				return {
 					price_data: {
 						currency: 'aud',
@@ -115,9 +157,9 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			line_items,
 			mode: 'payment',
 			payment_method_types: ['card'],
-			success_url: `${frontend_url}/verify?orderId=${newOrder._id}&source=new`,
-			cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}&source=new`,
-			metadata: { orderId: newOrder._id.toString() },
+			success_url: `${frontend_url}/verify?orderId=${orderId}&source=new`,
+			cancel_url: `${frontend_url}/verify?success=false&orderId=${orderId}&source=new`,
+			metadata: { orderId },
 			locale: 'en',
 			billing_address_collection: 'required',
 			shipping_address_collection: {
@@ -145,8 +187,13 @@ export const userOrders = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Missing userId' }, 400);
 		}
 
-		const orders = await orderModel.find({ userId }).sort({ date: -1 });
-		return c.json({ success: true, data: orders });
+		const result = await db.query.orders.findMany({
+			where: eq(orders.userId, userId),
+			orderBy: [desc(orders.createdAt)],
+			with: { items: true },
+		});
+
+		return c.json({ success: true, data: result.map(formatOrder) });
 	} catch (error) {
 		console.error('Error fetching user orders:', error);
 		return c.json({ success: false, message: 'Error fetching orders' }, 500);
@@ -159,10 +206,14 @@ export const verifyOrder = async (c: Context<AppEnv>) => {
 
 	try {
 		if (success === 'false') {
-			await orderModel.findByIdAndDelete(orderId);
+			if (orderId) {
+				await db.delete(orders).where(eq(orders.id, orderId));
+			}
 			return c.json({ success: false, message: 'Order cancelled' });
 		}
-		const order = await orderModel.findById(orderId);
+		if (!orderId) return c.json({ success: false, message: 'Order not found' }, 404);
+
+		const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!order) return c.json({ success: false, message: 'Order not found' }, 404);
 		return c.json({ success: order.payment, message: order.payment ? 'Paid' : 'Pending' });
 	} catch (error) {
@@ -174,8 +225,9 @@ export const verifyOrder = async (c: Context<AppEnv>) => {
 
 export const getOrderStatus = async (c: Context<AppEnv>) => {
 	const orderId = c.req.param('orderId');
+	if (!orderId) return c.json({ success: false, message: 'Order ID required' }, 400);
 	try {
-		const order = await orderModel.findById(orderId);
+		const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!order) return c.json({ success: false, message: 'Order not found' }, 404);
 		return c.json({ success: true, payment: order.payment, status: order.status });
 	} catch (error) {
@@ -210,10 +262,10 @@ export const handleWebhook = async (c: Context<AppEnv>) => {
 			return c.json({ received: true });
 		}
 		try {
-			await orderModel.findByIdAndUpdate(orderId, {
+			await db.update(orders).set({
 				payment: true,
 				status: 'Food Processing',
-			});
+			}).where(eq(orders.id, orderId));
 			console.log(`Webhook: order ${orderId} marked as paid`);
 		} catch (error) {
 			console.error('Webhook: error updating order:', error);
@@ -226,8 +278,10 @@ export const handleWebhook = async (c: Context<AppEnv>) => {
 
 export const listOrders = async (c: Context<AppEnv>) => {
 	try {
-		const orders = await orderModel.find({});
-		return c.json({ success: true, data: orders });
+		const result = await db.query.orders.findMany({
+			with: { items: true },
+		});
+		return c.json({ success: true, data: result.map(formatOrder) });
 	} catch (error) {
 		console.error('Error listing orders:', error);
 		return c.json({ success: false, message: 'Error fetching orders list' }, 500);
@@ -242,7 +296,7 @@ export const updateStatus = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Missing orderId or status' }, 400);
 		}
 
-		const existingOrder = await orderModel.findById(orderId);
+		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -254,7 +308,7 @@ export const updateStatus = async (c: Context<AppEnv>) => {
 			}, 400);
 		}
 
-		await orderModel.findByIdAndUpdate(orderId, { status }, { new: true });
+		await db.update(orders).set({ status }).where(eq(orders.id, orderId));
 		return c.json({ success: true, message: 'Status Updated' });
 	} catch (error) {
 		console.error('Error updating order status:', error);
@@ -270,7 +324,11 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const existingOrder = await orderModel.findById(orderId);
+		const existingOrder = await db.query.orders.findFirst({
+			where: eq(orders.id, orderId),
+			with: { items: true },
+		});
+
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -280,7 +338,7 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 		}
 
 		const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = existingOrder.items.map(
-			(item: { name: string; price: number; quantity: number }) => ({
+			(item) => ({
 				price_data: {
 					currency: 'aud',
 					product_data: { name: item.name },
@@ -303,9 +361,9 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			line_items,
 			mode: 'payment',
 			payment_method_types: ['card'],
-			success_url: `${frontend_url}/verify?orderId=${existingOrder._id}&source=retry`,
-			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder._id}&source=retry`,
-			metadata: { orderId: existingOrder._id.toString() },
+			success_url: `${frontend_url}/verify?orderId=${existingOrder.id}&source=retry`,
+			cancel_url: `${frontend_url}/verify?success=false&orderId=${existingOrder.id}&source=retry`,
+			metadata: { orderId: existingOrder.id },
 			locale: 'en',
 			billing_address_collection: 'required',
 			shipping_address_collection: {
@@ -313,7 +371,7 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			},
 		});
 
-		console.log('Retry payment session created for order:', existingOrder._id);
+		console.log('Retry payment session created for order:', existingOrder.id);
 		return c.json({ success: true, session_url: session.url });
 	} catch (error) {
 		const err = error as Error;
@@ -333,7 +391,7 @@ export const editOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const existingOrder = await orderModel.findById(orderId);
+		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -342,7 +400,26 @@ export const editOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Cannot edit paid orders' }, 400);
 		}
 
-		await orderModel.findByIdAndUpdate(orderId, { items, amount });
+		// Replace order items
+		if (items && Array.isArray(items)) {
+			await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+			if (items.length > 0) {
+				await db.insert(orderItems).values(
+					items.map((item: { _id: string; name: string; price: number; quantity: number }) => ({
+						orderId,
+						foodId: item._id,
+						name: item.name,
+						price: item.price,
+						quantity: item.quantity,
+					}))
+				);
+			}
+		}
+
+		if (amount !== undefined) {
+			await db.update(orders).set({ amount }).where(eq(orders.id, orderId));
+		}
+
 		return c.json({ success: true, message: 'Order updated successfully' });
 	} catch (error) {
 		console.error('Error editing order:', error);
@@ -358,7 +435,7 @@ export const deleteOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const existingOrder = await orderModel.findById(orderId);
+		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -367,7 +444,8 @@ export const deleteOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Cannot delete paid orders' }, 400);
 		}
 
-		await orderModel.findByIdAndDelete(orderId);
+		// CASCADE will delete order_items automatically
+		await db.delete(orders).where(eq(orders.id, orderId));
 		return c.json({ success: true, message: 'Order deleted successfully' });
 	} catch (error) {
 		console.error('Error deleting order:', error);
