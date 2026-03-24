@@ -8,6 +8,7 @@ import type { AppEnv } from '../types';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const frontend_url = process.env.FRONTEND_URL;
+const DELIVERY_FEE = 2;
 
 export const placeOrder = async (c: Context<AppEnv>) => {
 	try {
@@ -15,14 +16,14 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 
 		const userId = c.get('userId');
 		const body = await c.req.json();
-		const { items, amount, address } = body;
+		const { items, address } = body;
 
-		console.log('Extracted fields:', { userId, itemsCount: items?.length, amount, address });
+		console.log('Extracted fields:', { userId, itemsCount: items?.length });
 
-		if (!userId || !items || !amount || !address) {
+		if (!userId || !items || !address) {
 			return c.json({
 				success: false,
-				message: 'Missing required fields: userId, items, amount, or address',
+				message: 'Missing required fields: userId, items, or address',
 			}, 400);
 		}
 
@@ -45,6 +46,15 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 				message: `Food items not found: ${missingIds.join(', ')}`,
 			}, 400);
 		}
+
+		// Calculate amount server-side from authoritative DB prices
+		const amount = Math.round(
+			(items.reduce(
+				(sum: number, item: { _id: string; quantity: number }) =>
+					sum + foodMap[item._id].price * item.quantity,
+				0
+			) + DELIVERY_FEE) * 100
+		) / 100;
 
 		// Check for existing unpaid duplicate order
 		const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
@@ -83,18 +93,45 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 					.sort((a, b) => a.name.localeCompare(b.name))
 			);
 
-			if (existingItemsStr === newItemsStr) {
-				console.log('Found existing unpaid order with same items, reusing:', existingUnpaidOrder.id);
+			const addressMatch = JSON.stringify(existingUnpaidOrder.address) === JSON.stringify(address);
+
+			if (existingItemsStr === newItemsStr && addressMatch) {
+				console.log('Found existing unpaid order with same items and address, reusing:', existingUnpaidOrder.id);
 				orderId = existingUnpaidOrder.id;
+				await db.update(users).set({ cartData: {} }).where(eq(users.id, userId));
 			} else {
 				console.log('Items different, creating new order');
-				const [newOrder] = await db.insert(orders).values({
+				orderId = await db.transaction(async (tx) => {
+					const [newOrder] = await tx.insert(orders).values({
+						userId,
+						amount,
+						address,
+					}).returning();
+
+					await tx.insert(orderItems).values(
+						items.map((item: { _id: string; quantity: number }) => ({
+							orderId: newOrder.id,
+							foodId: item._id,
+							name: foodMap[item._id].name,
+							price: foodMap[item._id].price,
+							quantity: item.quantity,
+						}))
+					);
+
+					await tx.update(users).set({ cartData: {} }).where(eq(users.id, userId));
+
+					return newOrder.id;
+				});
+			}
+		} else {
+			orderId = await db.transaction(async (tx) => {
+				const [newOrder] = await tx.insert(orders).values({
 					userId,
 					amount,
 					address,
 				}).returning();
 
-				await db.insert(orderItems).values(
+				await tx.insert(orderItems).values(
 					items.map((item: { _id: string; quantity: number }) => ({
 						orderId: newOrder.id,
 						foodId: item._id,
@@ -104,30 +141,11 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 					}))
 				);
 
-				orderId = newOrder.id;
-			}
-		} else {
-			const [newOrder] = await db.insert(orders).values({
-				userId,
-				amount,
-				address,
-			}).returning();
+				await tx.update(users).set({ cartData: {} }).where(eq(users.id, userId));
 
-			await db.insert(orderItems).values(
-				items.map((item: { _id: string; quantity: number }) => ({
-					orderId: newOrder.id,
-					foodId: item._id,
-					name: foodMap[item._id].name,
-					price: foodMap[item._id].price,
-					quantity: item.quantity,
-				}))
-			);
-
-			orderId = newOrder.id;
+				return newOrder.id;
+			});
 		}
-
-		// Clear user cart
-		await db.update(users).set({ cartData: {} }).where(eq(users.id, userId));
 
 		// Create Stripe line items using authoritative DB prices
 		const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(
@@ -148,7 +166,7 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			price_data: {
 				currency: 'aud',
 				product_data: { name: 'Delivery Charges' },
-				unit_amount: 2 * 100,
+				unit_amount: DELIVERY_FEE * 100,
 			},
 			quantity: 1,
 		});
@@ -354,7 +372,7 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			price_data: {
 				currency: 'aud',
 				product_data: { name: 'Delivery Charges' },
-				unit_amount: 2 * 100,
+				unit_amount: DELIVERY_FEE * 100,
 			},
 			quantity: 1,
 		});
