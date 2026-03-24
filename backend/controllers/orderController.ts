@@ -8,6 +8,7 @@ import type { AppEnv } from '../types';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const frontend_url = process.env.FRONTEND_URL;
+const DELIVERY_FEE = 2;
 
 export const placeOrder = async (c: Context<AppEnv>) => {
 	try {
@@ -47,7 +48,6 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 		}
 
 		// Calculate amount server-side from authoritative DB prices
-		const DELIVERY_FEE = 2;
 		const amount = Math.round(
 			(items.reduce(
 				(sum: number, item: { _id: string; quantity: number }) =>
@@ -164,7 +164,7 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			price_data: {
 				currency: 'aud',
 				product_data: { name: 'Delivery Charges' },
-				unit_amount: 2 * 100,
+				unit_amount: DELIVERY_FEE * 100,
 			},
 			quantity: 1,
 		});
@@ -370,7 +370,7 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			price_data: {
 				currency: 'aud',
 				product_data: { name: 'Delivery Charges' },
-				unit_amount: 2 * 100,
+				unit_amount: DELIVERY_FEE * 100,
 			},
 			quantity: 1,
 		});
