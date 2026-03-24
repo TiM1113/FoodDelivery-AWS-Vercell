@@ -5,6 +5,7 @@ import {
 	PutObjectCommand,
 	DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { db } from '../db';
 import { foods } from '../db/schema';
 import { formatFood } from '../db/helpers';
@@ -18,48 +19,74 @@ const s3Client = new S3Client({
 	},
 });
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const PRESIGN_EXPIRES = 300; // 5 minutes
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+function buildImageUrl(key: string): string {
+	return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+}
+
+function extractS3Key(imageUrl: string): string {
+	const urlParts = imageUrl.split('/');
+	return `uploads/${urlParts[urlParts.length - 1]}`;
+}
+
+export const presignUpload = async (c: Context<AppEnv>) => {
+	try {
+		const { fileName, contentType } = await c.req.json();
+
+		if (!fileName || !contentType) {
+			return c.json({ success: false, message: 'fileName and contentType are required' }, 400);
+		}
+
+		if (!ALLOWED_TYPES.includes(contentType)) {
+			return c.json({ success: false, message: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}` }, 400);
+		}
+
+		const timestamp = Date.now();
+		const safeName = fileName.replace(/\s+/g, '_');
+		const key = `uploads/${timestamp}-${safeName}`;
+
+		const command = new PutObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+			ContentType: contentType,
+		});
+
+		const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: PRESIGN_EXPIRES });
+
+		return c.json({ success: true, uploadUrl, key });
+	} catch (error) {
+		const err = error as Error;
+		console.error('Error generating presigned URL:', err);
+		return c.json({ success: false, message: err.message }, 500);
+	}
+};
 
 export const addFood = async (c: Context<AppEnv>) => {
 	try {
-		const body = await c.req.parseBody();
-		const file = body['image'];
+		const { name, description, price, category, imageKey } = await c.req.json();
 
-		if (!(file instanceof File)) {
-			return c.json({ success: false, message: 'No image provided' }, 400);
+		if (!name || !description || !price || !category || !imageKey) {
+			return c.json({ success: false, message: 'All fields are required (name, description, price, category, imageKey)' }, 400);
 		}
 
-		if (file.size > MAX_FILE_SIZE) {
-			return c.json({ success: false, message: 'File too large (max 5MB)' }, 400);
+		if (typeof imageKey !== 'string' || !imageKey.startsWith('uploads/')) {
+			return c.json({ success: false, message: 'Invalid imageKey' }, 400);
 		}
 
-		console.log('Adding new food item with image');
-		const timestamp = Date.now();
-		const filename = `${timestamp}-${file.name.replace(/\s+/g, '_')}`;
-		const buffer = Buffer.from(await file.arrayBuffer());
-
-		console.log('Uploading image to S3...');
-		await s3Client.send(
-			new PutObjectCommand({
-				Bucket: process.env.AWS_BUCKET_NAME,
-				Key: `uploads/${filename}`,
-				Body: buffer,
-				ContentType: file.type,
-			})
-		);
-
-		const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${filename}`;
-		console.log('Image uploaded successfully:', imageUrl);
+		const imageUrl = buildImageUrl(imageKey);
 
 		const [savedFood] = await db.insert(foods).values({
-			name: body['name'] as string,
-			description: body['description'] as string,
-			price: Number(body['price']),
-			category: body['category'] as string,
+			name,
+			description,
+			price: Number(price),
+			category,
 			image: imageUrl,
 		}).returning();
 
-		console.log('Food item saved successfully:', savedFood.id);
+		console.log('Food item saved:', savedFood.id);
 
 		return c.json({
 			success: true,
@@ -79,8 +106,6 @@ export const addFood = async (c: Context<AppEnv>) => {
 
 export const listFood = async (c: Context<AppEnv>) => {
 	try {
-		console.log('Attempting to fetch food list');
-
 		const foodList = await Promise.race([
 			db.select().from(foods).orderBy(desc(foods.createdAt)),
 			new Promise<never>((_, reject) =>
@@ -91,12 +116,10 @@ export const listFood = async (c: Context<AppEnv>) => {
 		const processedFoods = foodList.map((food) => {
 			const formatted = formatFood(food);
 			if (!formatted.image.startsWith('https://')) {
-				formatted.image = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${formatted.image}`;
+				formatted.image = buildImageUrl(`uploads/${formatted.image}`);
 			}
 			return formatted;
 		});
-
-		console.log('Processed foods count:', processedFoods.length);
 
 		return c.json({
 			success: true,
@@ -118,17 +141,14 @@ export const listFood = async (c: Context<AppEnv>) => {
 export const removeFood = async (c: Context<AppEnv>) => {
 	try {
 		const { id } = await c.req.json();
-		console.log('Attempting to remove food item:', id);
 
 		const [food] = await db.select().from(foods).where(eq(foods.id, id)).limit(1);
 		if (!food) {
 			return c.json({ success: false, message: 'Food not found' }, 404);
 		}
 
-		const urlParts = food.image.split('/');
-		const key = `uploads/${urlParts[urlParts.length - 1]}`;
+		const key = extractS3Key(food.image);
 
-		console.log('Deleting image from S3:', key);
 		await s3Client.send(
 			new DeleteObjectCommand({
 				Bucket: process.env.AWS_BUCKET_NAME,
@@ -137,7 +157,6 @@ export const removeFood = async (c: Context<AppEnv>) => {
 		);
 
 		await db.delete(foods).where(eq(foods.id, id));
-		console.log('Food item deleted successfully:', id);
 
 		return c.json({
 			success: true,
@@ -157,15 +176,7 @@ export const removeFood = async (c: Context<AppEnv>) => {
 
 export const updateFood = async (c: Context<AppEnv>) => {
 	try {
-		const body = await c.req.parseBody();
-		const id = body['id'] as string;
-		const name = body['name'] as string | undefined;
-		const description = body['description'] as string | undefined;
-		const price = body['price'] as string | undefined;
-		const category = body['category'] as string | undefined;
-		const file = body['image'];
-
-		console.log('Attempting to update food item:', id);
+		const { id, name, description, price, category, imageKey } = await c.req.json();
 
 		if (!id) {
 			return c.json({ success: false, message: 'Food ID is required' }, 400);
@@ -178,31 +189,15 @@ export const updateFood = async (c: Context<AppEnv>) => {
 
 		let imageUrl = existingFood.image;
 
-		if (file instanceof File) {
-			if (file.size > MAX_FILE_SIZE) {
-				return c.json({ success: false, message: 'File too large (max 5MB)' }, 400);
+		if (imageKey) {
+			if (typeof imageKey !== 'string' || !imageKey.startsWith('uploads/')) {
+				return c.json({ success: false, message: 'Invalid imageKey' }, 400);
 			}
 
-			console.log('New image provided, uploading to S3...');
-			const timestamp = Date.now();
-			const filename = `${timestamp}-${file.name.replace(/\s+/g, '_')}`;
-			const buffer = Buffer.from(await file.arrayBuffer());
+			imageUrl = buildImageUrl(imageKey);
 
-			await s3Client.send(
-				new PutObjectCommand({
-					Bucket: process.env.AWS_BUCKET_NAME,
-					Key: `uploads/${filename}`,
-					Body: buffer,
-					ContentType: file.type,
-				})
-			);
-
-			imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/uploads/${filename}`;
-
-			const oldUrlParts = existingFood.image.split('/');
-			const oldKey = `uploads/${oldUrlParts[oldUrlParts.length - 1]}`;
-			console.log('Deleting old image from S3:', oldKey);
-
+			// Delete old image from S3
+			const oldKey = extractS3Key(existingFood.image);
 			try {
 				await s3Client.send(
 					new DeleteObjectCommand({
@@ -218,12 +213,10 @@ export const updateFood = async (c: Context<AppEnv>) => {
 		const [updatedFood] = await db.update(foods).set({
 			name: name || existingFood.name,
 			description: description || existingFood.description,
-			price: price ? Number(price) : existingFood.price,
+			price: price !== undefined ? Number(price) : existingFood.price,
 			category: category || existingFood.category,
 			image: imageUrl,
 		}).where(eq(foods.id, id)).returning();
-
-		console.log('Food item updated successfully:', updatedFood.id);
 
 		return c.json({
 			success: true,

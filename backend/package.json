@@ -17,7 +17,8 @@
   "author": "Tim1113",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.722.0",
+    "@aws-sdk/client-s3": "^3.1015.0",
+    "@aws-sdk/s3-request-presigner": "^3.1015.0",
     "@hono/node-server": "^1.14.1",
     "@neondatabase/serverless": "^1.0.2",
     "@upstash/ratelimit": "^2.0.8",
