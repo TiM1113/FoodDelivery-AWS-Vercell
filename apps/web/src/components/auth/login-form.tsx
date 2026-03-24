@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
@@ -11,6 +12,7 @@ export function LoginForm() {
   const raw = searchParams.get("callbackUrl") ?? "/";
   const callbackUrl =
     raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  const registerLink = `/register?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,6 +90,13 @@ export function LoginForm() {
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link href={registerLink} className="text-primary underline-offset-4 hover:underline">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }
