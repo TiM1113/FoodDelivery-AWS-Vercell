@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import 'dotenv/config';
 
-let cachedConnection = null;
-let cachedDbName = null;
+let cachedConnection: typeof mongoose | null = null;
+let cachedDbName: string | null = null;
 
 export const connectDB = async () => {
 	const currentDbName = process.env.MONGODB_URI?.split('/')
@@ -19,7 +19,6 @@ export const connectDB = async () => {
 			throw new Error('MONGODB_URI is not defined in environment variables');
 		}
 
-		// Clear existing connection if database name changed
 		if (cachedConnection && cachedDbName !== currentDbName) {
 			console.log(
 				'Database name changed from',
@@ -32,7 +31,7 @@ export const connectDB = async () => {
 		}
 
 		console.log('Attempting to connect to MongoDB database:', currentDbName);
-		
+
 		const conn = await mongoose.connect(process.env.MONGODB_URI, {
 			serverSelectionTimeoutMS: 5000,
 			socketTimeoutMS: 5000,
@@ -44,16 +43,14 @@ export const connectDB = async () => {
 			`MongoDB Connected: ${conn.connection.host} to database: ${currentDbName}`
 		);
 		cachedConnection = conn;
-		cachedDbName = currentDbName;
+		cachedDbName = currentDbName ?? null;
 
-		// Add connection error handler
 		mongoose.connection.on('error', (err) => {
 			console.error('MongoDB connection error:', err);
 			cachedConnection = null;
 			cachedDbName = null;
 		});
 
-		// Add disconnection handler
 		mongoose.connection.on('disconnected', () => {
 			console.log('MongoDB disconnected');
 			cachedConnection = null;
@@ -62,9 +59,9 @@ export const connectDB = async () => {
 
 		return conn;
 	} catch (err) {
-		console.error('MongoDB Connection Error:', err.message);
-		console.error('Full error:', err);
-		console.error('Stack trace:', err.stack);
-		throw err; // Let the API handler deal with the error
+		const error = err as Error;
+		console.error('MongoDB Connection Error:', error.message);
+		console.error('Full error:', error);
+		throw error;
 	}
 };
