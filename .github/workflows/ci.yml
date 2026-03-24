@@ -107,9 +107,6 @@ jobs:
       - name: Build shared
         run: pnpm --filter @food-delivery/shared build
 
-      - name: Build frontend
-        run: pnpm --filter @food-delivery/frontend build
-
       - name: Build admin
         run: pnpm --filter @food-delivery/admin build
 

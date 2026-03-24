@@ -1,7 +1,0 @@
-**/*.d.ts
-**/*.ts
-**/*.tsx
-node_modules/
-dist/
-build/
-coverage/ 
