@@ -1,13 +1,15 @@
 {
   "name": "@food-delivery/backend",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "main": "app.ts",
   "type": "module",
   "scripts": {
     "dev": "tsx watch serve.ts",
     "start": "tsx serve.ts",
     "build": "echo 'Vercel handles TypeScript compilation'",
-    "vercel-build": "echo 'Build completed'"
+    "vercel-build": "echo 'Build completed'",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -17,13 +19,14 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.722.0",
     "@hono/node-server": "^1.14.1",
+    "@neondatabase/serverless": "^1.0.2",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.7.10",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.2",
     "stripe": "^17.3.1",
     "validator": "^13.12.0",
     "zod": "^4.3.6"
@@ -33,6 +36,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@types/validator": "^13.12.2",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3"
   }

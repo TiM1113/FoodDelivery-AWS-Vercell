@@ -1,5 +1,7 @@
 import { MiddlewareHandler } from 'hono';
-import userModel from '../models/userModel';
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
+import { users } from '../db/schema';
 import type { AppEnv } from '../types';
 
 const adminMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -8,7 +10,7 @@ const adminMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
 		return c.json({ success: false, message: 'Not Authorized' }, 401);
 	}
 	try {
-		const user = await userModel.findById(userId);
+		const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
 		if (!user || user.role !== 'admin') {
 			return c.json({ success: false, message: 'Admin access required' }, 403);
 		}

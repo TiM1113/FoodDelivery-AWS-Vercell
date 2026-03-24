@@ -28,10 +28,8 @@ export const loginSchema = z.object({
 });
 
 // ── Cart schemas ──────────────────────────────────────────────
-const mongoIdRegex = /^[a-f\d]{24}$/i;
-
 export const cartItemSchema = z.object({
-	itemId: z.string().regex(mongoIdRegex, 'Invalid item ID'),
+	itemId: z.string().uuid('Invalid item ID'),
 });
 
 // ── Order schemas ─────────────────────────────────────────────
@@ -48,7 +46,7 @@ const addressSchema = z.object({
 });
 
 const orderItemSchema = z.object({
-	_id: z.string().regex(mongoIdRegex, 'Invalid food item ID'),
+	_id: z.string().uuid('Invalid food item ID'),
 	quantity: z.number().int().positive('Quantity must be a positive integer'),
 }).passthrough();
 

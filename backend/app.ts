@@ -4,8 +4,6 @@ validateEnv();
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import mongoose from 'mongoose';
-import { connectDB } from './config/db';
 import foodRoute from './routes/foodRoute';
 import userRoute from './routes/userRoute';
 import cartRoute from './routes/cartRoute';
@@ -37,9 +35,6 @@ app.use('*', cors({
 	maxAge: 86400,
 }));
 
-// DB connection
-connectDB();
-
 // Mount routes
 app.route('/api/food', foodRoute);
 app.route('/api/user', userRoute);
@@ -50,18 +45,10 @@ app.route('/api/order', orderRoute);
 app.get('/', (c) => {
 	return c.json({
 		status: 'API Working',
-		version: '2.0.0',
+		version: '3.0.0',
 		environment: process.env.NODE_ENV || 'development',
 		timestamp: new Date().toISOString(),
-		mongodb: {
-			state: mongoose.connection.readyState,
-			states: {
-				0: 'disconnected',
-				1: 'connected',
-				2: 'connecting',
-				3: 'disconnecting',
-			},
-		},
+		database: 'postgresql',
 	});
 });
 
