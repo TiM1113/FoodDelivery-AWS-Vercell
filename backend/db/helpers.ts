@@ -23,7 +23,7 @@ export function formatOrder(order: Order & { items: OrderItem[] }) {
 		_id: order.id,
 		userId: order.userId,
 		items: order.items.map((item) => ({
-			_id: item.foodId || item.id,
+			_id: item.foodId ?? item.id,
 			name: item.name,
 			price: item.price,
 			quantity: item.quantity,

@@ -207,7 +207,9 @@ export const verifyOrder = async (c: Context<AppEnv>) => {
 	try {
 		if (success === 'false') {
 			if (orderId) {
-				await db.delete(orders).where(eq(orders.id, orderId));
+				await db.delete(orders).where(
+					and(eq(orders.id, orderId), eq(orders.payment, false))
+				);
 			}
 			return c.json({ success: false, message: 'Order cancelled' });
 		}
