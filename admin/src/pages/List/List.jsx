@@ -91,20 +91,40 @@ const List = ({ url }) => {
 
   const saveEdit = async (itemId) => {
     try {
-      const formData = new FormData();
-      formData.append('id', itemId);
-      formData.append('name', editingData.name);
-      formData.append('category', editingData.category);
-      formData.append('price', editingData.price);
-      
+      let imageKey = undefined;
+
+      // If a new image was selected, upload it via presigned URL
       if (selectedImage) {
-        formData.append('image', selectedImage);
+        const presignRes = await axios.post(`${url}/api/food/presign`, {
+          fileName: selectedImage.name,
+          contentType: selectedImage.type,
+        });
+
+        if (!presignRes.data.success) {
+          toast.error(presignRes.data.message || 'Failed to get upload URL');
+          return;
+        }
+
+        const s3Res = await fetch(presignRes.data.uploadUrl, {
+          method: 'PUT',
+          body: selectedImage,
+          headers: { 'Content-Type': selectedImage.type },
+        });
+
+        if (!s3Res.ok) {
+          toast.error('Failed to upload image');
+          return;
+        }
+
+        imageKey = presignRes.data.key;
       }
 
-      const response = await axios.post(`${url}/api/food/update`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      const response = await axios.post(`${url}/api/food/update`, {
+        id: itemId,
+        name: editingData.name,
+        category: editingData.category,
+        price: Number(editingData.price),
+        ...(imageKey && { imageKey }),
       });
 
       if (response.data.success) {

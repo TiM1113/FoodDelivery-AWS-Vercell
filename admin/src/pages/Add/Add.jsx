@@ -1,73 +1,87 @@
-// Using rafce shorthand to create react component-Add.
-import { useState } from 'react' // Don't forget to import relative React Hook 'useState' /useEffect hook here just used for testing data update.
-// Import CSS into Add component
+import { useState } from 'react'
 import './Add.css';
 import { assets } from '../../assets/assets';
-// Import axios
 import axios from "axios"
-// 
 import { toast } from 'react-toastify';
 
-// add url in Add const to destructure it
 const Add = ({ url }) => {
 
-  // const url = "http://localhost:4000"; // this url const here should be removed
-  // create state variable(before using 'useState()' should import it in advance)
   const [image, setImage] = useState(false);
   const [data, setDate] = useState({
     name: "",
     description: "",
     price: "",
-    category: "Salad" // "Salad" is the default and first option in category
+    category: "Salad"
   });
+  const [uploading, setUploading] = useState(false);
 
-
-
-  // // Create(import) useEffect function to check the data whether getting updated / JUST USING FOR TEST DATA
-  // useEffect(()=>{
-  //   console.log(data);
-  // }, [data])
-  // // WHEN THE DATA TESTING SUCCESSFUL, WE WILL COMMENT OUT THIS useEffect FUNCTION
-
-
-  // Create one onsubmit Handler function to do the API call
   const onSubmitHandler = async (event) => {
     event.preventDefault();
 
-
     if (!image) {
-      TransformStream.error('Image not selected');
+      toast.error('Image not selected');
       return null;
     }
 
-    const formData = new FormData();
-    formData.append("name", data.name)
-    formData.append("description", data.description)
-    formData.append("price", Number(data.price))
-    formData.append("category", data.category)
-    formData.append("image", image || "")
-    // Call the API we will use axios
-    const response = await axios.post(`${url}/api/food/add`, formData);
-    if (response.data.success) {
-      setDate(
-        {
+    setUploading(true);
+
+    try {
+      // Step 1: Get presigned URL from backend
+      const presignRes = await axios.post(`${url}/api/food/presign`, {
+        fileName: image.name,
+        contentType: image.type,
+      });
+
+      if (!presignRes.data.success) {
+        toast.error(presignRes.data.message || 'Failed to get upload URL');
+        setUploading(false);
+        return;
+      }
+
+      const { uploadUrl, key } = presignRes.data;
+
+      // Step 2: Upload image directly to S3
+      const s3Res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: image,
+        headers: { 'Content-Type': image.type },
+      });
+
+      if (!s3Res.ok) {
+        toast.error('Failed to upload image');
+        setUploading(false);
+        return;
+      }
+
+      // Step 3: Save food item with the S3 key
+      const response = await axios.post(`${url}/api/food/add`, {
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        category: data.category,
+        imageKey: key,
+      });
+
+      if (response.data.success) {
+        setDate({
           name: "",
           description: "",
           price: "",
           category: "Salad"
-        }
-      )
-      setImage(false);
-
-      toast.success(response.data.message)// we will get successful message when we upload image successfully
-    }
-    else {
-      toast.error(response.data.message)// we will get failed message when we upload image fail
+        });
+        setImage(false);
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error adding food:', error);
+      toast.error(error.response?.data?.message || 'Error adding food item');
+    } finally {
+      setUploading(false);
     }
   }
 
-
-  // create the on change Handler function, use this function to update category name
   const onChangeHandler = (event) => {
     const name = event.target.name;
     const value = event.target.value;
@@ -112,7 +126,9 @@ const Add = ({ url }) => {
             <input onChange={onChangeHandler} value={data.price} type="Number" name='price' placeholder='25' />
           </div>
         </div>
-        <button type="submit" className="add-btn">ADD</button>
+        <button type="submit" className="add-btn" disabled={uploading}>
+          {uploading ? 'Uploading...' : 'ADD'}
+        </button>
       </form>
     </div>
   )
