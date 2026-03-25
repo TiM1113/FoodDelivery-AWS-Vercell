@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
 import { QueryProvider } from "@/lib/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
-import { CartInitializer } from "@/components/cart-initializer";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -30,10 +27,7 @@ export default function RootLayout({
         <ThemeProvider>
           <SessionProvider>
             <QueryProvider>
-              <CartInitializer />
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
+              {children}
               <Toaster richColors closeButton />
             </QueryProvider>
           </SessionProvider>

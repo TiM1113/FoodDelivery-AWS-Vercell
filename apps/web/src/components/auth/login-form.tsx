@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,15 @@ export function LoginForm() {
       if (result?.error) {
         setError("Invalid email or password");
       } else {
+        // Admin users go to /admin by default (unless explicit callbackUrl was set)
+        if (callbackUrl === "/") {
+          const session = await getSession();
+          if ((session?.user as { role?: string } | undefined)?.role === "admin") {
+            router.push("/admin");
+            router.refresh();
+            return;
+          }
+        }
         router.push(callbackUrl);
         router.refresh();
       }
