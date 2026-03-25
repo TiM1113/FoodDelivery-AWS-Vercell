@@ -110,6 +110,8 @@ export function FoodList() {
     return () => { if (editPreviewUrl) URL.revokeObjectURL(editPreviewUrl); };
   }, [editPreviewUrl]);
 
+  // Reuse AddFoodInputSchema (not UpdateFoodInputSchema) because the edit form
+  // fields are identical; the id comes from editItem._id at submit time.
   const editForm = useForm<AddFoodInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 type mismatch with @hookform/resolvers
     resolver: zodResolver(AddFoodInputSchema as any),
@@ -309,10 +311,13 @@ export function FoodList() {
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger
-                  render={<Button size="icon" variant="ghost" />}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </AlertDialogTrigger>
+                  render={
+                    <Button size="icon" variant="ghost">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  }
+                />
+
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -476,6 +481,7 @@ export function FoodList() {
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Previous page"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
@@ -483,11 +489,12 @@ export function FoodList() {
               </Button>
               <span className="text-sm">
                 Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {table.getPageCount()}
+                {table.getPageCount() || 1}
               </span>
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Next page"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >

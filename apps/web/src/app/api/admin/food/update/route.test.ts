@@ -74,7 +74,13 @@ describe("POST /api/admin/food/update", () => {
       Response.json({ success: true, message: "Food updated" }),
     );
 
-    const body = { id: "food1", name: "Updated Pizza", price: 15, category: "Pasta" };
+    const body = {
+      id: "food1",
+      name: "Updated Pizza",
+      description: "Updated description",
+      price: 15,
+      category: "Pasta",
+    };
     const res = await POST(makeRequest(body));
     const data = await res.json();
 

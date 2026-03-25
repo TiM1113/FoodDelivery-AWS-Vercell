@@ -373,6 +373,7 @@ export function OrderList() {
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Previous page"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
@@ -380,11 +381,12 @@ export function OrderList() {
               </Button>
               <span className="text-sm">
                 Page {table.getState().pagination.pageIndex + 1} of{" "}
-                {table.getPageCount()}
+                {table.getPageCount() || 1}
               </span>
               <Button
                 variant="outline"
                 size="icon"
+                aria-label="Next page"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >

@@ -71,6 +71,7 @@ export function AddFoodForm() {
     if (!file) return;
     const error = validateImage(file);
     if (error) {
+      setImage(null);
       setImageError(error);
       return;
     }
@@ -79,6 +80,7 @@ export function AddFoodForm() {
   };
 
   const onSubmit = async (data: AddFoodInput) => {
+    if (imageError) return;
     if (!image) {
       setImageError("Please select an image");
       return;
