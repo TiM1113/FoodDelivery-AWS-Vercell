@@ -277,7 +277,7 @@ export function OrderList() {
               ?.setFilterValue(val === "all" ? undefined : val)
           }
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[140px]" aria-label="Payment filter">
             <SelectValue placeholder="All payments" />
           </SelectTrigger>
           <SelectContent>
@@ -297,7 +297,7 @@ export function OrderList() {
               ?.setFilterValue(val === "all" ? undefined : val)
           }
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Status filter">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
