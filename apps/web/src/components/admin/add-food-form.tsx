@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,14 @@ export function AddFoodForm() {
     category: "Salad",
   });
   const [uploading, setUploading] = useState(false);
+
+  const previewUrl = useMemo(
+    () => (image ? URL.createObjectURL(image) : null),
+    [image],
+  );
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,9 +121,9 @@ export function AddFoodForm() {
         <div className="space-y-2">
           <Label>Upload Image</Label>
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors hover:border-muted-foreground/50">
-            {image ? (
+            {previewUrl ? (
               <Image
-                src={URL.createObjectURL(image)}
+                src={previewUrl}
                 alt="Preview"
                 width={200}
                 height={200}

@@ -21,6 +21,9 @@ import { POST } from "./route";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.API_URL = "http://localhost:4000";
+  process.env.AUTH_SECRET = "test-secret";
+  process.env.JWT_SECRET = "test-jwt-secret";
 });
 
 function makeRequest(body: Record<string, unknown>): NextRequest {

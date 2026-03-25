@@ -22,6 +22,8 @@ export function AdminMobileNav() {
       <Button
         variant="ghost"
         size="icon"
+        aria-label={open ? "Close admin menu" : "Open admin menu"}
+        aria-expanded={open}
         className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
         onClick={() => setOpen(!open)}
       >

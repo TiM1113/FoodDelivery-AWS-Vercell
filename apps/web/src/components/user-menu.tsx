@@ -26,6 +26,7 @@ export function UserMenu({ name, isAdmin }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        aria-label={name ? `${name} menu` : "User menu"}
         className={cn(
           buttonVariants({ variant: "outline", size: "sm" }),
           "gap-2 rounded-full"

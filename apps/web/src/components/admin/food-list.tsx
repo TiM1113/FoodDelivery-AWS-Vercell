@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,14 @@ export function FoodList() {
     price: "",
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const editPreviewUrl = useMemo(
+    () => (selectedImage ? URL.createObjectURL(selectedImage) : null),
+    [selectedImage],
+  );
+  useEffect(() => {
+    return () => { if (editPreviewUrl) URL.revokeObjectURL(editPreviewUrl); };
+  }, [editPreviewUrl]);
 
   const fetchList = async () => {
     try {
@@ -229,15 +237,13 @@ export function FoodList() {
                         <label className="cursor-pointer">
                           <Image
                             src={
-                              selectedImage
-                                ? URL.createObjectURL(selectedImage)
-                                : getImageUrl(item.image)
+                              editPreviewUrl ?? getImageUrl(item.image)
                             }
                             alt={item.name}
                             width={56}
                             height={56}
                             className="rounded-md object-cover"
-                            unoptimized={!!selectedImage}
+                            unoptimized={!!editPreviewUrl}
                           />
                           <input
                             type="file"
