@@ -11,7 +11,7 @@
 - **部署平台**：Vercel（Serverless）
 - **当前分支**：main（125 个 commits）
 - **当前版本**：v0.2.0（Phase 2 完成，2026-03-26）
-- **项目性质**：食品外卖平台，三端架构（apps/web + backend + admin）
+- **项目性质**：食品外卖平台，两端架构（apps/web + backend），admin 已并入 apps/web /admin 路由组
 
 ---
 
@@ -85,7 +85,7 @@ FoodDelivery-AWS-Vercell/
 样式          Tailwind CSS v4 + shadcn/ui
 表单          React Hook Form + Zod
 认证          NextAuth.js v5（httpOnly Cookie + RBAC）
-数据库        MongoDB Atlas + Drizzle ORM
+数据库        PostgreSQL（Neon Serverless）+ Drizzle ORM
 缓存/限流     Upstash Redis
 支付          Stripe（Webhook 验证）
 图片          AWS S3（预签名直传）+ Next.js Image
@@ -233,7 +233,7 @@ API 契约      Zod Schema 共享（前后端类型一致）
 - **优惠码系统**：后端存储、前端校验、Stripe discount 集成（当前 UI 已有入口但未实现）
 - **订单实时状态推送**：Vercel KV + SSE 或 WebSocket
 - **用户个人中心**：编辑资料、收货地址管理
-- **食品高级搜索**：MongoDB Atlas Search 全文搜索（升级 Phase 2 Step 3 的客户端搜索为服务端搜索，支持拼写纠错、模糊匹配）
+- **食品高级搜索**：PostgreSQL 全文搜索（升级 Phase 2 Step 3 的客户端搜索为服务端搜索，支持拼写纠错、模糊匹配）
 - **分页加载**：Cursor-based pagination（适配 Serverless）
 - **订单取消 + 退款**：已支付订单的 Stripe 退款流程
 - **Admin 数据看板**：销售额趋势、热销品类、订单转化率（Recharts）
