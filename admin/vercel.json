@@ -1,9 +1,0 @@
-{
-  "installCommand": "cd .. && pnpm install --frozen-lockfile && pnpm --filter @food-delivery/shared build",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-} 
