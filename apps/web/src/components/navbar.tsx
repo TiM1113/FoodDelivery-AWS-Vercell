@@ -2,12 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { SignInLink } from "@/components/auth/sign-in-link";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CartBadge } from "@/components/cart-badge";
 
 export async function Navbar() {
   const session = await auth();
+  const role = (session?.user as { role?: string } | undefined)?.role;
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -29,10 +30,10 @@ export async function Navbar() {
           <ThemeToggle />
           <CartBadge />
           {session?.user ? (
-            <>
-              <span className="text-sm font-medium">{session.user.name}</span>
-              <SignOutButton />
-            </>
+            <UserMenu
+              name={session.user.name ?? ""}
+              isAdmin={role === "admin"}
+            />
           ) : (
             <SignInLink />
           )}
