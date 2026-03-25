@@ -27,6 +27,16 @@ export const AddFoodInputSchema = z.object({
   category: FoodCategorySchema,
 });
 
+export const UpdateFoodInputSchema = z.object({
+  id: z.string().min(1, "Food ID is required"),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  price: z.number().positive("Price must be a positive number"),
+  category: FoodCategorySchema,
+  imageKey: z.string().optional(),
+});
+
 export type Food = z.infer<typeof FoodSchema>;
 export type FoodCategory = z.infer<typeof FoodCategorySchema>;
 export type AddFoodInput = z.infer<typeof AddFoodInputSchema>;
+export type UpdateFoodInput = z.infer<typeof UpdateFoodInputSchema>;

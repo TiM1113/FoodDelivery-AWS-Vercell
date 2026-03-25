@@ -1,10 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type ColumnFiltersState,
+} from "@tanstack/react-table";
+import {
+  FoodCategorySchema,
+  AddFoodInputSchema,
+  type AddFoodInput,
+} from "@food-delivery/shared";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -21,6 +40,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,23 +58,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const S3_URL =
   process.env.NEXT_PUBLIC_S3_URL ||
   "https://food-delivery-images-bucket.s3.ap-southeast-2.amazonaws.com";
 
-const CATEGORIES = [
-  "Salad",
-  "Rolls",
-  "Deserts",
-  "Sandwich",
-  "Cake",
-  "Pure Veg",
-  "Pasta",
-  "Noodles",
-] as const;
+const CATEGORIES = FoodCategorySchema.options;
 
 interface FoodItem {
   _id: string;
@@ -58,12 +83,6 @@ interface FoodItem {
   image: string;
 }
 
-interface EditingData {
-  name: string;
-  category: string;
-  price: string;
-}
-
 function getImageUrl(image: string): string {
   if (image.startsWith("http")) return image;
   return `${S3_URL}/${image}`;
@@ -72,13 +91,16 @@ function getImageUrl(image: string): string {
 export function FoodList() {
   const [list, setList] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingData, setEditingData] = useState<EditingData>({
-    name: "",
-    category: "",
-    price: "",
-  });
+
+  // Table state
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+
+  // Edit dialog state
+  const [editItem, setEditItem] = useState<FoodItem | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const editPreviewUrl = useMemo(
     () => (selectedImage ? URL.createObjectURL(selectedImage) : null),
@@ -87,6 +109,12 @@ export function FoodList() {
   useEffect(() => {
     return () => { if (editPreviewUrl) URL.revokeObjectURL(editPreviewUrl); };
   }, [editPreviewUrl]);
+
+  // Reuse AddFoodInputSchema (not UpdateFoodInputSchema) because the edit form
+  // fields are identical; the id comes from editItem._id at submit time.
+  const editForm = useForm<AddFoodInput>({
+    resolver: zodResolver(AddFoodInputSchema),
+  });
 
   const fetchList = async () => {
     try {
@@ -124,23 +152,27 @@ export function FoodList() {
     }
   };
 
-  const startEditing = (item: FoodItem) => {
-    setEditingId(item._id);
-    setEditingData({
+  const openEditDialog = (item: FoodItem) => {
+    setEditItem(item);
+    setSelectedImage(null);
+    editForm.reset({
       name: item.name,
-      category: item.category,
-      price: String(item.price),
+      description: item.description,
+      price: item.price,
+      category: item.category as AddFoodInput["category"],
     });
-    setSelectedImage(null);
   };
 
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingData({ name: "", category: "", price: "" });
+  const closeEditDialog = () => {
+    setEditItem(null);
     setSelectedImage(null);
+    editForm.reset();
   };
 
-  const saveEdit = async (itemId: string) => {
+  const onEditSubmit = async (data: AddFoodInput) => {
+    if (!editItem) return;
+    setSaving(true);
+
     try {
       let imageKey: string | undefined;
 
@@ -175,25 +207,162 @@ export function FoodList() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: itemId,
-          name: editingData.name,
-          category: editingData.category,
-          price: Number(editingData.price),
+          id: editItem._id,
+          ...data,
           ...(imageKey && { imageKey }),
         }),
       });
-      const data = await res.json();
-      if (data.success) {
+      const result = await res.json();
+      if (result.success) {
         toast.success("Food item updated");
-        cancelEditing();
+        closeEditDialog();
         await fetchList();
       } else {
-        toast.error(data.message || "Error updating item");
+        toast.error(result.message || "Error updating item");
       }
     } catch {
       toast.error("Error connecting to server");
+    } finally {
+      setSaving(false);
     }
   };
+
+  // Column definitions
+  const columns = useMemo<ColumnDef<FoodItem>[]>(
+    () => [
+      {
+        accessorKey: "image",
+        header: "Image",
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Image
+            src={getImageUrl(row.original.image)}
+            alt={row.original.name}
+            width={48}
+            height={48}
+            className="rounded-md object-cover"
+          />
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Name
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-medium">{getValue<string>()}</span>
+        ),
+      },
+      {
+        accessorKey: "category",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Category
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        ),
+        filterFn: "equals",
+      },
+      {
+        accessorKey: "price",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Price
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        ),
+        cell: ({ getValue }) => `$${getValue<number>()}`,
+        size: 100,
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        size: 120,
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="flex gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => openEditDialog(item)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button size="icon" variant="ghost">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  }
+                />
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Delete &ldquo;{item.name}&rdquo;?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. The food item will be
+                      permanently removed.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => removeFood(item._id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable column defs
+    [],
+  );
+
+  const table = useReactTable({
+    data: list,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: 10 },
+    },
+  });
 
   useEffect(() => {
     fetchList();
@@ -214,175 +383,251 @@ export function FoodList() {
     <div>
       <h2 className="mb-4 text-xl font-semibold">All Food Items</h2>
 
+      {/* Toolbar: search + category filter */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={
+            (table.getColumn("category")?.getFilterValue() as string) ?? "all"
+          }
+          onValueChange={(val) =>
+            table
+              .getColumn("category")
+              ?.setFilterValue(val === "all" ? undefined : val)
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {list.length === 0 ? (
         <p className="text-muted-foreground">No food items found.</p>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-20">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="w-24">Price</TableHead>
-                <TableHead className="w-28">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((item) => (
-                <TableRow key={item._id}>
-                  {editingId === item._id ? (
-                    <>
-                      <TableCell>
-                        <label className="cursor-pointer">
-                          <Image
-                            src={
-                              editPreviewUrl ?? getImageUrl(item.image)
-                            }
-                            alt={item.name}
-                            width={56}
-                            height={56}
-                            className="rounded-md object-cover"
-                            unoptimized={!!editPreviewUrl}
-                          />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) setSelectedImage(file);
-                            }}
-                          />
-                        </label>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={editingData.name}
-                          onChange={(e) =>
-                            setEditingData({
-                              ...editingData,
-                              name: e.target.value,
-                            })
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={editingData.category}
-                          onValueChange={(val) => {
-                            if (val) setEditingData({
-                              ...editingData,
-                              category: val,
-                            });
-                          }}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIES.map((cat) => (
-                              <SelectItem key={cat} value={cat}>
-                                {cat}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={editingData.price}
-                          onChange={(e) =>
-                            setEditingData({
-                              ...editingData,
-                              price: e.target.value,
-                            })
-                          }
-                          className="w-20"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => saveEdit(item._id)}
-                          >
-                            <Check className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={cancelEditing}
-                          >
-                            <X className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell>
-                        <Image
-                          src={getImageUrl(item.image)}
-                          alt={item.name}
-                          width={56}
-                          height={56}
-                          className="rounded-md object-cover"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {item.name}
-                      </TableCell>
-                      <TableCell>{item.category}</TableCell>
-                      <TableCell>${item.price}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => startEditing(item)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger
-                              render={<Button size="icon" variant="ghost" />}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete &ldquo;{item.name}&rdquo;?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. The food item
-                                  will be permanently removed.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => removeFood(item._id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {table.getFilteredRowModel().rows.length} item(s) total
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Previous page"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount() || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Next page"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
       )}
+
+      {/* Edit dialog */}
+      <Dialog
+        open={!!editItem}
+        onOpenChange={(open) => { if (!open) closeEditDialog(); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Food Item</DialogTitle>
+            <DialogDescription>
+              Update the food item details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editItem && (
+          <form
+            onSubmit={editForm.handleSubmit(onEditSubmit)}
+            className="space-y-4"
+          >
+            {/* Image preview + change */}
+            <div className="space-y-2">
+              <Label>Image</Label>
+              <label className="flex cursor-pointer items-center gap-4">
+                <Image
+                  src={editPreviewUrl ?? getImageUrl(editItem.image)}
+                  alt={editItem.name}
+                  width={64}
+                  height={64}
+                  className="rounded-md object-cover"
+                  unoptimized={!!editPreviewUrl}
+                />
+                <span className="text-sm text-muted-foreground">
+                  Click to change image
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setSelectedImage(file);
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                {...editForm.register("name")}
+              />
+              {editForm.formState.errors.name && (
+                <p className="text-sm text-destructive">
+                  {editForm.formState.errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Input
+                id="edit-description"
+                {...editForm.register("description")}
+              />
+              {editForm.formState.errors.description && (
+                <p className="text-sm text-destructive">
+                  {editForm.formState.errors.description.message}
+                </p>
+              )}
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Controller
+                name="category"
+                control={editForm.control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(val) => { if (val) field.onChange(val); }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {/* Price */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-price">Price ($)</Label>
+              <Input
+                id="edit-price"
+                type="number"
+                step="0.01"
+                {...editForm.register("price", { valueAsNumber: true })}
+              />
+              {editForm.formState.errors.price && (
+                <p className="text-sm text-destructive">
+                  {editForm.formState.errors.price.message}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

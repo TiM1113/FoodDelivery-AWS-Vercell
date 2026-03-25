@@ -1,9 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type ColumnFiltersState,
+} from "@tanstack/react-table";
+import { OrderStatusSchema } from "@food-delivery/shared";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,15 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
-const ORDER_STATUSES = [
-  "Payment Pending",
-  "Food Processing",
-  "Out for delivery",
-  "Delivered",
-] as const;
+const ORDER_STATUSES = OrderStatusSchema.options;
 
 interface OrderItem {
   name: string;
@@ -49,6 +68,10 @@ interface Order {
 export function OrderList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Table state
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const fetchOrders = async () => {
     try {
@@ -92,6 +115,137 @@ export function OrderList() {
     }
   };
 
+  const columns = useMemo<ColumnDef<Order>[]>(
+    () => [
+      {
+        accessorKey: "items",
+        header: "Items",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const items = row.original.items;
+          const summary = items
+            .map((item) => `${item.name} x${item.quantity}`)
+            .join(", ");
+          return (
+            <div className="max-w-[280px]">
+              <p className="truncate text-sm font-medium" title={summary}>
+                {summary}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {items.length} item(s)
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "address",
+        header: "Customer",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const addr = row.original.address;
+          return (
+            <div>
+              <p className="text-sm font-medium">
+                {addr.firstName} {addr.lastName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {addr.city}, {addr.state}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "amount",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Amount
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-semibold">${getValue<number>()}</span>
+        ),
+        size: 100,
+      },
+      {
+        accessorKey: "payment",
+        header: "Payment",
+        filterFn: (row, _columnId, filterValue) => {
+          if (filterValue === "all") return true;
+          return row.original.payment === (filterValue === "paid");
+        },
+        cell: ({ getValue }) => (
+          <Badge variant={getValue<boolean>() ? "default" : "destructive"}>
+            {getValue<boolean>() ? "Paid" : "Unpaid"}
+          </Badge>
+        ),
+        size: 100,
+      },
+      {
+        accessorKey: "status",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Status
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        ),
+        filterFn: "equals",
+        cell: ({ row }) => (
+          <Select
+            value={row.original.status}
+            onValueChange={(val) => {
+              if (val) updateStatus(row.original._id, val);
+            }}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDER_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+        size: 200,
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable column defs, updateStatus captured via closure
+    [orders],
+  );
+
+  const table = useReactTable({
+    data: orders,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: 10 },
+    },
+  });
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -101,7 +255,7 @@ export function OrderList() {
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
+          <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
     );
@@ -111,63 +265,136 @@ export function OrderList() {
     <div>
       <h2 className="mb-4 text-xl font-semibold">Orders</h2>
 
+      {/* Toolbar: filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Select
+          value={
+            (table.getColumn("payment")?.getFilterValue() as string) ?? "all"
+          }
+          onValueChange={(val) =>
+            table
+              .getColumn("payment")
+              ?.setFilterValue(val === "all" ? undefined : val)
+          }
+        >
+          <SelectTrigger className="w-[140px]" aria-label="Payment filter">
+            <SelectValue placeholder="All payments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All payments</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="unpaid">Unpaid</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={
+            (table.getColumn("status")?.getFilterValue() as string) ?? "all"
+          }
+          onValueChange={(val) =>
+            table
+              .getColumn("status")
+              ?.setFilterValue(val === "all" ? undefined : val)
+          }
+        >
+          <SelectTrigger className="w-[180px]" aria-label="Status filter">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {ORDER_STATUSES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {orders.length === 0 ? (
         <p className="text-muted-foreground">No orders found.</p>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <Card key={order._id}>
-              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex gap-3">
-                  <Package className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      {order.items
-                        .map((item) => `${item.name} x ${item.quantity}`)
-                        .join(", ")}
-                    </p>
-                    <p className="text-sm">
-                      {order.address.firstName} {order.address.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {order.address.street}, {order.address.city},{" "}
-                      {order.address.state}, {order.address.country},{" "}
-                      {order.address.zipcode}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {order.address.phone}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
-                  <span className="text-sm font-medium">
-                    {order.items.length} items
-                  </span>
-                  <span className="text-sm font-semibold">${order.amount}</span>
-                  <Badge variant={order.payment ? "default" : "destructive"}>
-                    {order.payment ? "Paid" : "Unpaid"}
-                  </Badge>
-                  <Select
-                    value={order.status}
-                    onValueChange={(val) => { if (val) updateStatus(order._id, val); }}
-                  >
-                    <SelectTrigger className="w-44">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ORDER_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
+        <>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination */}
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {table.getFilteredRowModel().rows.length} matching order(s)
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Previous page"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount() || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Next page"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
