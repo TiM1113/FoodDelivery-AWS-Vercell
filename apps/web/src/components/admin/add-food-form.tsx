@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AddFoodInputSchema,
+  FoodCategorySchema,
+  type AddFoodInput,
+} from "@food-delivery/shared";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,26 +23,31 @@ import {
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 
-const CATEGORIES = [
-  "Salad",
-  "Rolls",
-  "Deserts",
-  "Sandwich",
-  "Cake",
-  "Pure Veg",
-  "Pasta",
-  "Noodles",
-] as const;
+const CATEGORIES = FoodCategorySchema.options;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export function AddFoodForm() {
   const [image, setImage] = useState<File | null>(null);
-  const [data, setData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category: "Salad",
-  });
+  const [imageError, setImageError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<AddFoodInput>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 type mismatch with @hookform/resolvers
+    resolver: zodResolver(AddFoodInputSchema as any),
+    defaultValues: {
+      name: "",
+      description: "",
+      price: undefined,
+      category: "Salad",
+    },
+  });
 
   const previewUrl = useMemo(
     () => (image ? URL.createObjectURL(image) : null),
@@ -45,11 +57,30 @@ export function AddFoodForm() {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [previewUrl]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateImage = (file: File): string | null => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      return "Only JPEG, PNG, WebP, and GIF images are accepted";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return "Image must be smaller than 5MB";
+    }
+    return null;
+  };
 
+  const handleImageChange = (file: File | undefined) => {
+    if (!file) return;
+    const error = validateImage(file);
+    if (error) {
+      setImageError(error);
+      return;
+    }
+    setImageError(null);
+    setImage(file);
+  };
+
+  const onSubmit = async (data: AddFoodInput) => {
     if (!image) {
-      toast.error("Please select an image");
+      setImageError("Please select an image");
       return;
     }
 
@@ -89,10 +120,7 @@ export function AddFoodForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          price: Number(data.price),
-          category: data.category,
+          ...data,
           imageKey: presignData.key,
         }),
       });
@@ -100,8 +128,9 @@ export function AddFoodForm() {
 
       if (result.success) {
         toast.success(result.message || "Food item added");
-        setData({ name: "", description: "", price: "", category: "Salad" });
+        reset();
         setImage(null);
+        setImageError(null);
       } else {
         toast.error(result.message || "Error adding food item");
       }
@@ -116,7 +145,7 @@ export function AddFoodForm() {
     <div>
       <h2 className="mb-6 text-xl font-semibold">Add Food Item</h2>
 
-      <form onSubmit={onSubmit} className="max-w-xl space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="max-w-xl space-y-6">
         {/* Image upload */}
         <div className="space-y-2">
           <Label>Upload Image</Label>
@@ -134,6 +163,7 @@ export function AddFoodForm() {
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Upload className="h-10 w-10" />
                 <span className="text-sm">Click to upload image</span>
+                <span className="text-xs">JPEG, PNG, WebP, GIF (max 5MB)</span>
               </div>
             )}
             <input
@@ -141,12 +171,14 @@ export function AddFoodForm() {
               accept="image/*"
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setImage(file);
+                handleImageChange(e.target.files?.[0]);
                 if (e.target) e.target.value = "";
               }}
             />
           </label>
+          {imageError && (
+            <p className="text-sm text-destructive">{imageError}</p>
+          )}
         </div>
 
         {/* Name */}
@@ -154,11 +186,12 @@ export function AddFoodForm() {
           <Label htmlFor="name">Product Name</Label>
           <Input
             id="name"
-            value={data.name}
-            onChange={(e) => setData({ ...data, name: e.target.value })}
+            {...register("name")}
             placeholder="Enter product name"
-            required
           />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          )}
         </div>
 
         {/* Description */}
@@ -166,33 +199,43 @@ export function AddFoodForm() {
           <Label htmlFor="description">Product Description</Label>
           <Textarea
             id="description"
-            value={data.description}
-            onChange={(e) => setData({ ...data, description: e.target.value })}
+            {...register("description")}
             placeholder="Write product description"
             rows={4}
-            required
           />
+          {errors.description && (
+            <p className="text-sm text-destructive">{errors.description.message}</p>
+          )}
         </div>
 
         {/* Category + Price */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select
-              value={data.category}
-              onValueChange={(val) => { if (val) setData({ ...data, category: val }); }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(val) => { if (val) field.onChange(val); }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.category && (
+              <p className="text-sm text-destructive">{errors.category.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="price">Price ($)</Label>
@@ -200,11 +243,12 @@ export function AddFoodForm() {
               id="price"
               type="number"
               step="0.01"
-              value={data.price}
-              onChange={(e) => setData({ ...data, price: e.target.value })}
+              {...register("price", { valueAsNumber: true })}
               placeholder="25"
-              required
             />
+            {errors.price && (
+              <p className="text-sm text-destructive">{errors.price.message}</p>
+            )}
           </div>
         </div>
 

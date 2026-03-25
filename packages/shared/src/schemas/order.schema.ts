@@ -44,8 +44,14 @@ export const PlaceOrderInputSchema = z.object({
   address: AddressSchema,
 });
 
+export const UpdateOrderStatusSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  status: OrderStatusSchema,
+});
+
 export type Address = z.infer<typeof AddressSchema>;
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
 export type Order = z.infer<typeof OrderSchema>;
 export type PlaceOrderInput = z.infer<typeof PlaceOrderInputSchema>;
+export type UpdateOrderStatus = z.infer<typeof UpdateOrderStatusSchema>;
