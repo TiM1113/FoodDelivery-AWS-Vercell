@@ -39,8 +39,7 @@ export function AddFoodForm() {
     reset,
     formState: { errors },
   } = useForm<AddFoodInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 type mismatch with @hookform/resolvers
-    resolver: zodResolver(AddFoodInputSchema as any),
+    resolver: zodResolver(AddFoodInputSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -170,7 +169,7 @@ export function AddFoodForm() {
             )}
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp,.gif"
               className="hidden"
               onChange={(e) => {
                 handleImageChange(e.target.files?.[0]);

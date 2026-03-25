@@ -113,8 +113,7 @@ export function FoodList() {
   // Reuse AddFoodInputSchema (not UpdateFoodInputSchema) because the edit form
   // fields are identical; the id comes from editItem._id at submit time.
   const editForm = useForm<AddFoodInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 type mismatch with @hookform/resolvers
-    resolver: zodResolver(AddFoodInputSchema as any),
+    resolver: zodResolver(AddFoodInputSchema),
   });
 
   const fetchList = async () => {

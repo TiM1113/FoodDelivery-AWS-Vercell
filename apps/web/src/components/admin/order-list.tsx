@@ -367,7 +367,7 @@ export function OrderList() {
           {/* Pagination */}
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {table.getFilteredRowModel().rows.length} order(s) total
+              {table.getFilteredRowModel().rows.length} matching order(s)
             </p>
             <div className="flex items-center gap-2">
               <Button
