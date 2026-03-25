@@ -42,7 +42,7 @@ FoodDelivery-AWS-Vercell/
 │       ├── src/proxy.ts       Route protection（替代 middleware.ts）
 │       ├── src/components/    Navbar / Footer / auth / shadcn/ui
 │       └── next.config.ts
-├── backend/           服务器（Hono + TypeScript + MongoDB）
+├── backend/           服务器（Hono + TypeScript + PostgreSQL + Drizzle ORM）
 │   ├── app.ts                          Hono 入口（CORS / 路由 / 错误处理）
 │   ├── serve.ts                        本地 dev server（@hono/node-server）
 │   ├── types.ts                        AppEnv 类型定义
@@ -53,7 +53,7 @@ FoodDelivery-AWS-Vercell/
 │   ├── db/index.ts                     Drizzle client（Neon HTTP driver）
 │   ├── db/helpers.ts                   响应格式转换（id→_id 兼容层）
 │   └── api/index.ts                    Vercel Serverless 适配器（hono/vercel）
-├── admin/             管理后台（React + Vite，Phase 2 Admin 轨道升级前保留）
+├── admin/             [已删除] 旧管理后台，已合并入 apps/web /admin 路由组
 ├── packages/shared/   Zod Schemas + TypeScript 类型
 └── CLAUDE.md          本文件
 ```
@@ -193,8 +193,8 @@ API 契约      Zod Schema 共享（前后端类型一致）
 
 > 前提：前端轨道（Step 8）全部完成后再开始。现有 Express 后端功能正常，迁移是技术升级，不是修 bug。
 
-| Step | 内容 | 状态 |
-|------|------|------|
+| Step | 内容 | 状态 | PR |
+|------|------|------|-----|
 | **Step 9** | Express → Hono（Edge-first，TypeScript 原生，API 接口保持不变） | ✅ 完成 | #27 |
 | **Step 10** | MongoDB/Mongoose → PostgreSQL/Drizzle ORM + 事务 + 服务端金额计算 | ✅ 完成 | #28, #33 |
 | **Step 11** | S3 预签名 URL 直传（绕过服务器，减少带宽） | ✅ 完成 | #34 |
