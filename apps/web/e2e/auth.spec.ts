@@ -61,6 +61,7 @@ test.describe("Authentication flows", () => {
     await expect(passwordInput).toHaveAttribute("type", "text");
   });
 
+  // Requires running backend API — will timeout in CI without it (expected)
   test("login with invalid credentials shows error", async ({ page }) => {
     await page.goto("/login");
 

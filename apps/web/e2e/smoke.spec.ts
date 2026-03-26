@@ -60,12 +60,13 @@ test.describe("Smoke tests — pages load without errors", () => {
     const themeToggle = page.getByRole("button", { name: /theme/i });
     await expect(themeToggle).toBeVisible();
 
+    const html = page.locator("html");
+    const initialClass = await html.getAttribute("class");
+
     // Click to toggle theme
     await themeToggle.click();
 
-    // Verify the html element has dark class or the toggle changed
-    const html = page.locator("html");
-    const classList = await html.getAttribute("class");
-    expect(classList).toBeTruthy();
+    // Verify the class attribute changed after toggle
+    await expect(html).not.toHaveAttribute("class", initialClass ?? "");
   });
 });
