@@ -28,7 +28,7 @@ const mockFoods: Food[] = [
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  // Mock fetch to return filtered results based on query params
+  // Mock fetch to return paginated results
   vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
     const url = typeof input === "string" ? input : (input as Request).url;
     const params = new URL(url, "http://localhost").searchParams;
@@ -55,7 +55,12 @@ beforeEach(() => {
     if (sortBy === "name_asc") result.sort((a, b) => a.name.localeCompare(b.name));
 
     return Promise.resolve(
-      Response.json({ success: true, data: result, count: result.length }),
+      Response.json({
+        success: true,
+        data: result,
+        count: result.length,
+        nextCursor: null,
+      }),
     );
   });
 });
@@ -149,5 +154,11 @@ describe("FoodSection", () => {
     fireEvent.click(screen.getByLabelText("Clear search"));
 
     expect(searchInput).toHaveValue("");
+  });
+
+  it("does not show Load More when no nextCursor", () => {
+    renderWithQuery(<FoodSection initialFoods={mockFoods} />);
+
+    expect(screen.queryByText("Load More")).not.toBeInTheDocument();
   });
 });

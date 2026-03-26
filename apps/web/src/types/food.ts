@@ -6,4 +6,5 @@ export interface FoodListResponse {
   success: boolean;
   data: Food[];
   count: number;
+  nextCursor: string | null;
 }

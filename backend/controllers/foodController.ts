@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Context } from 'hono';
-import { eq, desc, asc, ilike, and, gte, lte, or, type SQL } from 'drizzle-orm';
+import { eq, desc, asc, ilike, and, gte, lte, lt, gt, or, type SQL } from 'drizzle-orm';
 import {
 	S3Client,
 	PutObjectCommand,
@@ -104,6 +104,9 @@ export const addFood = async (c: Context<AppEnv>) => {
 	}
 };
 
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 50;
+
 export const listFood = async (c: Context<AppEnv>) => {
 	try {
 		const q = c.req.query('q')?.trim();
@@ -111,6 +114,13 @@ export const listFood = async (c: Context<AppEnv>) => {
 		const minPrice = c.req.query('minPrice');
 		const maxPrice = c.req.query('maxPrice');
 		const sortBy = c.req.query('sortBy');
+		const cursor = c.req.query('cursor');
+		const limitParam = c.req.query('limit');
+
+		const limit = Math.min(
+			Math.max(1, parseInt(limitParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE),
+			MAX_PAGE_SIZE,
+		);
 
 		// Build filter conditions
 		const conditions: SQL[] = [];
@@ -138,6 +148,27 @@ export const listFood = async (c: Context<AppEnv>) => {
 			if (!isNaN(max)) conditions.push(lte(foods.price, max));
 		}
 
+		// Cursor-based pagination: use createdAt as cursor for default sort
+		if (cursor) {
+			const cursorDate = new Date(cursor);
+			if (!isNaN(cursorDate.getTime())) {
+				switch (sortBy) {
+					case 'price_asc':
+						conditions.push(gt(foods.price, parseFloat(cursor)));
+						break;
+					case 'price_desc':
+						conditions.push(lt(foods.price, parseFloat(cursor)));
+						break;
+					case 'name_asc':
+						conditions.push(gt(foods.name, cursor));
+						break;
+					default:
+						conditions.push(lt(foods.createdAt, cursorDate));
+						break;
+				}
+			}
+		}
+
 		// Build sort
 		const orderClause = (() => {
 			switch (sortBy) {
@@ -153,14 +184,18 @@ export const listFood = async (c: Context<AppEnv>) => {
 			? query.where(and(...conditions))
 			: query;
 
+		// Fetch limit + 1 to determine if there are more items
 		const foodList = await Promise.race([
-			filtered.orderBy(orderClause),
+			filtered.orderBy(orderClause).limit(limit + 1),
 			new Promise<never>((_, reject) =>
 				setTimeout(() => reject(new Error('Database query timeout')), 25000)
 			),
 		]);
 
-		const processedFoods = foodList.map((food) => {
+		const hasMore = foodList.length > limit;
+		const pageItems = hasMore ? foodList.slice(0, limit) : foodList;
+
+		const processedFoods = pageItems.map((food) => {
 			const formatted = formatFood(food);
 			if (!formatted.image.startsWith('https://')) {
 				formatted.image = buildImageUrl(`uploads/${formatted.image}`);
@@ -168,10 +203,29 @@ export const listFood = async (c: Context<AppEnv>) => {
 			return formatted;
 		});
 
+		// Build next cursor from the last item
+		let nextCursor: string | null = null;
+		if (hasMore && pageItems.length > 0) {
+			const lastItem = pageItems[pageItems.length - 1];
+			switch (sortBy) {
+				case 'price_asc':
+				case 'price_desc':
+					nextCursor = String(lastItem.price);
+					break;
+				case 'name_asc':
+					nextCursor = lastItem.name;
+					break;
+				default:
+					nextCursor = lastItem.createdAt.toISOString();
+					break;
+			}
+		}
+
 		return c.json({
 			success: true,
 			data: processedFoods,
 			count: processedFoods.length,
+			nextCursor,
 		});
 	} catch (error) {
 		const err = error as Error;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown, Search, X } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { ArrowUpDown, Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,30 +20,30 @@ const SORT_LABELS: Record<SortOption, string> = {
   name_asc: "Name: A–Z",
 };
 
+const PAGE_SIZE = 12;
+
 interface FoodSectionProps {
   initialFoods: Food[];
 }
 
-async function fetchFoods(params: {
+async function fetchFoodsPage(params: {
   q?: string;
   category?: string;
   sortBy?: string;
-}): Promise<Food[]> {
+  cursor?: string;
+}): Promise<FoodListResponse> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
   const qs = new URLSearchParams();
+  qs.set("limit", String(PAGE_SIZE));
   if (params.q) qs.set("q", params.q);
   if (params.category) qs.set("category", params.category);
-  if (params.sortBy && params.sortBy !== "newest") qs.set("sortBy", params.sortBy);
+  if (params.sortBy && params.sortBy !== "newest")
+    qs.set("sortBy", params.sortBy);
+  if (params.cursor) qs.set("cursor", params.cursor);
 
-  const queryString = qs.toString();
-  const url = queryString
-    ? `${apiUrl}/api/food/list?${queryString}`
-    : `${apiUrl}/api/food/list`;
-
-  const res = await fetch(url);
+  const res = await fetch(`${apiUrl}/api/food/list?${qs.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch food list");
-  const json: FoodListResponse = await res.json();
-  return json.data;
+  return res.json();
 }
 
 export function FoodSection({ initialFoods }: FoodSectionProps) {
@@ -67,18 +67,45 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
     selectedCategory === "All" ? undefined : selectedCategory;
 
   const {
-    data: foods = initialFoods,
+    data,
     isError,
     isFetching,
-  } = useQuery({
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ["foods", debouncedQuery, category, sortBy],
-    queryFn: () =>
-      fetchFoods({ q: debouncedQuery || undefined, category, sortBy }),
-    initialData: !debouncedQuery && !category && sortBy === "newest"
-      ? initialFoods
-      : undefined,
+    queryFn: ({ pageParam }) =>
+      fetchFoodsPage({
+        q: debouncedQuery || undefined,
+        category,
+        sortBy,
+        cursor: pageParam ?? undefined,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialData:
+      !debouncedQuery && !category && sortBy === "newest"
+        ? {
+            pages: [
+              {
+                success: true,
+                data: initialFoods,
+                count: initialFoods.length,
+                nextCursor:
+                  initialFoods.length >= PAGE_SIZE ? "has-more" : null,
+              },
+            ],
+            pageParams: [null],
+          }
+        : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const foods = useMemo(
+    () => data?.pages.flatMap((p) => p.data) ?? [],
+    [data],
+  );
 
   const clearSearch = useCallback(() => {
     setSearchQuery("");
@@ -146,7 +173,7 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
         </div>
 
         {/* Loading indicator for server-side search */}
-        {isFetching && debouncedQuery && (
+        {isFetching && !isFetchingNextPage && debouncedQuery && (
           <p className="text-sm text-muted-foreground">Searching…</p>
         )}
 
@@ -160,6 +187,26 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
           foods={foods}
           renderAction={(foodId) => <AddToCartButton foodId={foodId} />}
         />
+
+        {/* Load More */}
+        {hasNextPage && (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading…
+                </>
+              ) : (
+                "Load More"
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Result count */}
         {(debouncedQuery || category) && foods.length > 0 && (
