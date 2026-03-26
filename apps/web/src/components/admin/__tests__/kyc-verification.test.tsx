@@ -160,13 +160,12 @@ describe("KycVerification", () => {
       expect(fetchSpy).toHaveBeenCalledWith("/api/admin/kyc", expect.objectContaining({
         method: "POST",
       }));
+      expect(openSpy).toHaveBeenCalledWith(
+        "https://verify.stripe.com/test",
+        "_blank",
+        "noopener,noreferrer",
+      );
     });
-
-    expect(openSpy).toHaveBeenCalledWith(
-      "https://verify.stripe.com/test",
-      "_blank",
-      "noopener,noreferrer",
-    );
 
     openSpy.mockRestore();
   });

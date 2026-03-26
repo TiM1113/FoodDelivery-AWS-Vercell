@@ -65,6 +65,13 @@ export const createVerificationSession = async (c: Context<AppEnv>) => {
 			}, 400);
 		}
 
+		if (user.kycStatus === 'pending') {
+			return c.json({
+				success: false,
+				message: 'Verification already in progress',
+			}, 409);
+		}
+
 		const session = await stripe.identity.verificationSessions.create({
 			type: 'document',
 			metadata: {
@@ -132,6 +139,17 @@ export const handleIdentityWebhook = async (c: Context<AppEnv>) => {
 			const newStatus = event.type === 'identity.verification_session.verified'
 				? 'verified'
 				: 'requires_input';
+
+			// Only update if the webhook is for the user's current session
+			const [user] = await db
+				.select({ kycSessionId: users.kycSessionId })
+				.from(users)
+				.where(eq(users.id, userId))
+				.limit(1);
+
+			if (user?.kycSessionId !== session.id) {
+				return c.json({ received: true });
+			}
 
 			await db
 				.update(users)
