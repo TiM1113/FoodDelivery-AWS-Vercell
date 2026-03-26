@@ -37,7 +37,7 @@ export const getKycStatus = async (c: Context<AppEnv>) => {
 	} catch (error) {
 		const err = error as Error;
 		console.error('Error fetching KYC status:', err);
-		return c.json({ success: false, message: err.message }, 500);
+		return c.json({ success: false, message: 'Internal server error' }, 500);
 	}
 };
 
@@ -104,7 +104,7 @@ export const createVerificationSession = async (c: Context<AppEnv>) => {
 	} catch (error) {
 		const err = error as Error;
 		console.error('Error creating verification session:', err);
-		return c.json({ success: false, message: err.message }, 500);
+		return c.json({ success: false, message: 'Internal server error' }, 500);
 	}
 };
 
