@@ -21,9 +21,9 @@ interface OrderTrackingDialogProps {
 }
 
 const TRACKING_STEPS = [
-  { label: "Food Processing", key: "Food Processing" },
-  { label: "Out for Delivery", key: "Out for Delivery" },
-  { label: "Delivered", key: "Delivered" },
+  { label: "Food Processing", key: "Food Processing", description: "Your order is being prepared by the restaurant" },
+  { label: "Out for Delivery", key: "Out for Delivery", description: "A driver is on their way to you" },
+  { label: "Delivered", key: "Delivered", description: "Your order has arrived" },
 ] as const;
 
 function getStepStatus(
@@ -139,6 +139,15 @@ export function OrderTrackingDialog({
                         }`}
                       >
                         {step.label}
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          status === "upcoming"
+                            ? "text-muted-foreground/30"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {step.description}
                       </p>
                     </div>
                   </div>
