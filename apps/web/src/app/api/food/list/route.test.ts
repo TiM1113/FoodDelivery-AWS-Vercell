@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -11,9 +12,17 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-async function callGET() {
+function makeRequest(params?: Record<string, string>): NextRequest {
+  const url = new URL("http://localhost:3000/api/food/list");
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
+  return new NextRequest(url);
+}
+
+async function callGET(params?: Record<string, string>) {
   const { GET } = await import("./route");
-  return GET();
+  return GET(makeRequest(params));
 }
 
 describe("GET /api/food/list", () => {
@@ -30,6 +39,20 @@ describe("GET /api/food/list", () => {
 
     const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
     expect(fetchCall[0]).toBe("http://localhost:4000/api/food/list");
+  });
+
+  it("forwards query params to backend", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ success: true, data: [], count: 0 }),
+    );
+
+    await callGET({ q: "pizza", category: "Pasta", sortBy: "price_asc" });
+
+    const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
+    const url = fetchCall[0] as string;
+    expect(url).toContain("q=pizza");
+    expect(url).toContain("category=Pasta");
+    expect(url).toContain("sortBy=price_asc");
   });
 
   it("passes through backend error response", async () => {
