@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { OrderCard } from "../order-card";
 import type { Order } from "@/types/order";
 
@@ -163,5 +164,84 @@ describe("OrderCard", () => {
 
     // slice(-6) of "67890abc12345678deadbeef" = "adbeef"
     expect(screen.getByText("#adbeef")).toBeInTheDocument();
+  });
+});
+
+const cancelledOrder: Order = {
+  ...mockOrder,
+  _id: "67890abc12345678deadbee1",
+  status: "Cancelled",
+};
+
+const deliveredOrder: Order = {
+  ...mockOrder,
+  _id: "67890abc12345678deadbee2",
+  status: "Delivered",
+};
+
+describe("OrderCard cancel functionality", () => {
+  it("shows Cancel button for paid Food Processing order", () => {
+    render(<OrderCard order={mockOrder} {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  it("shows Cancel button for unpaid Payment Pending order", () => {
+    render(<OrderCard order={unpaidOrder} {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  it("does not show Cancel button for Delivered orders", () => {
+    render(<OrderCard order={deliveredOrder} {...defaultProps} />);
+    expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
+  });
+
+  it("does not show Cancel button for already Cancelled orders", () => {
+    render(<OrderCard order={cancelledOrder} {...defaultProps} />);
+    expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
+  });
+
+  it("shows Cancelled badge for cancelled orders", () => {
+    render(<OrderCard order={cancelledOrder} {...defaultProps} />);
+    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+  });
+
+  it("hides Edit and Delete buttons for cancelled orders", () => {
+    render(<OrderCard order={cancelledOrder} {...defaultProps} />);
+    expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+  });
+
+  it("shows refund message in cancel dialog for paid orders", async () => {
+    const user = userEvent.setup();
+    render(<OrderCard order={mockOrder} {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/refund will be issued/i)).toBeInTheDocument();
+    });
+  });
+
+  it("calls cancel API and refreshes on confirm", async () => {
+    const user = userEvent.setup();
+    const mockRefresh = vi.fn().mockResolvedValue(undefined);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ success: true, message: "Order cancelled" }),
+    );
+
+    render(
+      <OrderCard order={mockOrder} {...defaultProps} onRefresh={mockRefresh} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    // Wait for the dialog to open — use the action button as indicator
+    const cancelBtn = await screen.findByRole("button", { name: /cancel order/i });
+    await user.click(cancelBtn);
+
+    await waitFor(() => {
+      expect(mockRefresh).toHaveBeenCalled();
+    });
   });
 });

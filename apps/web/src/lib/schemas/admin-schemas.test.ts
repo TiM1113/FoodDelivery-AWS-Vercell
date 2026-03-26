@@ -107,7 +107,7 @@ describe("UpdateOrderStatusSchema", () => {
   it("rejects invalid status", () => {
     const result = UpdateOrderStatusSchema.safeParse({
       orderId: "order123",
-      status: "Cancelled",
+      status: "InvalidStatus",
     });
     expect(result.success).toBe(false);
   });

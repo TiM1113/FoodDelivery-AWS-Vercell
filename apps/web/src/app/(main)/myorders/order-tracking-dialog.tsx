@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Check, CreditCard, Loader2 } from "lucide-react";
+import { AlertTriangle, Ban, Check, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -95,8 +95,24 @@ export function OrderTrackingDialog({
             </div>
           </div>
 
-          {/* Progress Tracker or Payment Warning */}
-          {order.payment ? (
+          {/* Progress Tracker / Cancelled / Payment Warning */}
+          {order.status === "Cancelled" ? (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+              <div className="flex items-start gap-3">
+                <Ban className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+                <div className="flex flex-col gap-1">
+                  <h4 className="font-medium text-destructive">
+                    Order Cancelled
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    {order.payment
+                      ? "This order has been cancelled and a refund has been initiated."
+                      : "This order has been cancelled."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : order.payment ? (
             <div className="flex flex-col gap-0">
               {TRACKING_STEPS.map((step, idx) => {
                 const status = getStepStatus(step.key, order.status);

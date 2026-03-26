@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Star,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ function getStatusVariant(
   status: string,
   payment: boolean,
 ): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "Cancelled") return "destructive";
   if (!payment) return "destructive";
   switch (status) {
     case "Delivered":
@@ -85,10 +87,20 @@ export function OrderCard({
   const [showTracking, setShowTracking] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
 
-  const displayStatus = order.payment ? order.status : "Payment Pending";
+  const displayStatus = order.status === "Cancelled"
+    ? "Cancelled"
+    : order.payment
+      ? order.status
+      : "Payment Pending";
+
+  const canCancel =
+    order.status !== "Cancelled" &&
+    (order.status === "Payment Pending" || order.status === "Food Processing");
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -110,6 +122,29 @@ export function OrderCard({
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setIsCancelling(true);
+    try {
+      const res = await fetch("/api/order/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order._id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || "Order cancelled");
+        await onRefresh();
+      } else {
+        toast.error(data.message || "Failed to cancel order");
+      }
+    } catch {
+      toast.error("Failed to cancel order");
+    } finally {
+      setIsCancelling(false);
+      setShowCancelConfirm(false);
     }
   };
 
@@ -235,7 +270,19 @@ export function OrderCard({
               Track
             </Button>
 
-            {!order.payment && (
+            {canCancel && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-destructive hover:text-destructive"
+                onClick={() => setShowCancelConfirm(true)}
+              >
+                <XCircle className="mr-1 h-3.5 w-3.5" />
+                Cancel
+              </Button>
+            )}
+
+            {!order.payment && order.status !== "Cancelled" && (
               <>
                 <Button
                   variant="ghost"
@@ -310,6 +357,32 @@ export function OrderCard({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Order Confirmation */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Order #{orderNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {order.payment
+                ? "This order has been paid. A refund will be issued to your original payment method."
+                : "This will cancel your order. You can place a new order afterwards."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>
+              Keep Order
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancel}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancelling ? "Cancelling…" : "Cancel Order"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

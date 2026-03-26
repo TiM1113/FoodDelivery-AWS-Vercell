@@ -25,6 +25,7 @@ export const OrderStatusSchema = z.enum([
   "Food Processing",
   "Out for Delivery",
   "Delivered",
+  "Cancelled",
 ]);
 
 export const OrderSchema = z.object({
