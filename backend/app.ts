@@ -1,6 +1,14 @@
 import 'dotenv/config';
+import * as Sentry from '@sentry/node';
 import { validateEnv } from './config/validateEnv';
 validateEnv();
+
+if (process.env.SENTRY_DSN) {
+	Sentry.init({
+		dsn: process.env.SENTRY_DSN,
+		tracesSampleRate: 1.0,
+	});
+}
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -63,6 +71,7 @@ app.get('/api/health', (c) => {
 // Global error handler
 app.onError((err, c) => {
 	console.error('Error:', err);
+	Sentry.captureException(err);
 	return c.json({
 		success: false,
 		message: err.message || 'Internal Server Error',
