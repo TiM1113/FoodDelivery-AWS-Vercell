@@ -82,8 +82,8 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @food-delivery/shared build
 
-      - name: Run tests
-        run: pnpm --filter @food-delivery/web test
+      - name: Run tests with coverage
+        run: pnpm --filter @food-delivery/web test -- --coverage
 
   build:
     name: Build check
