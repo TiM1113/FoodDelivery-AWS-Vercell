@@ -119,4 +119,17 @@ describe("LoginForm", () => {
     const link = screen.getByText("Sign up");
     expect(link.getAttribute("href")).toBe("/register?callbackUrl=%2F");
   });
+
+  it("toggles password visibility", () => {
+    render(<LoginForm />);
+
+    const passwordInput = screen.getByLabelText("Password");
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
 });
