@@ -23,6 +23,12 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/components/ui/**",
       ],
+      thresholds: {
+        statements: 35,
+        branches: 35,
+        functions: 25,
+        lines: 35,
+      },
     },
   },
 });
