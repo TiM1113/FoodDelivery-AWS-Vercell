@@ -1,7 +1,7 @@
-import { FoodList } from "@/components/admin/food-list";
+import { Dashboard } from "@/components/admin/dashboard";
 
-export const metadata = { title: "Food List — Admin" };
+export const metadata = { title: "Dashboard — Admin" };
 
-export default function AdminListPage() {
-  return <FoodList />;
+export default function AdminDashboardPage() {
+  return <Dashboard />;
 }

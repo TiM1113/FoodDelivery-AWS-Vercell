@@ -10,6 +10,7 @@ import {
 	getOrderStatus,
 	handleWebhook,
 	listOrders,
+	getDashboardStats,
 	updateStatus,
 	retryPayment,
 	editOrder,
@@ -27,6 +28,7 @@ orderRoute.get('/verify', verifyOrder);
 orderRoute.get('/status/:orderId', authMiddleware, getOrderStatus);
 orderRoute.post('/userorders', authMiddleware, userOrders);
 orderRoute.get('/list', authMiddleware, adminMiddleware, listOrders);
+orderRoute.get('/stats', authMiddleware, adminMiddleware, getDashboardStats);
 orderRoute.post('/update', authMiddleware, adminMiddleware, updateStatus);
 orderRoute.post('/retry-payment', authMiddleware, retryPayment);
 orderRoute.post('/edit', authMiddleware, editOrder);

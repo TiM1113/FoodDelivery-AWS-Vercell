@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListOrdered, PlusCircle, ShoppingBag } from "lucide-react";
+import {
+  LayoutDashboard,
+  ListOrdered,
+  PlusCircle,
+  ShoppingBag,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/admin", label: "List Items", icon: ListOrdered },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/items", label: "List Items", icon: ListOrdered },
   { href: "/admin/add", label: "Add Item", icon: PlusCircle },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
 ];
