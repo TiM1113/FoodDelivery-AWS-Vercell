@@ -20,6 +20,7 @@ import foodRoute from './routes/foodRoute';
 import userRoute from './routes/userRoute';
 import cartRoute from './routes/cartRoute';
 import orderRoute from './routes/orderRoute';
+import kycRoute from './routes/kycRoute';
 import type { AppEnv } from './types';
 
 const app = new Hono<AppEnv>();
@@ -52,6 +53,7 @@ app.route('/api/food', foodRoute);
 app.route('/api/user', userRoute);
 app.route('/api/cart', cartRoute);
 app.route('/api/order', orderRoute);
+app.route('/api/kyc', kycRoute);
 
 // Health check endpoints
 app.get('/', (c) => {

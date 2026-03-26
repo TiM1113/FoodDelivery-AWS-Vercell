@@ -28,6 +28,7 @@ describe("AdminMobileNav", () => {
     expect(screen.getByText("List Items")).toBeInTheDocument();
     expect(screen.getByText("Add Item")).toBeInTheDocument();
     expect(screen.getByText("Orders")).toBeInTheDocument();
+    expect(screen.getByText("Verification")).toBeInTheDocument();
   });
 
   it("closes the menu when a link is clicked", () => {

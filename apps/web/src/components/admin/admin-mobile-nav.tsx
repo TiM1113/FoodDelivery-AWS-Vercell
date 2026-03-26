@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListOrdered,
   PlusCircle,
+  Shield,
   ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/admin/items", label: "List Items", icon: ListOrdered },
   { href: "/admin/add", label: "Add Item", icon: PlusCircle },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/kyc", label: "Verification", icon: Shield },
 ];
 
 export function AdminMobileNav() {

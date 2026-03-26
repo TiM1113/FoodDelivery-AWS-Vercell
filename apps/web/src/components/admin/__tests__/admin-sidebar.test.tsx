@@ -16,6 +16,7 @@ describe("AdminSidebar", () => {
     expect(screen.getByText("List Items")).toBeInTheDocument();
     expect(screen.getByText("Add Item")).toBeInTheDocument();
     expect(screen.getByText("Orders")).toBeInTheDocument();
+    expect(screen.getByText("Verification")).toBeInTheDocument();
   });
 
   it("renders correct hrefs", () => {
@@ -25,6 +26,7 @@ describe("AdminSidebar", () => {
     expect(screen.getByRole("link", { name: /List Items/i })).toHaveAttribute("href", "/admin/items");
     expect(screen.getByRole("link", { name: /Add Item/i })).toHaveAttribute("href", "/admin/add");
     expect(screen.getByRole("link", { name: /Orders/i })).toHaveAttribute("href", "/admin/orders");
+    expect(screen.getByRole("link", { name: /Verification/i })).toHaveAttribute("href", "/admin/kyc");
   });
 
   it("highlights the active link for /admin", () => {
@@ -51,6 +53,14 @@ describe("AdminSidebar", () => {
     render(<AdminSidebar />);
 
     const activeLink = screen.getByRole("link", { name: /Orders/i });
+    expect(activeLink.className).toContain("bg-primary");
+  });
+
+  it("highlights the active link for /admin/kyc", () => {
+    mockPathname.mockReturnValue("/admin/kyc");
+    render(<AdminSidebar />);
+
+    const activeLink = screen.getByRole("link", { name: /Verification/i });
     expect(activeLink.className).toContain("bg-primary");
   });
 });
