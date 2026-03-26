@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import Stripe from 'stripe';
-import { eq, and, gte, desc, inArray } from 'drizzle-orm';
+import { eq, and, gte, desc, inArray, sql, count, sum } from 'drizzle-orm';
 import { db } from '../db';
 import { orders, orderItems, users, foods } from '../db/schema';
 import { formatOrder } from '../db/helpers';
@@ -313,6 +313,95 @@ export const listOrders = async (c: Context<AppEnv>) => {
 	} catch (error) {
 		console.error('Error listing orders:', error);
 		return c.json({ success: false, message: 'Error fetching orders list' }, 500);
+	}
+};
+
+export const getDashboardStats = async (c: Context<AppEnv>) => {
+	try {
+		// Total revenue (paid orders only)
+		const [revenueResult] = await db
+			.select({ total: sum(orders.amount) })
+			.from(orders)
+			.where(eq(orders.payment, true));
+
+		// Total order count
+		const [orderCountResult] = await db
+			.select({ total: count() })
+			.from(orders);
+
+		// Total user count
+		const [userCountResult] = await db
+			.select({ total: count() })
+			.from(users);
+
+		// Total food item count
+		const [foodCountResult] = await db
+			.select({ total: count() })
+			.from(foods);
+
+		// Order status distribution
+		const statusDistribution = await db
+			.select({
+				status: orders.status,
+				count: count(),
+			})
+			.from(orders)
+			.groupBy(orders.status);
+
+		// Daily revenue for last 30 days (paid orders)
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+		const dailyRevenue = await db
+			.select({
+				date: sql<string>`TO_CHAR(${orders.createdAt}, 'YYYY-MM-DD')`,
+				revenue: sum(orders.amount),
+				orderCount: count(),
+			})
+			.from(orders)
+			.where(and(eq(orders.payment, true), gte(orders.createdAt, thirtyDaysAgo)))
+			.groupBy(sql`TO_CHAR(${orders.createdAt}, 'YYYY-MM-DD')`)
+			.orderBy(sql`TO_CHAR(${orders.createdAt}, 'YYYY-MM-DD')`);
+
+		// Top selling items (by quantity)
+		const topItems = await db
+			.select({
+				name: orderItems.name,
+				totalQuantity: sum(orderItems.quantity),
+			})
+			.from(orderItems)
+			.innerJoin(orders, eq(orderItems.orderId, orders.id))
+			.where(eq(orders.payment, true))
+			.groupBy(orderItems.name)
+			.orderBy(desc(sum(orderItems.quantity)))
+			.limit(5);
+
+		return c.json({
+			success: true,
+			data: {
+				totalRevenue: Number(revenueResult.total) || 0,
+				totalOrders: orderCountResult.total,
+				totalUsers: userCountResult.total,
+				totalFoods: foodCountResult.total,
+				statusDistribution: statusDistribution.map((s) => ({
+					status: s.status,
+					count: s.count,
+				})),
+				dailyRevenue: dailyRevenue.map((d) => ({
+					date: d.date,
+					revenue: Number(d.revenue) || 0,
+					orders: d.orderCount,
+				})),
+				topItems: topItems.map((item) => ({
+					name: item.name,
+					quantity: Number(item.totalQuantity) || 0,
+				})),
+			},
+		});
+	} catch (error) {
+		const err = error as Error;
+		console.error('Error fetching dashboard stats:', err);
+		return c.json({ success: false, message: err.message }, 500);
 	}
 };
 

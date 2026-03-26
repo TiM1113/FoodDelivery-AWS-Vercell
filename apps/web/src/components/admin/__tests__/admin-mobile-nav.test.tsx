@@ -16,7 +16,7 @@ describe("AdminMobileNav", () => {
   it("does not show navigation links initially", () => {
     render(<AdminMobileNav />);
 
-    expect(screen.queryByText("List Items")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
   });
 
   it("shows navigation links when toggle button is clicked", () => {
@@ -24,6 +24,7 @@ describe("AdminMobileNav", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open admin menu" }));
 
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("List Items")).toBeInTheDocument();
     expect(screen.getByText("Add Item")).toBeInTheDocument();
     expect(screen.getByText("Orders")).toBeInTheDocument();
