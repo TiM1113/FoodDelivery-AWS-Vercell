@@ -494,6 +494,75 @@ export const validatePromoCode = async (c: Context<AppEnv>) => {
 	}
 };
 
+const CANCELLABLE_STATUSES = new Set(['Payment Pending', 'Food Processing']);
+
+export const cancelOrder = async (c: Context<AppEnv>) => {
+	try {
+		const userId = c.get('userId');
+		const { orderId } = await c.req.json();
+
+		if (!orderId) {
+			return c.json({ success: false, message: 'Order ID is required' }, 400);
+		}
+
+		const [order] = await db
+			.select()
+			.from(orders)
+			.where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+			.limit(1);
+
+		if (!order) {
+			return c.json({ success: false, message: 'Order not found' }, 404);
+		}
+
+		if (!CANCELLABLE_STATUSES.has(order.status)) {
+			return c.json({
+				success: false,
+				message: `Cannot cancel order with status "${order.status}"`,
+			}, 400);
+		}
+
+		// If paid, issue Stripe refund
+		let refundId: string | null = null;
+		if (order.payment) {
+			// Find the Stripe payment intent via checkout session metadata
+			const sessions = await stripe.checkout.sessions.list({
+				limit: 5,
+			});
+
+			const session = sessions.data.find(
+				(s) => s.metadata?.orderId === orderId && s.payment_status === 'paid',
+			);
+
+			if (session?.payment_intent) {
+				const paymentIntentId = typeof session.payment_intent === 'string'
+					? session.payment_intent
+					: session.payment_intent.id;
+
+				const refund = await stripe.refunds.create({
+					payment_intent: paymentIntentId,
+				});
+				refundId = refund.id;
+			}
+		}
+
+		await db
+			.update(orders)
+			.set({ status: 'Cancelled' })
+			.where(eq(orders.id, orderId));
+
+		return c.json({
+			success: true,
+			message: order.payment ? 'Order cancelled and refund initiated' : 'Order cancelled',
+			refundId,
+		});
+	} catch (error) {
+		const err = error as Error;
+		console.error('Cancel order error:', err);
+		return c.json({ success: false, message: err.message || 'Error cancelling order' }, 500);
+	}
+};
+
 export const deleteOrder = async (c: Context<AppEnv>) => {
 	try {
 		const { orderId } = await c.req.json();

@@ -20,6 +20,7 @@ const STATUS_MESSAGES: Record<string, string> = {
   "Food Processing": "Your order is being prepared!",
   "Out for Delivery": "Your order is out for delivery!",
   "Delivered": "Your order has been delivered!",
+  "Cancelled": "Your order has been cancelled.",
 };
 
 async function fetchOrders(): Promise<Order[]> {
