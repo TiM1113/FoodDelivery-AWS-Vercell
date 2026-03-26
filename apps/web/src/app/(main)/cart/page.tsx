@@ -114,6 +114,12 @@ export default function CartPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
       });
+
+      if (!res.ok) {
+        setPromoError("Unable to validate promo code. Please try again.");
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success) {

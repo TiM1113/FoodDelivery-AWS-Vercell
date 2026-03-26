@@ -30,6 +30,6 @@ orderRoute.post('/update', authMiddleware, adminMiddleware, updateStatus);
 orderRoute.post('/retry-payment', authMiddleware, retryPayment);
 orderRoute.post('/edit', authMiddleware, editOrder);
 orderRoute.post('/delete', authMiddleware, deleteOrder);
-orderRoute.post('/validate-promo', authMiddleware, validatePromoCode);
+orderRoute.post('/validate-promo', authMiddleware, orderRateLimit, validatePromoCode);
 
 export default orderRoute;

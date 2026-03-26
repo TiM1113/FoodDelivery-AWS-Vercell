@@ -21,17 +21,29 @@ export async function POST(req: NextRequest) {
     .setExpirationTime("7d")
     .sign(JWT_SECRET);
 
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const res = await fetch(`${API_URL}/api/order/validate-promo`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: `token=${backendJwt}`,
-    },
-    body: JSON.stringify(body),
-  });
+    const res = await fetch(`${API_URL}/api/order/validate-promo`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `token=${backendJwt}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  const data = await res.json();
-  return Response.json(data);
+    const data = await res.json();
+    return Response.json(data, { status: res.status });
+  } catch (error) {
+    const status =
+      error instanceof DOMException && error.name === "TimeoutError"
+        ? 504
+        : 502;
+    return Response.json(
+      { success: false, message: "Promo validation service unavailable" },
+      { status },
+    );
+  }
 }

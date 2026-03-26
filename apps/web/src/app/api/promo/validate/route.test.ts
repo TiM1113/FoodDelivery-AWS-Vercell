@@ -101,4 +101,17 @@ describe("POST /api/promo/validate", () => {
     expect(data.success).toBe(false);
     expect(data.message).toBe("Invalid or expired promo code");
   });
+
+  it("returns 502 on network error", async () => {
+    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Connection refused"));
+
+    const res = await POST(makeRequest({ code: "SAVE10" }));
+    const data = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("Promo validation service unavailable");
+  });
 });
