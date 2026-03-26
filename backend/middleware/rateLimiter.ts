@@ -68,7 +68,18 @@ const makeRateLimiter = (
 
 export const loginRateLimit = makeRateLimiter(loginLimiter, getClientIp);
 export const registerRateLimit = makeRateLimiter(registerLimiter, getClientIp);
+const profileLimiter = new Ratelimit({
+	redis,
+	limiter: Ratelimit.slidingWindow(10, '1 m'),
+	prefix: 'rl:profile',
+});
+
 export const orderRateLimit = makeRateLimiter(
 	orderLimiter,
+	(c) => c.get('userId') ?? getClientIp(c),
+);
+
+export const profileRateLimit = makeRateLimiter(
+	profileLimiter,
 	(c) => c.get('userId') ?? getClientIp(c),
 );

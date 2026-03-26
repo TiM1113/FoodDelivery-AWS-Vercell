@@ -57,4 +57,28 @@ export const placeOrderSchema = z.object({
 	promoCode: z.string().optional(),
 });
 
+// ── Profile schemas ──────────────────────────────────────────
+export const updateProfileSchema = z.object({
+	name: z.string().min(1, 'Name is required').max(50),
+});
+
+export const saveAddressSchema = z.object({
+	id: z.string().uuid().optional(),
+	label: z.string().min(1).max(50).default('Home'),
+	firstName: z.string().min(1, 'First name is required').max(50),
+	lastName: z.string().min(1, 'Last name is required').max(50),
+	email: z.string().email('Invalid email address'),
+	street: z.string().min(1, 'Street is required').max(200),
+	city: z.string().min(1, 'City is required').max(100),
+	state: z.string().min(1, 'State is required').max(100),
+	zipcode: z.string().min(1, 'Zipcode is required').max(20),
+	country: z.string().min(1, 'Country is required').max(100),
+	phone: z.string().min(1, 'Phone is required').max(30),
+	isDefault: z.boolean().default(false),
+});
+
+export const deleteAddressSchema = z.object({
+	addressId: z.string().uuid('Invalid address ID'),
+});
+
 export default validateBody;

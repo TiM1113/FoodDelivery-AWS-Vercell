@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { User, LayoutDashboard, LogOut } from "lucide-react";
+import { User, LayoutDashboard, LogOut, UserCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,10 @@ export function UserMenu({ name, isAdmin }: UserMenuProps) {
           <DropdownMenuLabel>{name}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push("/profile")}>
+          <UserCog className="h-4 w-4" />
+          Profile
+        </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem onClick={() => router.push("/admin")}>
             <LayoutDashboard className="h-4 w-4" />

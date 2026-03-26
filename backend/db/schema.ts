@@ -68,9 +68,28 @@ export const orderItems = pgTable('order_items', {
 	quantity: integer('quantity').notNull(),
 });
 
+// ── Addresses ────────────────────────────────────────────────
+export const addresses = pgTable('addresses', {
+	id: uuid('id').defaultRandom().primaryKey(),
+	userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	label: varchar('label', { length: 50 }).notNull().default('Home'),
+	firstName: varchar('first_name', { length: 50 }).notNull(),
+	lastName: varchar('last_name', { length: 50 }).notNull(),
+	email: varchar('email', { length: 255 }).notNull(),
+	street: varchar('street', { length: 200 }).notNull(),
+	city: varchar('city', { length: 100 }).notNull(),
+	state: varchar('state', { length: 100 }).notNull(),
+	zipcode: varchar('zipcode', { length: 20 }).notNull(),
+	country: varchar('country', { length: 100 }).notNull(),
+	phone: varchar('phone', { length: 30 }).notNull(),
+	isDefault: boolean('is_default').notNull().default(false),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ── Relations ────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
 	orders: many(orders),
+	addresses: many(addresses),
 }));
 
 export const foodsRelations = relations(foods, ({ many }) => ({
@@ -85,4 +104,8 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 	order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
 	food: one(foods, { fields: [orderItems.foodId], references: [foods.id] }),
+}));
+
+export const addressesRelations = relations(addresses, ({ one }) => ({
+	user: one(users, { fields: [addresses.userId], references: [users.id] }),
 }));
