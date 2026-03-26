@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Context } from 'hono';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, asc, ilike, and, gte, lte, or, type SQL } from 'drizzle-orm';
 import {
 	S3Client,
 	PutObjectCommand,
@@ -106,8 +106,55 @@ export const addFood = async (c: Context<AppEnv>) => {
 
 export const listFood = async (c: Context<AppEnv>) => {
 	try {
+		const q = c.req.query('q')?.trim();
+		const category = c.req.query('category');
+		const minPrice = c.req.query('minPrice');
+		const maxPrice = c.req.query('maxPrice');
+		const sortBy = c.req.query('sortBy');
+
+		// Build filter conditions
+		const conditions: SQL[] = [];
+
+		if (q) {
+			conditions.push(
+				or(
+					ilike(foods.name, `%${q}%`),
+					ilike(foods.description, `%${q}%`),
+				)!,
+			);
+		}
+
+		if (category) {
+			conditions.push(eq(foods.category, category));
+		}
+
+		if (minPrice) {
+			const min = parseFloat(minPrice);
+			if (!isNaN(min)) conditions.push(gte(foods.price, min));
+		}
+
+		if (maxPrice) {
+			const max = parseFloat(maxPrice);
+			if (!isNaN(max)) conditions.push(lte(foods.price, max));
+		}
+
+		// Build sort
+		const orderClause = (() => {
+			switch (sortBy) {
+				case 'price_asc': return asc(foods.price);
+				case 'price_desc': return desc(foods.price);
+				case 'name_asc': return asc(foods.name);
+				default: return desc(foods.createdAt);
+			}
+		})();
+
+		const query = db.select().from(foods);
+		const filtered = conditions.length > 0
+			? query.where(and(...conditions))
+			: query;
+
 		const foodList = await Promise.race([
-			db.select().from(foods).orderBy(desc(foods.createdAt)),
+			filtered.orderBy(orderClause),
 			new Promise<never>((_, reject) =>
 				setTimeout(() => reject(new Error('Database query timeout')), 25000)
 			),
