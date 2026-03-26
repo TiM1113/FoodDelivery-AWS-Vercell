@@ -19,6 +19,8 @@ export const users = pgTable('users', {
 	password: varchar('password', { length: 255 }).notNull(),
 	cartData: jsonb('cart_data').$type<Record<string, number>>().notNull().default({}),
 	role: varchar('role', { length: 10 }).notNull().default('user'),
+	kycStatus: varchar('kyc_status', { length: 20 }).notNull().default('unverified'),
+	kycSessionId: varchar('kyc_session_id', { length: 255 }),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
