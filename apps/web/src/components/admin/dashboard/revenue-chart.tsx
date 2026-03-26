@@ -28,7 +28,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
 
   const formatted = data.map((d) => ({
     ...d,
-    label: new Date(d.date).toLocaleDateString("en-AU", {
+    label: new Date(d.date + "T00:00:00").toLocaleDateString("en-AU", {
       month: "short",
       day: "numeric",
     }),
