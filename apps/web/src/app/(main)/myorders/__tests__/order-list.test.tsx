@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import type { Order } from "@/types/order";
 import { OrderList } from "../order-list";
@@ -42,6 +43,19 @@ vi.mock("../order-card", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+}
 
 const mockOrders: Order[] = [
   {
@@ -86,21 +100,21 @@ const mockOrders: Order[] = [
 
 describe("OrderList", () => {
   it("renders order cards for each order", () => {
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     expect(screen.getByTestId("order-card-6612a1b2c3d4e5f6a7b8c9d0")).toBeInTheDocument();
     expect(screen.getByTestId("order-card-6612a1b2c3d4e5f6a7b8c9d1")).toBeInTheDocument();
   });
 
   it("shows empty state when no orders", () => {
-    render(<OrderList initialOrders={[]} />);
+    renderWithQuery(<OrderList initialOrders={[]} />);
 
     expect(screen.getByText("No orders found.")).toBeInTheDocument();
   });
 
   it("shows favourites empty state on favourites tab", async () => {
     const user = userEvent.setup();
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     await user.click(screen.getByText("Favourites"));
 
@@ -111,7 +125,7 @@ describe("OrderList", () => {
 
   it("switches between Recent and Favourites tabs", async () => {
     const user = userEvent.setup();
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     // Initially on Recent tab — orders visible
     expect(screen.getByTestId("order-card-6612a1b2c3d4e5f6a7b8c9d0")).toBeInTheDocument();

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OrderList } from "../order-list";
 import type { Order } from "@/types/order";
 
@@ -7,11 +8,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: { success: vi.fn(), error: vi.fn() },
+}));
 vi.mock("sonner", () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
+  toast: mockToast,
 }));
 
 const mockOrders: Order[] = [
@@ -51,6 +52,15 @@ const mockOrders: Order[] = [
   },
 ];
 
+function renderWithQuery(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
@@ -58,27 +68,27 @@ beforeEach(() => {
 
 describe("OrderList (myorders)", () => {
   it("renders tab navigation", () => {
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     expect(screen.getByText("Recent Orders")).toBeInTheDocument();
     expect(screen.getByText("Favourites")).toBeInTheDocument();
   });
 
   it("renders all orders in Recent tab by default", () => {
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     expect(screen.getByText("Pizza")).toBeInTheDocument();
     expect(screen.getByText("Salad")).toBeInTheDocument();
   });
 
   it("shows empty state when no orders", () => {
-    render(<OrderList initialOrders={[]} />);
+    renderWithQuery(<OrderList initialOrders={[]} />);
 
     expect(screen.getByText("No orders found.")).toBeInTheDocument();
   });
 
   it("shows favourites empty state when switching to Favourites tab", () => {
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     fireEvent.click(screen.getByText("Favourites"));
 
@@ -88,14 +98,90 @@ describe("OrderList (myorders)", () => {
   });
 
   it("shows favourited orders in Favourites tab", () => {
-    // Pre-set a favourite in localStorage
     localStorage.setItem("myorders:favourites", JSON.stringify(["order1"]));
 
-    render(<OrderList initialOrders={mockOrders} />);
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
     fireEvent.click(screen.getByText("Favourites"));
 
     expect(screen.getByText("Pizza")).toBeInTheDocument();
     expect(screen.queryByText("Salad")).not.toBeInTheDocument();
+  });
+
+  it("shows polling indicator when active orders exist", () => {
+    renderWithQuery(<OrderList initialOrders={mockOrders} />);
+
+    // order2 has "Food Processing" status + payment=true → active
+    expect(screen.getByText("Auto-refreshing active orders")).toBeInTheDocument();
+  });
+
+  it("hides polling indicator when all orders are delivered", () => {
+    const allDelivered = mockOrders.map((o) => ({
+      ...o,
+      status: "Delivered",
+    }));
+
+    renderWithQuery(<OrderList initialOrders={allDelivered} />);
+
+    expect(screen.queryByText("Auto-refreshing active orders")).not.toBeInTheDocument();
+  });
+
+  it("shows toast when order status changes on refetch", async () => {
+    const activeOrder: Order = {
+      _id: "order3",
+      items: [{ _id: "f3", name: "Burger", quantity: 1 }],
+      address: {
+        firstName: "Tim",
+        lastName: "Y",
+        street: "789 Elm",
+        city: "Melbourne",
+        state: "VIC",
+        country: "AU",
+        zipcode: "3000",
+        phone: "0422222222",
+      },
+      amount: 20,
+      status: "Food Processing",
+      payment: true,
+    };
+
+    const updatedOrder: Order = {
+      ...activeOrder,
+      status: "Out for Delivery",
+    };
+
+    // First render with "Food Processing" status
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [updatedOrder] }),
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <OrderList initialOrders={[activeOrder]} />
+      </QueryClientProvider>,
+    );
+
+    // Trigger refetch to simulate status change
+    await queryClient.invalidateQueries({ queryKey: ["userOrders"] });
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <OrderList initialOrders={[activeOrder]} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledWith(
+        "Your order is out for delivery!",
+        expect.objectContaining({
+          description: expect.stringContaining("Burger"),
+        }),
+      );
+    });
   });
 });

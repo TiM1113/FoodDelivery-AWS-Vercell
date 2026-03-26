@@ -1,17 +1,39 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Package } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2, Package } from "lucide-react";
+import { toast } from "sonner";
 
 import type { Order } from "@/types/order";
 import { OrderCard } from "./order-card";
+
+const POLL_INTERVAL = 10_000; // 10 seconds
+
+const ACTIVE_STATUSES = new Set(["Food Processing", "Out for Delivery"]);
+
+function hasActiveOrders(orders: Order[]): boolean {
+  return orders.some((o) => o.payment && ACTIVE_STATUSES.has(o.status));
+}
+
+const STATUS_MESSAGES: Record<string, string> = {
+  "Food Processing": "Your order is being prepared!",
+  "Out for Delivery": "Your order is out for delivery!",
+  "Delivered": "Your order has been delivered!",
+};
+
+async function fetchOrders(): Promise<Order[]> {
+  const res = await fetch("/api/order/userorders", { method: "POST" });
+  if (!res.ok) throw new Error("Failed to fetch orders");
+  const data = await res.json();
+  return data.success ? data.data : [];
+}
 
 interface OrderListProps {
   initialOrders: Order[];
 }
 
 export function OrderList({ initialOrders }: OrderListProps) {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [activeTab, setActiveTab] = useState<"recent" | "favourites">("recent");
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set<string>();
@@ -24,6 +46,45 @@ export function OrderList({ initialOrders }: OrderListProps) {
     return new Set<string>();
   });
 
+  const prevStatusMapRef = useRef<Map<string, string>>(new Map());
+
+  const {
+    data: orders = initialOrders,
+    refetch,
+  } = useQuery({
+    queryKey: ["userOrders"],
+    queryFn: fetchOrders,
+    initialData: initialOrders,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || data.length === 0) return false;
+      return hasActiveOrders(data) ? POLL_INTERVAL : false;
+    },
+  });
+
+  // Detect status changes and show toast notifications
+  useEffect(() => {
+    const prevMap = prevStatusMapRef.current;
+
+    for (const order of orders) {
+      if (!order._id) continue;
+      const prevStatus = prevMap.get(order._id);
+      const currentStatus = order.payment ? order.status : "Payment Pending";
+
+      if (prevStatus && prevStatus !== currentStatus) {
+        const message = STATUS_MESSAGES[currentStatus];
+        if (message) {
+          const itemName = order.items[0]?.name ?? "Order";
+          toast.success(message, {
+            description: `${itemName}${order.items.length > 1 ? ` +${order.items.length - 1} more` : ""}`,
+          });
+        }
+      }
+
+      prevMap.set(order._id, currentStatus);
+    }
+  }, [orders]);
+
   // Sync favourites to localStorage on change
   useEffect(() => {
     window.localStorage.setItem(
@@ -33,12 +94,8 @@ export function OrderList({ initialOrders }: OrderListProps) {
   }, [favouriteIds]);
 
   const refreshOrders = useCallback(async () => {
-    const res = await fetch("/api/order/userorders", { method: "POST" });
-    const data = await res.json();
-    if (data.success) {
-      setOrders(data.data);
-    }
-  }, []);
+    await refetch();
+  }, [refetch]);
 
   const toggleFavourite = useCallback((orderId: string) => {
     setFavouriteIds((prev) => {
@@ -56,6 +113,8 @@ export function OrderList({ initialOrders }: OrderListProps) {
     activeTab === "favourites"
       ? orders.filter((o) => o._id && favouriteIds.has(o._id))
       : orders;
+
+  const isPolling = hasActiveOrders(orders);
 
   return (
     <>
@@ -82,6 +141,14 @@ export function OrderList({ initialOrders }: OrderListProps) {
           Favourites
         </button>
       </div>
+
+      {/* Polling indicator */}
+      {isPolling && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Auto-refreshing active orders</span>
+        </div>
+      )}
 
       {/* Order List */}
       {displayOrders.length === 0 ? (
