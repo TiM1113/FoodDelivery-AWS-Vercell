@@ -32,7 +32,7 @@ describe("fetchFoodList", () => {
 
     const fetchFoodList = await importFreshModule();
 
-    const mockData = { success: true, data: [{ _id: "1", name: "Pizza" }], count: 1 };
+    const mockData = { success: true, data: [{ _id: "1", name: "Pizza" }], count: 1, nextCursor: null };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json(mockData),
     );
@@ -63,7 +63,7 @@ describe("fetchFoodList", () => {
 
     const fetchFoodList = await importFreshModule();
 
-    const mockData = { success: true, data: [], count: 0 };
+    const mockData = { success: true, data: [], count: 0, nextCursor: null };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json(mockData),
     );
