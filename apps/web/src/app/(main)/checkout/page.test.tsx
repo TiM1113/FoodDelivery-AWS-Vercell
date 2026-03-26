@@ -32,6 +32,21 @@ function createWrapper() {
   return Wrapper;
 }
 
+// Default mock for the address auto-fill fetch
+const emptyAddressResponse = Response.json({ success: true, data: [] });
+
+function mockFetchWithAddresses(foodResponse: Response | Promise<Response>) {
+  vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+    if (url.includes("/api/user/addresses")) {
+      return Promise.resolve(emptyAddressResponse.clone());
+    }
+    return typeof foodResponse === "object" && "then" in foodResponse
+      ? foodResponse
+      : Promise.resolve(foodResponse);
+  });
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   mockPush.mockReset();
@@ -41,7 +56,7 @@ beforeEach(() => {
 describe("CheckoutPage", () => {
   it("shows loading state while fetching foods", () => {
     // fetch never resolves → stays in pending
-    vi.spyOn(globalThis, "fetch").mockReturnValue(new Promise(() => {}));
+    mockFetchWithAddresses(new Promise(() => {}));
     useCartStore.setState({ items: { food1: 2 } });
 
     render(<CheckoutPage />, { wrapper: createWrapper() });
@@ -50,7 +65,7 @@ describe("CheckoutPage", () => {
   });
 
   it("shows empty cart state when cart has no items", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    mockFetchWithAddresses(
       Response.json({ data: [{ _id: "food1", name: "Pizza", price: 12, image: "img.jpg", category: "Pizza", description: "Tasty" }] }),
     );
     useCartStore.setState({ items: {} });
@@ -63,7 +78,7 @@ describe("CheckoutPage", () => {
   });
 
   it("shows empty cart when cart items don't match any foods", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    mockFetchWithAddresses(
       Response.json({ data: [{ _id: "food1", name: "Pizza", price: 12, image: "img.jpg", category: "Pizza", description: "Tasty" }] }),
     );
     // Cart has a food ID that doesn't exist in the food list
@@ -76,7 +91,7 @@ describe("CheckoutPage", () => {
   });
 
   it("renders form fields and order summary when cart has items", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    mockFetchWithAddresses(
       Response.json({
         data: [
           { _id: "f1", name: "Pizza", price: 12, image: "img.jpg", category: "Pizza", description: "Tasty" },
@@ -110,7 +125,7 @@ describe("CheckoutPage", () => {
   });
 
   it("shows error state when food fetch fails", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
+    mockFetchWithAddresses(Promise.reject(new Error("Network error")));
     useCartStore.setState({ items: { f1: 1 } });
 
     render(<CheckoutPage />, { wrapper: createWrapper() });
@@ -121,7 +136,7 @@ describe("CheckoutPage", () => {
   });
 
   it("has a 'Back to Cart' link", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    mockFetchWithAddresses(
       Response.json({
         data: [{ _id: "f1", name: "Pizza", price: 12, image: "img.jpg", category: "Pizza", description: "Tasty" }],
       }),

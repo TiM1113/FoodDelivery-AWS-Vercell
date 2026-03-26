@@ -3,9 +3,9 @@ import { setCookie, deleteCookie } from 'hono/cookie';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
-import { users } from '../db/schema';
+import { users, addresses } from '../db/schema';
 import type { AppEnv } from '../types';
 
 const COOKIE_OPTIONS = {
@@ -82,4 +82,136 @@ export const logoutUser = (c: Context<AppEnv>) => {
 		sameSite: (process.env.NODE_ENV === 'production' ? 'None' : 'Lax') as 'None' | 'Lax',
 	});
 	return c.json({ success: true, message: 'Logged out' });
+};
+
+// ── Profile ─────────────────────────────────────────────────
+
+export const getProfile = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
+	try {
+		const [user] = await db
+			.select({ id: users.id, name: users.name, email: users.email })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+
+		if (!user) {
+			return c.json({ success: false, message: 'User not found' }, 404);
+		}
+
+		return c.json({ success: true, data: user });
+	} catch (error) {
+		console.error(error);
+		return c.json({ success: false, message: 'Error fetching profile' }, 500);
+	}
+};
+
+export const updateProfile = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
+	const { name } = await c.req.json();
+	try {
+		const [updated] = await db
+			.update(users)
+			.set({ name })
+			.where(eq(users.id, userId))
+			.returning({ id: users.id, name: users.name, email: users.email });
+
+		if (!updated) {
+			return c.json({ success: false, message: 'User not found' }, 404);
+		}
+
+		return c.json({ success: true, data: updated });
+	} catch (error) {
+		console.error(error);
+		return c.json({ success: false, message: 'Error updating profile' }, 500);
+	}
+};
+
+// ── Addresses ───────────────────────────────────────────────
+
+export const getAddresses = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
+	try {
+		const rows = await db
+			.select()
+			.from(addresses)
+			.where(eq(addresses.userId, userId))
+			.orderBy(addresses.createdAt);
+
+		return c.json({ success: true, data: rows });
+	} catch (error) {
+		console.error(error);
+		return c.json({ success: false, message: 'Error fetching addresses' }, 500);
+	}
+};
+
+export const saveAddress = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
+	const body = await c.req.json();
+	const { id: addressId, isDefault, ...fields } = body;
+
+	try {
+		return await db.transaction(async (tx) => {
+			// If setting as default, clear existing defaults first
+			if (isDefault) {
+				await tx
+					.update(addresses)
+					.set({ isDefault: false })
+					.where(and(eq(addresses.userId, userId), eq(addresses.isDefault, true)));
+			}
+
+			if (addressId) {
+				// Update existing address — verify ownership
+				const [existing] = await tx
+					.select({ id: addresses.id })
+					.from(addresses)
+					.where(and(eq(addresses.id, addressId), eq(addresses.userId, userId)))
+					.limit(1);
+
+				if (!existing) {
+					return c.json({ success: false, message: 'Address not found' }, 404);
+				}
+
+				const [updated] = await tx
+					.update(addresses)
+					.set({ ...fields, isDefault })
+					.where(eq(addresses.id, addressId))
+					.returning();
+
+				return c.json({ success: true, data: updated });
+			}
+
+			// Create new address
+			const [created] = await tx
+				.insert(addresses)
+				.values({ ...fields, isDefault, userId })
+				.returning();
+
+			return c.json({ success: true, data: created }, 201);
+		});
+	} catch (error) {
+		console.error(error);
+		return c.json({ success: false, message: 'Error saving address' }, 500);
+	}
+};
+
+export const deleteAddress = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
+	const { addressId } = await c.req.json();
+
+	try {
+		const [deleted] = await db
+			.delete(addresses)
+			.where(and(eq(addresses.id, addressId), eq(addresses.userId, userId)))
+			.returning({ id: addresses.id });
+
+		if (!deleted) {
+			return c.json({ success: false, message: 'Address not found' }, 404);
+		}
+
+		return c.json({ success: true, message: 'Address deleted' });
+	} catch (error) {
+		console.error(error);
+		return c.json({ success: false, message: 'Error deleting address' }, 500);
+	}
 };

@@ -13,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Food, FoodListResponse } from "@/types/food";
+import type { SavedAddress } from "@/types/address";
 
 const DELIVERY_FEE = 2;
 
@@ -45,11 +46,43 @@ export default function CheckoutPage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4.3 internal version mismatch with @hookform/resolvers types; runtime works correctly
     resolver: zodResolver(checkoutSchema as any),
   });
+
+  // Auto-fill from default saved address
+  useEffect(() => {
+    async function loadDefaultAddress() {
+      try {
+        const res = await fetch("/api/user/addresses");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+        const defaultAddr = (data.data as SavedAddress[]).find(
+          (a) => a.isDefault,
+        );
+        if (defaultAddr) {
+          reset({
+            firstName: defaultAddr.firstName,
+            lastName: defaultAddr.lastName,
+            email: defaultAddr.email,
+            street: defaultAddr.street,
+            city: defaultAddr.city,
+            state: defaultAddr.state,
+            zipcode: defaultAddr.zipcode,
+            country: defaultAddr.country,
+            phone: defaultAddr.phone,
+          });
+        }
+      } catch {
+        // Silent fail — user can still fill manually
+      }
+    }
+    loadDefaultAddress();
+  }, [reset]);
 
   const {
     data: foods = [],
