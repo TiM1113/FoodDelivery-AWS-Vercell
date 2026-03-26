@@ -4,9 +4,13 @@ import { validateEnv } from './config/validateEnv';
 validateEnv();
 
 if (process.env.SENTRY_DSN) {
+	const tracesSampleRate = Number(
+		process.env.SENTRY_TRACES_SAMPLE_RATE ??
+		(process.env.NODE_ENV === 'production' ? '0.1' : '1.0')
+	);
 	Sentry.init({
 		dsn: process.env.SENTRY_DSN,
-		tracesSampleRate: 1.0,
+		tracesSampleRate: Number.isFinite(tracesSampleRate) ? tracesSampleRate : 0.1,
 	});
 }
 
