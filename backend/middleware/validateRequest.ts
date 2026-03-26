@@ -54,6 +54,7 @@ export const placeOrderSchema = z.object({
 	items: z.array(orderItemSchema).min(1, 'Order must contain at least one item'),
 	address: addressSchema,
 	amount: z.number().positive('Amount must be a positive number'),
+	promoCode: z.string().optional(),
 });
 
 export default validateBody;

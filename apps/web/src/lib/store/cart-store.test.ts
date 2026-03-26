@@ -4,7 +4,12 @@ import type { Food } from "@/types/food";
 
 // Reset store state before each test
 beforeEach(() => {
-  useCartStore.setState({ items: {} });
+  useCartStore.setState({
+    items: {},
+    promoCode: null,
+    promoId: null,
+    promoCoupon: null,
+  });
   vi.restoreAllMocks();
 });
 
@@ -244,5 +249,103 @@ describe("getTotalAmount", () => {
     useCartStore.setState({ items: { a: 0, b: 2 } });
     // a is skipped (qty <= 0), only b: 8.99 * 2 = 17.98
     expect(useCartStore.getState().getTotalAmount(foods)).toBe(17.98);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setPromo / clearPromo
+// ---------------------------------------------------------------------------
+describe("setPromo", () => {
+  it("sets promo code, id, and coupon", () => {
+    const coupon = { percentOff: 10, amountOff: null, currency: null, name: "10% Off" };
+    useCartStore.getState().setPromo("SAVE10", "promo_123", coupon);
+
+    const state = useCartStore.getState();
+    expect(state.promoCode).toBe("SAVE10");
+    expect(state.promoId).toBe("promo_123");
+    expect(state.promoCoupon).toEqual(coupon);
+  });
+});
+
+describe("clearPromo", () => {
+  it("clears all promo state", () => {
+    useCartStore.setState({
+      promoCode: "SAVE10",
+      promoId: "promo_123",
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+    });
+
+    useCartStore.getState().clearPromo();
+
+    const state = useCartStore.getState();
+    expect(state.promoCode).toBeNull();
+    expect(state.promoId).toBeNull();
+    expect(state.promoCoupon).toBeNull();
+  });
+});
+
+describe("clearCart clears promo", () => {
+  it("resets promo state when cart is cleared", () => {
+    useCartStore.setState({
+      items: { a: 1 },
+      promoCode: "SAVE10",
+      promoId: "promo_123",
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+    });
+
+    useCartStore.getState().clearCart();
+
+    const state = useCartStore.getState();
+    expect(state.items).toEqual({});
+    expect(state.promoCode).toBeNull();
+    expect(state.promoId).toBeNull();
+    expect(state.promoCoupon).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDiscount
+// ---------------------------------------------------------------------------
+describe("getDiscount", () => {
+  it("returns 0 when no promo is applied", () => {
+    expect(useCartStore.getState().getDiscount(100)).toBe(0);
+  });
+
+  it("calculates percentage discount", () => {
+    useCartStore.setState({
+      promoCoupon: { percentOff: 15, amountOff: null, currency: null, name: "15% Off" },
+    });
+    // 100 * 15% = 15
+    expect(useCartStore.getState().getDiscount(100)).toBe(15);
+  });
+
+  it("rounds percentage discount to 2 decimal places", () => {
+    useCartStore.setState({
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+    });
+    // 33.33 * 10% = 3.333 → 3.33
+    expect(useCartStore.getState().getDiscount(33.33)).toBe(3.33);
+  });
+
+  it("calculates fixed amount discount", () => {
+    useCartStore.setState({
+      promoCoupon: { percentOff: null, amountOff: 5, currency: "usd", name: "$5 Off" },
+    });
+    expect(useCartStore.getState().getDiscount(100)).toBe(5);
+  });
+
+  it("caps fixed discount at subtotal", () => {
+    useCartStore.setState({
+      promoCoupon: { percentOff: null, amountOff: 20, currency: "usd", name: "$20 Off" },
+    });
+    // Discount ($20) exceeds subtotal ($10), so it should cap at $10
+    expect(useCartStore.getState().getDiscount(10)).toBe(10);
+  });
+
+  it("returns 0 for coupon with no percentOff or amountOff", () => {
+    useCartStore.setState({
+      promoCoupon: { percentOff: null, amountOff: null, currency: null, name: "Unknown" },
+    });
+    expect(useCartStore.getState().getDiscount(100)).toBe(0);
   });
 });

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2, X } from "lucide-react";
 import { useCartStore } from "@/lib/store/cart-store";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,8 +24,16 @@ export default function CartPage() {
   const addItem = useCartStore((s) => s.addItem);
   const removeItem = useCartStore((s) => s.removeItem);
   const getTotalAmount = useCartStore((s) => s.getTotalAmount);
+  const promoCode = useCartStore((s) => s.promoCode);
+  const promoCoupon = useCartStore((s) => s.promoCoupon);
+  const setPromo = useCartStore((s) => s.setPromo);
+  const clearPromo = useCartStore((s) => s.clearPromo);
+  const getDiscount = useCartStore((s) => s.getDiscount);
 
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [promoInput, setPromoInput] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   const guardedAdd = useCallback(
     async (id: string) => {
@@ -93,10 +101,45 @@ export default function CartPage() {
     );
   }
 
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code) return;
+
+    setPromoLoading(true);
+    setPromoError(null);
+
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!res.ok) {
+        setPromoError("Unable to validate promo code. Please try again.");
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPromo(code, data.promoId, data.coupon);
+        setPromoInput("");
+      } else {
+        setPromoError(data.message || "Invalid promo code");
+      }
+    } catch {
+      setPromoError("Network error. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   const cartFoods = foods.filter((f) => f._id && items[f._id] > 0);
   const subtotal = getTotalAmount(foods);
+  const discount = getDiscount(subtotal);
   const deliveryFee = cartFoods.length > 0 ? DELIVERY_FEE : 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+  const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
   if (cartFoods.length === 0) {
     return (
@@ -259,6 +302,20 @@ export default function CartPage() {
               <span className="text-muted-foreground">Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
+            {discount > 0 && (
+              <>
+                <hr />
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    Discount
+                    {promoCoupon?.name && (
+                      <span className="text-xs">({promoCoupon.name})</span>
+                    )}
+                  </span>
+                  <span>-${discount.toFixed(2)}</span>
+                </div>
+              </>
+            )}
             <hr />
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Delivery Fee</span>
@@ -275,19 +332,67 @@ export default function CartPage() {
           </Link>
         </div>
 
-        {/* Promo code (UI placeholder) */}
+        {/* Promo code */}
         <div className="flex w-full flex-col gap-3 lg:max-w-sm">
           <p className="text-sm text-muted-foreground">
             If you have a promo code, enter it here
           </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Promo code"
-              className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
-            />
-            <Button variant="secondary">Apply</Button>
-          </div>
+
+          {promoCode ? (
+            <div className="flex items-center gap-2 rounded-md border bg-green-50 px-3 py-2 text-sm dark:bg-green-950">
+              <span className="flex-1 font-medium text-green-700 dark:text-green-300">
+                {promoCode}
+                {promoCoupon?.percentOff
+                  ? ` — ${promoCoupon.percentOff}% off`
+                  : promoCoupon?.amountOff
+                    ? ` — $${promoCoupon.amountOff} off`
+                    : ""}
+              </span>
+              <button
+                type="button"
+                onClick={clearPromo}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Remove promo code"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Promo code"
+                  value={promoInput}
+                  onChange={(e) => {
+                    setPromoInput(e.target.value);
+                    setPromoError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleApplyPromo();
+                    }
+                  }}
+                  className="flex-1 rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={handleApplyPromo}
+                  disabled={promoLoading || !promoInput.trim()}
+                >
+                  {promoLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Apply"
+                  )}
+                </Button>
+              </div>
+              {promoError && (
+                <p className="text-xs text-destructive">{promoError}</p>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
