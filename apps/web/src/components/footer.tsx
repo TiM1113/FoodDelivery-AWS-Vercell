@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -20,10 +21,15 @@ export function Footer() {
         <div className="flex flex-col items-start gap-5">
           <h2 className="text-xl font-semibold text-white">Company</h2>
           <ul className="flex flex-col gap-2.5 text-sm">
-            <li className="cursor-pointer transition-colors hover:text-white">Home</li>
-            <li className="cursor-pointer transition-colors hover:text-white">About Us</li>
-            <li className="cursor-pointer transition-colors hover:text-white">Delivery</li>
-            <li className="cursor-pointer transition-colors hover:text-white">Privacy Policy</li>
+            <li>
+              <Link href="/" className="transition-colors hover:text-white">Home</Link>
+            </li>
+            <li>
+              <Link href="/terms" className="transition-colors hover:text-white">Terms of Service</Link>
+            </li>
+            <li>
+              <Link href="/privacy" className="transition-colors hover:text-white">Privacy Policy</Link>
+            </li>
           </ul>
         </div>
 

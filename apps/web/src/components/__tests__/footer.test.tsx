@@ -38,4 +38,14 @@ describe("Footer", () => {
     const year = new Date().getFullYear();
     expect(screen.getByText(new RegExp(`${year}`))).toBeInTheDocument();
   });
+
+  it("renders legal page links", () => {
+    render(<Footer />);
+
+    const privacyLink = screen.getByRole("link", { name: /privacy policy/i });
+    expect(privacyLink).toHaveAttribute("href", "/privacy");
+
+    const termsLink = screen.getByRole("link", { name: /terms of service/i });
+    expect(termsLink).toHaveAttribute("href", "/terms");
+  });
 });
