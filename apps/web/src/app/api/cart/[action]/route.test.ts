@@ -17,10 +17,9 @@ vi.mock("jose", () => ({
   },
 }));
 
-import { POST } from "./route";
-
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.resetModules();
   vi.stubEnv("API_URL", "http://localhost:4000");
   vi.stubEnv("AUTH_SECRET", "test-secret");
   vi.stubEnv("JWT_SECRET", "test-jwt-secret");
@@ -39,7 +38,8 @@ function makeRequest(action: string, body?: Record<string, unknown>): NextReques
   });
 }
 
-function callPOST(action: string, body?: Record<string, unknown>) {
+async function callPOST(action: string, body?: Record<string, unknown>) {
+  const { POST } = await import("./route");
   return POST(makeRequest(action, body), {
     params: Promise.resolve({ action }),
   });
@@ -79,7 +79,7 @@ describe("POST /api/cart/[action]", () => {
     expect(data.success).toBe(true);
 
     const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-    expect(fetchCall[0]).toContain("/api/cart/add");
+    expect(fetchCall[0]).toBe("http://localhost:4000/api/cart/add");
 
     const headers = fetchCall[1]?.headers as Record<string, string>;
     expect(headers.Cookie).toBe("token=mocked-backend-jwt");
@@ -100,7 +100,7 @@ describe("POST /api/cart/[action]", () => {
     expect(data.success).toBe(true);
 
     const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-    expect(fetchCall[0]).toContain("/api/cart/remove");
+    expect(fetchCall[0]).toBe("http://localhost:4000/api/cart/remove");
   });
 
   it("forwards get request without reading body", async () => {
@@ -116,6 +116,6 @@ describe("POST /api/cart/[action]", () => {
     expect(data.cartData).toEqual({ food1: 2 });
 
     const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-    expect(fetchCall[0]).toContain("/api/cart/get");
+    expect(fetchCall[0]).toBe("http://localhost:4000/api/cart/get");
   });
 });
