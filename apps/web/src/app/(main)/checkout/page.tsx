@@ -27,6 +27,10 @@ export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
   const getTotalAmount = useCartStore((s) => s.getTotalAmount);
   const clearCart = useCartStore((s) => s.clearCart);
+  const promoId = useCartStore((s) => s.promoId);
+  const promoCode = useCartStore((s) => s.promoCode);
+  const promoCoupon = useCartStore((s) => s.promoCoupon);
+  const getDiscount = useCartStore((s) => s.getDiscount);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -58,8 +62,9 @@ export default function CheckoutPage() {
 
   const cartFoods = foods.filter((f) => f._id && items[f._id] > 0);
   const subtotal = getTotalAmount(foods);
+  const discount = getDiscount(subtotal);
   const deliveryFee = cartFoods.length > 0 ? DELIVERY_FEE : 0;
-  const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+  const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
   const onSubmit = async (address: CheckoutFormData) => {
     if (cartFoods.length === 0) return;
@@ -82,6 +87,7 @@ export default function CheckoutPage() {
           items: orderItems,
           amount: total,
           address,
+          ...(promoId && { promoCode: promoId }),
         }),
       });
 
@@ -291,6 +297,28 @@ export default function CheckoutPage() {
             <span className="text-muted-foreground">Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
+          {discount > 0 && (
+            <>
+              <hr />
+              <div className="flex justify-between text-sm text-green-600">
+                <span>
+                  Discount
+                  {promoCode && (
+                    <span className="ml-1 text-xs">
+                      ({promoCode}
+                      {promoCoupon?.percentOff
+                        ? ` · ${promoCoupon.percentOff}%`
+                        : promoCoupon?.amountOff
+                          ? ` · $${promoCoupon.amountOff}`
+                          : ""}
+                      )
+                    </span>
+                  )}
+                </span>
+                <span>-${discount.toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <hr />
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Delivery Fee</span>

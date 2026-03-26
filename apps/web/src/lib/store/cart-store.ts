@@ -1,9 +1,21 @@
 import { create } from "zustand";
 import type { Food } from "@/types/food";
 
+interface PromoCoupon {
+  percentOff: number | null;
+  amountOff: number | null;
+  currency: string | null;
+  name: string | null;
+}
+
 interface CartState {
   /** Map of food ID → quantity */
   items: Record<string, number>;
+
+  /** Applied promo code details */
+  promoCode: string | null;
+  promoId: string | null;
+  promoCoupon: PromoCoupon | null;
 
   /** Replace entire cart (used when loading from backend on login) */
   setItems: (data: Record<string, number>) => void;
@@ -22,10 +34,22 @@ interface CartState {
 
   /** Total price given a food list (for looking up prices) */
   getTotalAmount: (foods: Food[]) => number;
+
+  /** Set applied promo code */
+  setPromo: (code: string, promoId: string, coupon: PromoCoupon) => void;
+
+  /** Clear promo code */
+  clearPromo: () => void;
+
+  /** Calculate discount amount given subtotal */
+  getDiscount: (subtotal: number) => number;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: {},
+  promoCode: null,
+  promoId: null,
+  promoCoupon: null,
 
   setItems: (data) => {
     // Filter out zero-quantity entries
@@ -84,7 +108,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  clearCart: () => set({ items: {} }),
+  clearCart: () =>
+    set({ items: {}, promoCode: null, promoId: null, promoCoupon: null }),
 
   getTotalCount: () => {
     return Object.values(get().items).reduce((sum, qty) => sum + qty, 0);
@@ -99,5 +124,25 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (food) total += food.price * qty;
     }
     return Math.round(total * 100) / 100;
+  },
+
+  setPromo: (code, promoId, coupon) => {
+    set({ promoCode: code, promoId, promoCoupon: coupon });
+  },
+
+  clearPromo: () => {
+    set({ promoCode: null, promoId: null, promoCoupon: null });
+  },
+
+  getDiscount: (subtotal) => {
+    const { promoCoupon } = get();
+    if (!promoCoupon) return 0;
+    if (promoCoupon.percentOff) {
+      return Math.round(subtotal * (promoCoupon.percentOff / 100) * 100) / 100;
+    }
+    if (promoCoupon.amountOff) {
+      return Math.min(promoCoupon.amountOff, subtotal);
+    }
+    return 0;
   },
 }));

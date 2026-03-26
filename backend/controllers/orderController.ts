@@ -171,7 +171,7 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			quantity: 1,
 		});
 
-		const session = await stripe.checkout.sessions.create({
+		const sessionParams: Stripe.Checkout.SessionCreateParams = {
 			line_items,
 			mode: 'payment',
 			payment_method_types: ['card'],
@@ -183,7 +183,15 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			shipping_address_collection: {
 				allowed_countries: ['AU', 'US', 'CA', 'GB'],
 			},
-		});
+		};
+
+		// Apply promotion code if provided
+		const { promoCode } = body;
+		if (promoCode && typeof promoCode === 'string') {
+			sessionParams.discounts = [{ promotion_code: promoCode }];
+		}
+
+		const session = await stripe.checkout.sessions.create(sessionParams);
 
 		console.log('Stripe session created successfully:', session.id);
 		return c.json({ success: true, session_url: session.url });
@@ -444,6 +452,45 @@ export const editOrder = async (c: Context<AppEnv>) => {
 	} catch (error) {
 		console.error('Error editing order:', error);
 		return c.json({ success: false, message: 'Error editing order' }, 500);
+	}
+};
+
+export const validatePromoCode = async (c: Context<AppEnv>) => {
+	try {
+		const { code } = await c.req.json();
+
+		if (!code || typeof code !== 'string') {
+			return c.json({ success: false, message: 'Promo code is required' }, 400);
+		}
+
+		const promotionCodes = await stripe.promotionCodes.list({
+			code: code.trim().toUpperCase(),
+			active: true,
+			limit: 1,
+			expand: ['data.coupon'],
+		});
+
+		if (promotionCodes.data.length === 0) {
+			return c.json({ success: false, message: 'Invalid or expired promo code' });
+		}
+
+		const promo = promotionCodes.data[0];
+		const coupon = promo.coupon;
+
+		return c.json({
+			success: true,
+			promoId: promo.id,
+			coupon: {
+				percentOff: coupon.percent_off,
+				amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,
+				currency: coupon.currency,
+				name: coupon.name,
+			},
+		});
+	} catch (error) {
+		const err = error as Error;
+		console.error('Promo validation error:', err);
+		return c.json({ success: false, message: 'Error validating promo code' }, 500);
 	}
 };
 
