@@ -3,12 +3,14 @@ export const metadata = {
   description: "How Tomato Food Delivery collects, uses, and protects your personal information.",
 };
 
+const LAST_UPDATED = "26 March 2026";
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
       <h1 className="mb-8 text-3xl font-bold">Privacy Policy</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Last updated: {new Date().toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" })}
+        Last updated: {LAST_UPDATED}
       </p>
 
       <div className="prose prose-sm max-w-none dark:prose-invert">
