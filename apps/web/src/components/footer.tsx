@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { Facebook, Instagram } from "lucide-react";
 
 export function Footer() {
   return (
@@ -12,9 +12,35 @@ export function Footer() {
             right to your doorstep, fast and fresh.
           </p>
           <div className="flex gap-4">
-            <Image src="/images/social/facebook.png" alt="Facebook" width={40} height={40} />
-            <Image src="/images/social/twitter.png" alt="Twitter" width={40} height={40} />
-            <Image src="/images/social/linkedin.png" alt="LinkedIn" width={40} height={40} />
+            <a
+              href="https://www.facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#808080] transition-colors hover:border-white hover:text-white"
+            >
+              <Facebook className="h-5 w-5" />
+            </a>
+            <a
+              href="https://www.x.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="X"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#808080] transition-colors hover:border-white hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+            <a
+              href="https://www.instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#808080] transition-colors hover:border-white hover:text-white"
+            >
+              <Instagram className="h-5 w-5" />
+            </a>
           </div>
         </div>
 

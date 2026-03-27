@@ -1,13 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Footer } from "../footer";
-
-vi.mock("next/image", () => ({
-  default: function MockImage(props: Record<string, unknown>) {
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img {...props} />;
-  },
-}));
 
 describe("Footer", () => {
   it("renders company name and description", () => {
@@ -17,12 +10,20 @@ describe("Footer", () => {
     expect(screen.getByText(/food delivery platform/i)).toBeInTheDocument();
   });
 
-  it("renders social media icons", () => {
+  it("renders social media links to platform homepages", () => {
     render(<Footer />);
 
-    expect(screen.getByAltText("Facebook")).toBeInTheDocument();
-    expect(screen.getByAltText("Twitter")).toBeInTheDocument();
-    expect(screen.getByAltText("LinkedIn")).toBeInTheDocument();
+    const fbLink = screen.getByRole("link", { name: "Facebook" });
+    expect(fbLink).toHaveAttribute("href", "https://www.facebook.com");
+    expect(fbLink).toHaveAttribute("target", "_blank");
+
+    const xLink = screen.getByRole("link", { name: "X" });
+    expect(xLink).toHaveAttribute("href", "https://www.x.com");
+    expect(xLink).toHaveAttribute("target", "_blank");
+
+    const igLink = screen.getByRole("link", { name: "Instagram" });
+    expect(igLink).toHaveAttribute("href", "https://www.instagram.com");
+    expect(igLink).toHaveAttribute("target", "_blank");
   });
 
   it("renders contact information", () => {
