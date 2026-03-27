@@ -14,7 +14,7 @@ export async function Navbar() {
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 w-[80%] items-center justify-between">
         <Link href="/">
-          <Image src="/images/logo.png" alt="Tomato" width={150} height={40} priority />
+          <Image src="/images/logo.png" alt="Tomato" width={150} height={40} style={{ width: "auto", height: "auto" }} priority />
         </Link>
 
         <div className="hidden md:flex items-center gap-5 text-lg font-medium">

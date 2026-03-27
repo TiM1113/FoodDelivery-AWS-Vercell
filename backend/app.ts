@@ -26,10 +26,15 @@ import type { AppEnv } from './types';
 const app = new Hono<AppEnv>();
 
 // CORS configuration
-const productionOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+const envOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
 	.split(',')
 	.map((s) => s.trim())
 	.filter(Boolean);
+
+const knownProductionOrigins = [
+	'https://food-delivery-web-eosin.vercel.app',
+	'https://fooddelivery-2025.vercel.app',
+];
 
 const nodeEnv = process.env.NODE_ENV;
 const isDevLike = nodeEnv === 'development' || nodeEnv === 'test';
@@ -37,7 +42,7 @@ const developmentOrigins = isDevLike
 	? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
 	: [];
 
-const allowedOrigins = [...productionOrigins, ...developmentOrigins];
+const allowedOrigins = [...new Set([...envOrigins, ...knownProductionOrigins, ...developmentOrigins])];
 
 app.use('*', cors({
 	origin: allowedOrigins,

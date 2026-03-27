@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   let res: globalThis.Response;
   try {
