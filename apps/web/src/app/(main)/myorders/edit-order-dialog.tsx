@@ -27,7 +27,6 @@ import type { Order, OrderItem } from "@/types/order";
 import type { Food, FoodListResponse } from "@/types/food";
 
 const DELIVERY_FEE = 2;
-const IMAGE_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface EditOrderDialogProps {
   order: Order;
@@ -295,7 +294,7 @@ export function EditOrderDialog({
                     >
                       {food.image && (
                         <Image
-                          src={`${IMAGE_BASE}/images/${food.image}`}
+                          src={food.image}
                           alt={food.name}
                           width={60}
                           height={60}

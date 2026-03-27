@@ -32,7 +32,6 @@ async function fetchFoodsPage(params: {
   sortBy?: string;
   cursor?: string;
 }): Promise<FoodListResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
   const qs = new URLSearchParams();
   qs.set("limit", String(PAGE_SIZE));
   if (params.q) qs.set("q", params.q);
@@ -41,7 +40,7 @@ async function fetchFoodsPage(params: {
     qs.set("sortBy", params.sortBy);
   if (params.cursor) qs.set("cursor", params.cursor);
 
-  const res = await fetch(`${apiUrl}/api/food/list?${qs.toString()}`);
+  const res = await fetch(`/api/food/list?${qs.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch food list");
   return res.json();
 }
@@ -92,13 +91,13 @@ export function FoodSection({ initialFoods }: FoodSectionProps) {
                 success: true,
                 data: initialFoods,
                 count: initialFoods.length,
-                nextCursor:
-                  initialFoods.length >= PAGE_SIZE ? "has-more" : null,
+                nextCursor: null,
               },
             ],
             pageParams: [null],
           }
         : undefined,
+    initialDataUpdatedAt: 0,
     placeholderData: (prev) => prev,
   });
 
