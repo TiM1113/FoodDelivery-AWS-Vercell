@@ -13,6 +13,7 @@ yarn-error.log
 dist/
 build/
 .vercel/
+api/index.js
 
 # Operating System
 .DS_Store
