@@ -2,7 +2,7 @@
     "installCommand": "cd .. && pnpm install --frozen-lockfile",
     "buildCommand": "pnpm build",
     "functions": {
-        "api/index.js": {
+        "api/index.ts": {
             "maxDuration": 30
         }
     },
