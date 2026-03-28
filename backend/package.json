@@ -1,6 +1,7 @@
 {
   "name": "@food-delivery/backend",
   "version": "3.0.0",
+  "type": "module",
   "main": "app.ts",
   "scripts": {
     "dev": "tsx watch serve.ts",
