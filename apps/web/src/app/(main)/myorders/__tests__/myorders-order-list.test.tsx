@@ -18,10 +18,12 @@ vi.mock("sonner", () => ({
 const mockOrders: Order[] = [
   {
     _id: "order1",
-    items: [{ _id: "f1", name: "Pizza", quantity: 2 }],
+    userId: "user-1",
+    items: [{ _id: "f1", name: "Pizza", price: 14, quantity: 2 }],
     address: {
       firstName: "John",
       lastName: "Doe",
+      email: "john@example.com",
       street: "123 Main",
       city: "Melbourne",
       state: "VIC",
@@ -35,10 +37,12 @@ const mockOrders: Order[] = [
   },
   {
     _id: "order2",
-    items: [{ _id: "f2", name: "Salad", quantity: 1 }],
+    userId: "user-1",
+    items: [{ _id: "f2", name: "Salad", price: 15, quantity: 1 }],
     address: {
       firstName: "Jane",
       lastName: "Smith",
+      email: "jane@example.com",
       street: "456 Oak",
       city: "Sydney",
       state: "NSW",
@@ -116,9 +120,9 @@ describe("OrderList (myorders)", () => {
   });
 
   it("hides polling indicator when all orders are delivered", () => {
-    const allDelivered = mockOrders.map((o) => ({
+    const allDelivered: Order[] = mockOrders.map((o) => ({
       ...o,
-      status: "Delivered",
+      status: "Delivered" as const,
     }));
 
     renderWithQuery(<OrderList initialOrders={allDelivered} />);
@@ -129,10 +133,12 @@ describe("OrderList (myorders)", () => {
   it("shows toast when order status changes on refetch", async () => {
     const activeOrder: Order = {
       _id: "order3",
-      items: [{ _id: "f3", name: "Burger", quantity: 1 }],
+      userId: "user-1",
+      items: [{ _id: "f3", name: "Burger", price: 20, quantity: 1 }],
       address: {
         firstName: "Tim",
         lastName: "Y",
+        email: "tim@example.com",
         street: "789 Elm",
         city: "Melbourne",
         state: "VIC",

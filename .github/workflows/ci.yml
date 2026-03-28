@@ -36,6 +36,9 @@ jobs:
       - name: Type check backend
         run: pnpm --filter @food-delivery/backend exec tsc --noEmit
 
+      - name: Type check apps/web
+        run: pnpm --filter @food-delivery/web exec tsc --noEmit
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -145,8 +148,8 @@ jobs:
       - name: Build shared
         run: pnpm --filter @food-delivery/shared build
 
-      - name: Build admin
-        run: pnpm --filter @food-delivery/admin build
+      - name: Build backend
+        run: pnpm --filter @food-delivery/backend build
 
       - name: Build apps/web
         run: pnpm --filter @food-delivery/web build
