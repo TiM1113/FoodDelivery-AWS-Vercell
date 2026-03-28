@@ -1,5 +1,6 @@
 {
     "installCommand": "cd .. && pnpm install --frozen-lockfile",
+    "buildCommand": "pnpm vercel-build",
     "rewrites": [
         {
             "source": "/(.*)",
