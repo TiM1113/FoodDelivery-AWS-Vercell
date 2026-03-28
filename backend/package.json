@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "tsx watch serve.ts",
     "start": "tsx serve.ts",
-    "build": "esbuild api/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
-    "vercel-build": "pnpm build",
+    "build": "bash scripts/build-vercel.sh",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "22.x"
   },
   "author": "Tim1113",
   "license": "MIT",
