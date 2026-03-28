@@ -12,13 +12,15 @@ vi.mock("sonner", () => ({
 
 const paidOrder: Order = {
   _id: "67890abc12345678deadbeef",
+  userId: "user-1",
   items: [
-    { _id: "f1", name: "Pizza", quantity: 2 },
-    { _id: "f2", name: "Salad", quantity: 1 },
+    { _id: "f1", name: "Pizza", price: 14, quantity: 2 },
+    { _id: "f2", name: "Salad", price: 10, quantity: 1 },
   ],
   address: {
     firstName: "John",
     lastName: "Doe",
+    email: "john@example.com",
     street: "123 Main St",
     city: "Melbourne",
     state: "VIC",

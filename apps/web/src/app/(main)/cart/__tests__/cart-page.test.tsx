@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CartPage from "../../cart/page";
 import { useCartStore } from "@/lib/store/cart-store";
+import { jsonResponse, pendingResponse } from "@/test/http";
 
 vi.mock("next/image", () => ({
   default: function MockImage(props: Record<string, unknown>) {
@@ -50,7 +51,8 @@ beforeEach(() => {
 
 describe("CartPage", () => {
   it("shows loading state", () => {
-    global.fetch = vi.fn(() => new Promise(() => {}));
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => pendingResponse());
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 
@@ -58,10 +60,10 @@ describe("CartPage", () => {
   });
 
   it("shows empty cart message when no items", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 
@@ -75,10 +77,10 @@ describe("CartPage", () => {
   it("shows cart items when cart has items", async () => {
     useCartStore.setState({ items: { f1: 2, f2: 1 } });
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 
@@ -93,10 +95,10 @@ describe("CartPage", () => {
   it("shows cart totals with delivery fee", async () => {
     useCartStore.setState({ items: { f1: 1 } });
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 
@@ -112,10 +114,10 @@ describe("CartPage", () => {
   it("shows checkout link", async () => {
     useCartStore.setState({ items: { f1: 1 } });
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 
@@ -130,10 +132,10 @@ describe("CartPage", () => {
   it("shows promo code input", async () => {
     useCartStore.setState({ items: { f1: 1 } });
 
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     renderWithQuery(<CartPage />);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { FoodList } from "../food-list";
+import { jsonResponse, pendingResponse } from "@/test/http";
 
 vi.mock("next/image", () => ({
   default: function MockImage(props: Record<string, unknown>) {
@@ -28,8 +29,8 @@ beforeEach(() => {
 
 describe("FoodList", () => {
   it("shows loading skeleton initially", () => {
-    // Mock fetch that never resolves to keep loading state
-    global.fetch = vi.fn(() => new Promise(() => {}));
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => pendingResponse());
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -39,9 +40,10 @@ describe("FoodList", () => {
   });
 
   it("renders food items after loading", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -54,9 +56,10 @@ describe("FoodList", () => {
   });
 
   it("shows heading and search input after loading", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -68,9 +71,10 @@ describe("FoodList", () => {
   });
 
   it("shows empty state when no food items", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: [] }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: [] }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -80,9 +84,10 @@ describe("FoodList", () => {
   });
 
   it("displays prices with dollar sign", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -95,9 +100,10 @@ describe("FoodList", () => {
   });
 
   it("shows item count", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -107,9 +113,10 @@ describe("FoodList", () => {
   });
 
   it("shows pagination controls", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockFoods }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockFoods }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -124,7 +131,8 @@ describe("FoodList", () => {
 
   it("shows error toast on fetch failure", async () => {
     const { toast } = await import("sonner");
-    global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network error"));
+    const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new Error("Network error"));
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 
@@ -135,9 +143,10 @@ describe("FoodList", () => {
 
   it("shows error toast on API error response", async () => {
     const { toast } = await import("sonner");
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: false, message: "Unauthorized" }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: false, message: "Unauthorized" }),
+    );
+    global.fetch = fetchMock;
 
     render(<FoodList />);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { OrderList } from "../order-list";
+import { jsonResponse, pendingResponse } from "@/test/http";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -27,7 +28,7 @@ const mockOrders = [
       phone: "0412345678",
     },
     amount: 38,
-    status: "Processing",
+    status: "Food Processing",
     payment: true,
   },
   {
@@ -55,7 +56,8 @@ beforeEach(() => {
 
 describe("OrderList", () => {
   it("shows loading skeleton initially", () => {
-    global.fetch = vi.fn(() => new Promise(() => {}));
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => pendingResponse());
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -64,9 +66,10 @@ describe("OrderList", () => {
   });
 
   it("renders orders after loading", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -78,9 +81,10 @@ describe("OrderList", () => {
   });
 
   it("shows heading", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -90,9 +94,10 @@ describe("OrderList", () => {
   });
 
   it("shows empty state when no orders", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: [] }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: [] }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -102,9 +107,10 @@ describe("OrderList", () => {
   });
 
   it("displays order amounts with dollar sign", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -116,9 +122,10 @@ describe("OrderList", () => {
   });
 
   it("displays order item summaries", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -130,9 +137,10 @@ describe("OrderList", () => {
   });
 
   it("displays payment badges", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -144,9 +152,10 @@ describe("OrderList", () => {
   });
 
   it("shows customer city and state", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -158,9 +167,10 @@ describe("OrderList", () => {
   });
 
   it("shows matching order count", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -170,9 +180,10 @@ describe("OrderList", () => {
   });
 
   it("shows pagination controls", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      json: () => Promise.resolve({ success: true, data: mockOrders }),
-    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      jsonResponse({ success: true, data: mockOrders }),
+    );
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
@@ -186,7 +197,8 @@ describe("OrderList", () => {
 
   it("shows error toast on fetch failure", async () => {
     const { toast } = await import("sonner");
-    global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network error"));
+    const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new Error("Network error"));
+    global.fetch = fetchMock;
 
     render(<OrderList />);
 
