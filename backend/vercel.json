@@ -1,6 +1,6 @@
 {
     "installCommand": "cd .. && pnpm install --frozen-lockfile",
-    "buildCommand": "pnpm build && rm api/index.ts",
+    "buildCommand": "pnpm build",
     "rewrites": [
         {
             "source": "/(.*)",
