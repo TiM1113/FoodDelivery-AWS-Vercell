@@ -1,10 +1,4 @@
 {
     "installCommand": "cd .. && pnpm install --frozen-lockfile",
-    "buildCommand": "pnpm build",
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/api/index"
-        }
-    ]
+    "buildCommand": "pnpm build"
 }

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch serve.ts",
     "start": "tsx serve.ts",
-    "build": "esbuild entry-vercel.ts --bundle --platform=node --target=node22 --format=esm --outfile=api/index.js --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "build": "bash scripts/build-vercel.sh",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
