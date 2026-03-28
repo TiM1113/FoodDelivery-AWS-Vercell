@@ -13,7 +13,7 @@ import type { Food, FoodListResponse } from "@/types/food";
 const DELIVERY_FEE = 2;
 
 async function fetchFoods(): Promise<Food[]> {
-  const res = await fetch("/api/food/list");
+  const res = await fetch("/api/food/list?limit=50");
   if (!res.ok) throw new Error("Failed to fetch food list");
   const json: FoodListResponse = await res.json();
   return json.data;

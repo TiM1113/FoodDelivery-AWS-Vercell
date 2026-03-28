@@ -3,6 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Dashboard } from "../dashboard";
 
+// Mock next-auth/react so useSession works without SessionProvider
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ status: "authenticated", data: { user: { role: "admin" } } }),
+}));
+
 // Mock Recharts to avoid SVG rendering issues in jsdom
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (

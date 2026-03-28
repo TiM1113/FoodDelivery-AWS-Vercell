@@ -16,17 +16,20 @@ export function CartInitializer() {
 
   useEffect(() => {
     if (status === "authenticated" && prevStatus.current !== "authenticated") {
-      // User just logged in — fetch cart from backend
-      fetch("/api/cart/get", { method: "POST" })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.cartData) {
-            setItems(data.cartData);
-          }
-        })
-        .catch(() => {
-          // Silently fail — cart will just be empty
-        });
+      // Small delay to ensure session cookie is fully set before API call
+      const timer = setTimeout(() => {
+        fetch("/api/cart/get", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.cartData) {
+              setItems(data.cartData);
+            }
+          })
+          .catch(() => {
+            // Silently fail — cart will just be empty
+          });
+      }, 100);
+      return () => clearTimeout(timer);
     }
 
     if (status === "unauthenticated" && prevStatus.current === "authenticated") {

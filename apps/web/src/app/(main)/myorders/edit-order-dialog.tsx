@@ -62,7 +62,7 @@ export function EditOrderDialog({
   useEffect(() => {
     if (open && foods.length === 0) {
       setIsLoadingFoods(true);
-      fetch("/api/food/list")
+      fetch("/api/food/list?limit=50")
         .then((res) => res.json())
         .then((data: FoodListResponse) => {
           if (data.success) setFoods(data.data);
