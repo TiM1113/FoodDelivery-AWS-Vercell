@@ -12,7 +12,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "22.x"
   },
   "author": "Tim1113",
   "license": "MIT",
