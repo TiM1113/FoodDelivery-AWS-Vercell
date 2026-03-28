@@ -119,7 +119,7 @@ export function FoodList() {
   const fetchList = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/food/list");
+      const res = await fetch("/api/food/list?limit=50");
       const data = await res.json();
       if (data.success) {
         setList(data.data);

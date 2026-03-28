@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   DollarSign,
   ShoppingCart,
@@ -34,10 +35,12 @@ async function fetchStats(): Promise<DashboardStats> {
 }
 
 export function Dashboard() {
+  const { status } = useSession();
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ["adminStats"],
     queryFn: fetchStats,
     refetchInterval: 60_000,
+    enabled: status === "authenticated",
   });
 
   if (isLoading) {
