@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import Stripe from 'stripe';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { db } from '../db';
 import { users, kycAuditLogs } from '../db/schema';
 import type { AppEnv } from '../types';
@@ -18,7 +18,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
  * Transition KYC status inside a transaction:
  *   1. Read current status
  *   2. Validate transition via state machine
- *   3. Update status
+ *   3. Conditional UPDATE (WHERE includes previous status to prevent TOCTOU)
  *   4. Write audit log entry
  *
  * Returns `{ success, error? }`.
@@ -60,11 +60,24 @@ async function transitionKycStatus(opts: {
 			return { success: false, error: 'Stale webhook: session ID mismatch' };
 		}
 
-		// Update status
-		await tx
+		// Conditional update: WHERE includes current status to prevent TOCTOU race
+		const whereConditions = trigger === 'webhook' && stripeSessionId
+			? and(
+				eq(users.id, userId),
+				eq(users.kycStatus, currentStatus),
+				eq(users.kycSessionId, stripeSessionId),
+			)
+			: and(eq(users.id, userId), eq(users.kycStatus, currentStatus));
+
+		const updated = await tx
 			.update(users)
 			.set({ kycStatus: newStatus })
-			.where(eq(users.id, userId));
+			.where(whereConditions)
+			.returning({ id: users.id });
+
+		if (updated.length === 0) {
+			return { success: false, error: 'Concurrent status change detected' };
+		}
 
 		// Write audit log
 		await tx.insert(kycAuditLogs).values({
@@ -150,21 +163,42 @@ export const createVerificationSession = async (c: Context<AppEnv>) => {
 			},
 		});
 
-		// Transition status: current → pending (inside transaction with audit)
-		await db.transaction(async (tx) => {
-			await tx
+		// Atomic transition: re-check status inside transaction to prevent race
+		const transitioned = await db.transaction(async (tx) => {
+			// Re-read status to guard against concurrent requests
+			const [fresh] = await tx
+				.select({ kycStatus: users.kycStatus })
+				.from(users)
+				.where(eq(users.id, userId))
+				.limit(1);
+
+			const freshStatus = fresh?.kycStatus as KycStatus;
+			if (!isValidTransition(freshStatus, 'pending')) {
+				return false;
+			}
+
+			const updated = await tx
 				.update(users)
 				.set({ kycStatus: 'pending', kycSessionId: session.id })
-				.where(eq(users.id, userId));
+				.where(and(eq(users.id, userId), eq(users.kycStatus, freshStatus)))
+				.returning({ id: users.id });
+
+			if (updated.length === 0) return false;
 
 			await tx.insert(kycAuditLogs).values({
 				userId,
-				previousStatus: currentStatus,
+				previousStatus: freshStatus,
 				newStatus: 'pending',
 				trigger: 'admin_action',
 				stripeSessionId: session.id,
 			});
+
+			return true;
 		});
+
+		if (!transitioned) {
+			return c.json({ success: false, message: 'Status changed concurrently, please retry' }, 409);
+		}
 
 		return c.json({
 			success: true,

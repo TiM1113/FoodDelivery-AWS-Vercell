@@ -130,7 +130,11 @@ export function KycVerification() {
     },
   });
 
-  const { data: auditLogs, isLoading: logsLoading } = useQuery({
+  const {
+    data: auditLogs,
+    isLoading: logsLoading,
+    isError: logsError,
+  } = useQuery({
     queryKey: ["kycAuditLogs"],
     queryFn: fetchAuditLogs,
   });
@@ -279,6 +283,11 @@ export function KycVerification() {
         {logsLoading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : logsError ? (
+          <div className="flex items-center justify-center gap-2 py-4 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Failed to load status history</span>
           </div>
         ) : !auditLogs || auditLogs.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">

@@ -8,6 +8,7 @@ import {
 	integer,
 	timestamp,
 	jsonb,
+	index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -90,16 +91,19 @@ export const addresses = pgTable('addresses', {
 });
 
 // ── KYC Audit Logs ──────────────────────────────────────────
+// Audit rows are retained even if the user is deleted (no cascade).
 export const kycAuditLogs = pgTable('kyc_audit_logs', {
 	id: uuid('id').defaultRandom().primaryKey(),
-	userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	userId: uuid('user_id').notNull().references(() => users.id),
 	previousStatus: varchar('previous_status', { length: 20 }).notNull(),
 	newStatus: varchar('new_status', { length: 20 }).notNull(),
 	trigger: varchar('trigger', { length: 30 }).notNull(),
 	stripeSessionId: varchar('stripe_session_id', { length: 255 }),
 	metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+	index('kyc_audit_user_created_idx').on(table.userId, table.createdAt),
+]);
 
 // ── Relations ────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
