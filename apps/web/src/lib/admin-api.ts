@@ -13,16 +13,7 @@ function env(name: string): string {
  * Returns the backend-compatible JWT or a JSON error response.
  */
 export async function getAdminJwt(): Promise<{ jwt: string } | Response> {
-  let session;
-  try {
-    session = await auth();
-  } catch (error) {
-    console.error("[getAdminJwt] auth() threw:", error);
-    return Response.json(
-      { success: false, message: `Auth error: ${error instanceof Error ? error.message : String(error)}` },
-      { status: 500 },
-    );
-  }
+  const session = await auth();
 
   if (!session?.user?.id) {
     return Response.json(
