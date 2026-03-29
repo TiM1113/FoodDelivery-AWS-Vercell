@@ -465,7 +465,8 @@ describe('Promo re-validation and checkout integrity', () => {
       }),
     );
     expect(mockState.promotionCodesRetrieve).not.toHaveBeenCalled();
-    expect(mockState.updateSetCalls).toEqual([]);
+    // Without promo, fields are still updated to clear stale values from reused orders
+    expect(mockState.updateSetCalls).toEqual([{ promoCode: null, discountAmount: null }]);
   });
 
   it('P7 stores fixed amount discount correctly', async () => {
