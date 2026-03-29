@@ -128,7 +128,8 @@ const mockState = vi.hoisted(() => {
         ),
       };
     }),
-    transaction: vi.fn(async (callback: (tx: typeof tx) => Promise<unknown> | unknown) => callback(tx)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transaction: vi.fn(async (callback: (tx: any) => Promise<unknown> | unknown) => callback(tx)),
   };
 
   const S3ClientMock = vi.fn(function S3ClientMock() {
