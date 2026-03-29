@@ -59,18 +59,26 @@ export async function GET() {
         Cookie: `token=${backendJwt}`,
       };
 
-      const res = await fetch(url, {
+      // Test 1: with Cookie header (current approach)
+      const res1 = await fetch(url, {
         method: "GET",
         headers,
+        cache: "no-store",
         signal: AbortSignal.timeout(5000),
       });
-      const text = await res.text();
+      const text1 = await res1.text();
+
+      // Test 2: echo headers to see what actually gets sent
+      const echoRes = await fetch("https://httpbin.org/headers", {
+        headers: { Cookie: `token=${backendJwt}`, "X-Test": "hello" },
+        signal: AbortSignal.timeout(5000),
+      });
+      const echoData = await echoRes.json();
+
       diagnostics.proxyTest = {
-        ok: res.ok,
-        status: res.status,
-        url,
+        cookieApproach: { status: res1.status, body: text1.substring(0, 200) },
+        echoHeaders: echoData.headers,
         jwtPreview: backendJwt.substring(0, 50) + "...",
-        bodyPreview: text.substring(0, 300),
       };
     } catch (error) {
       diagnostics.proxyTest = {
