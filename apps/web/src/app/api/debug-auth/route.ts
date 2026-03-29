@@ -43,21 +43,37 @@ export async function GET() {
     return Response.json(diagnostics);
   }
 
-  // Step 4: backend connectivity
-  if (process.env.API_URL) {
+  // Step 4: backend proxy test (simulates adminProxy flow)
+  if (process.env.API_URL && process.env.JWT_SECRET) {
     try {
-      const res = await fetch(`${process.env.API_URL}/api/food/list`, {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const userId = (diagnostics.auth as { userId: string | null }).userId ?? "test";
+      const backendJwt = await new SignJWT({ id: userId })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("7d")
+        .sign(secret);
+
+      const url = `${process.env.API_URL}/api/order/stats`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Cookie: `token=${backendJwt}`,
+      };
+
+      const res = await fetch(url, {
         method: "GET",
+        headers,
         signal: AbortSignal.timeout(5000),
       });
       const text = await res.text();
-      diagnostics.backend = {
+      diagnostics.proxyTest = {
         ok: res.ok,
         status: res.status,
-        bodyPreview: text.substring(0, 200),
+        url,
+        jwtPreview: backendJwt.substring(0, 50) + "...",
+        bodyPreview: text.substring(0, 300),
       };
     } catch (error) {
-      diagnostics.backend = {
+      diagnostics.proxyTest = {
         ok: false,
         error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
       };
