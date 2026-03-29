@@ -3,7 +3,7 @@ import { setCookie, deleteCookie } from 'hono/cookie';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { db } from '../db';
 import { users, addresses } from '../db/schema';
 import type { AppEnv } from '../types';
@@ -152,8 +152,14 @@ export const saveAddress = async (c: Context<AppEnv>) => {
 
 	try {
 		return await db.transaction(async (tx) => {
-			// If setting as default, clear existing defaults first
+			// Lock this user's addresses to prevent concurrent default-address races
 			if (isDefault) {
+				await tx
+					.select({ id: addresses.id })
+					.from(addresses)
+					.where(eq(addresses.userId, userId))
+					.for('update');
+
 				await tx
 					.update(addresses)
 					.set({ isDefault: false })
@@ -200,16 +206,37 @@ export const deleteAddress = async (c: Context<AppEnv>) => {
 	const { addressId } = await c.req.json();
 
 	try {
-		const [deleted] = await db
-			.delete(addresses)
-			.where(and(eq(addresses.id, addressId), eq(addresses.userId, userId)))
-			.returning({ id: addresses.id });
+		return await db.transaction(async (tx) => {
+			const [deleted] = await tx
+				.delete(addresses)
+				.where(and(eq(addresses.id, addressId), eq(addresses.userId, userId)))
+				.returning({ id: addresses.id, isDefault: addresses.isDefault });
 
-		if (!deleted) {
-			return c.json({ success: false, message: 'Address not found' }, 404);
-		}
+			if (!deleted) {
+				return c.json({ success: false, message: 'Address not found' }, 404);
+			}
 
-		return c.json({ success: true, message: 'Address deleted' });
+			// If the deleted address was the default, promote the most recent remaining one
+			let promotedId: string | null = null;
+			if (deleted.isDefault) {
+				const [next] = await tx
+					.select({ id: addresses.id })
+					.from(addresses)
+					.where(eq(addresses.userId, userId))
+					.orderBy(desc(addresses.createdAt))
+					.limit(1);
+
+				if (next) {
+					await tx
+						.update(addresses)
+						.set({ isDefault: true })
+						.where(eq(addresses.id, next.id));
+					promotedId = next.id;
+				}
+			}
+
+			return c.json({ success: true, message: 'Address deleted', promotedDefaultId: promotedId });
+		});
 	} catch (error) {
 		console.error(error);
 		return c.json({ success: false, message: 'Error deleting address' }, 500);

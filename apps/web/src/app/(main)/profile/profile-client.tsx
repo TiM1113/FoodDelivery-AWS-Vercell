@@ -100,7 +100,16 @@ export function ProfileClient({
       });
       const data = await res.json();
       if (data.success) {
-        setAddresses((prev) => prev.filter((a) => a.id !== addressId));
+        setAddresses((prev) => {
+          const remaining = prev.filter((a) => a.id !== addressId);
+          // If the backend promoted another address to default, update it locally
+          if (data.promotedDefaultId) {
+            return remaining.map((a) =>
+              a.id === data.promotedDefaultId ? { ...a, isDefault: true } : a,
+            );
+          }
+          return remaining;
+        });
         toast.success("Address deleted");
       } else {
         toast.error(data.message || "Failed to delete address");
