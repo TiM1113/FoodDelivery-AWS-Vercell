@@ -54,3 +54,11 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Claude + Codex orchestration artifacts
+TEST-SPEC.md
+TEST-REPORT.md
+**/TEST-SPEC.md
+**/TEST-REPORT.md
+claude-fix-log.txt
+**/claude-fix-log.txt
