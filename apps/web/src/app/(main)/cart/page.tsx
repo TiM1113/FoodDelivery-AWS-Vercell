@@ -140,13 +140,13 @@ export default function CartPage() {
 
   const cartFoods = foods.filter((f) => f._id && items[f._id] > 0);
   const subtotal = getTotalAmount(foods);
-  const discount = getDiscount(subtotal);
   const deliveryFee = cartFoods.length > 0 ? DELIVERY_FEE : 0;
-  const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
-  // Check if promo minimum order amount is met
+  // Check if promo minimum order amount is met — zero out discount if not
   const promoMinAmount = promoCoupon?.minimumAmount ?? null;
   const promoMinNotMet = promoMinAmount !== null && subtotal < promoMinAmount;
+  const discount = promoMinNotMet ? 0 : getDiscount(subtotal);
+  const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
 
   if (cartFoods.length === 0) {
     return (
