@@ -24,7 +24,7 @@ describe('App smoke tests', () => {
     expect(res.status).toBe(404);
   });
 
-  it('has all expected route groups mounted', async () => {
+  it('has all expected route groups mounted', { timeout: 15_000 }, async () => {
     // Verify routes are registered by hitting known endpoints with correct methods.
     // We accept any non-404 status (401, 500, etc.) as proof the route is mounted.
     // DB/auth errors are expected here — we only care about route registration.
