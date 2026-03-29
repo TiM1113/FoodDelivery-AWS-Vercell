@@ -5,6 +5,7 @@ import {
 	getKycStatus,
 	createVerificationSession,
 	handleIdentityWebhook,
+	getKycAuditLogs,
 } from '../controllers/kycController';
 import type { AppEnv } from '../types';
 
@@ -12,6 +13,7 @@ const kycRoute = new Hono<AppEnv>();
 
 kycRoute.get('/status', authMiddleware, adminMiddleware, getKycStatus);
 kycRoute.post('/create-session', authMiddleware, adminMiddleware, createVerificationSession);
+kycRoute.get('/audit-logs', authMiddleware, adminMiddleware, getKycAuditLogs);
 kycRoute.post('/webhook', handleIdentityWebhook);
 
 export default kycRoute;

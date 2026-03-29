@@ -14,6 +14,26 @@ function createWrapper() {
   };
 }
 
+/** Mock fetch to return different responses based on URL path. */
+function mockFetchResponses(
+  statusData: { status: string; sessionId: string | null },
+  auditLogs: unknown[] = [],
+) {
+  return vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = typeof input === "string" ? input : (input as Request).url;
+
+    if (url.includes("/audit-logs")) {
+      return Promise.resolve(
+        Response.json({ success: true, data: auditLogs }),
+      );
+    }
+    // Default: status endpoint
+    return Promise.resolve(
+      Response.json({ success: true, data: statusData }),
+    );
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -29,12 +49,7 @@ describe("KycVerification", () => {
   });
 
   it("renders unverified status with start button", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        success: true,
-        data: { status: "unverified", sessionId: null },
-      }),
-    );
+    mockFetchResponses({ status: "unverified", sessionId: null });
 
     render(<KycVerification />, { wrapper: createWrapper() });
 
@@ -45,12 +60,7 @@ describe("KycVerification", () => {
   });
 
   it("renders verified status without start button", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        success: true,
-        data: { status: "verified", sessionId: "vs_123" },
-      }),
-    );
+    mockFetchResponses({ status: "verified", sessionId: "vs_123" });
 
     render(<KycVerification />, { wrapper: createWrapper() });
 
@@ -61,12 +71,7 @@ describe("KycVerification", () => {
   });
 
   it("renders pending status with polling indicator", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        success: true,
-        data: { status: "pending", sessionId: "vs_456" },
-      }),
-    );
+    mockFetchResponses({ status: "pending", sessionId: "vs_456" });
 
     render(<KycVerification />, { wrapper: createWrapper() });
 
@@ -77,12 +82,7 @@ describe("KycVerification", () => {
   });
 
   it("renders requires_input status with start button", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        success: true,
-        data: { status: "requires_input", sessionId: "vs_789" },
-      }),
-    );
+    mockFetchResponses({ status: "requires_input", sessionId: "vs_789" });
 
     render(<KycVerification />, { wrapper: createWrapper() });
 
@@ -103,12 +103,7 @@ describe("KycVerification", () => {
   });
 
   it("renders info section about KYC", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        success: true,
-        data: { status: "unverified", sessionId: null },
-      }),
-    );
+    mockFetchResponses({ status: "unverified", sessionId: null });
 
     render(<KycVerification />, { wrapper: createWrapper() });
 
@@ -118,34 +113,82 @@ describe("KycVerification", () => {
     expect(screen.getByText(/government-issued ID/)).toBeInTheDocument();
   });
 
+  it("renders audit log history section", async () => {
+    mockFetchResponses({ status: "verified", sessionId: "vs_123" }, [
+      {
+        id: "log-1",
+        previousStatus: "pending",
+        newStatus: "verified",
+        trigger: "webhook",
+        stripeSessionId: "vs_123",
+        createdAt: "2026-03-29T12:00:00Z",
+      },
+      {
+        id: "log-2",
+        previousStatus: "unverified",
+        newStatus: "pending",
+        trigger: "admin_action",
+        stripeSessionId: "vs_123",
+        createdAt: "2026-03-29T11:50:00Z",
+      },
+    ]);
+
+    render(<KycVerification />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText("Status Change History")).toBeInTheDocument();
+    });
+    expect(screen.getByText("via Stripe")).toBeInTheDocument();
+    expect(screen.getByText("via Admin")).toBeInTheDocument();
+  });
+
+  it("shows empty state when no audit logs exist", async () => {
+    mockFetchResponses({ status: "unverified", sessionId: null }, []);
+
+    render(<KycVerification />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText("No status changes recorded yet.")).toBeInTheDocument();
+    });
+  });
+
   it("calls POST to create verification session on button click", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    // First call: GET status
-    fetchSpy.mockResolvedValueOnce(
-      Response.json({
-        success: true,
-        data: { status: "unverified", sessionId: null },
-      }),
-    );
+    // Route-based mock: return different data per URL, then override for POST
+    let postCalled = false;
+    fetchSpy.mockImplementation((input, init) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      const method = init?.method ?? "GET";
 
-    // Second call: POST create session
-    fetchSpy.mockResolvedValueOnce(
-      Response.json({
-        success: true,
-        data: { sessionId: "vs_new", url: "https://verify.stripe.com/test" },
-      }),
-    );
+      if (method === "POST") {
+        postCalled = true;
+        return Promise.resolve(
+          Response.json({
+            success: true,
+            data: { sessionId: "vs_new", url: "https://verify.stripe.com/test" },
+          }),
+        );
+      }
 
-    // Third call: refetch after invalidation
-    fetchSpy.mockResolvedValueOnce(
-      Response.json({
-        success: true,
-        data: { status: "pending", sessionId: "vs_new" },
-      }),
-    );
+      if (url.includes("/audit-logs")) {
+        return Promise.resolve(
+          Response.json({ success: true, data: [] }),
+        );
+      }
 
-    // Mock window.open
+      // Status endpoint — return pending after POST was called
+      return Promise.resolve(
+        Response.json({
+          success: true,
+          data: {
+            status: postCalled ? "pending" : "unverified",
+            sessionId: postCalled ? "vs_new" : null,
+          },
+        }),
+      );
+    });
+
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
 
     render(<KycVerification />, { wrapper: createWrapper() });
