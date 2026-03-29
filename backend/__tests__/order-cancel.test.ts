@@ -1,3 +1,8 @@
+/**
+ * @generated Codex (gpt-5.4) — 2026-03-29
+ * @spec backend/__tests__/TEST-SPEC.md (Phase 5 Step 1: Order Cancel Safety)
+ */
+
 import jwt from 'jsonwebtoken';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
