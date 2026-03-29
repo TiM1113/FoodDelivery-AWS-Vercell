@@ -57,6 +57,8 @@ export const orders = pgTable('orders', {
 	status: varchar('status', { length: 50 }).notNull().default('Payment Pending'),
 	payment: boolean('payment').notNull().default(false),
 	stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 255 }),
+	promoCode: varchar('promo_code', { length: 255 }),
+	discountAmount: doublePrecision('discount_amount'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

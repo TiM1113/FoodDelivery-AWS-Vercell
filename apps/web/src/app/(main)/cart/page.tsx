@@ -123,7 +123,10 @@ export default function CartPage() {
       const data = await res.json();
 
       if (data.success) {
-        setPromo(code, data.promoId, data.coupon);
+        setPromo(code, data.promoId, {
+          ...data.coupon,
+          minimumAmount: data.minimumAmount ?? null,
+        });
         setPromoInput("");
       } else {
         setPromoError(data.message || "Invalid promo code");
@@ -140,6 +143,10 @@ export default function CartPage() {
   const discount = getDiscount(subtotal);
   const deliveryFee = cartFoods.length > 0 ? DELIVERY_FEE : 0;
   const total = Math.round((subtotal - discount + deliveryFee) * 100) / 100;
+
+  // Check if promo minimum order amount is met
+  const promoMinAmount = promoCoupon?.minimumAmount ?? null;
+  const promoMinNotMet = promoMinAmount !== null && subtotal < promoMinAmount;
 
   if (cartFoods.length === 0) {
     return (
@@ -315,6 +322,12 @@ export default function CartPage() {
                   <span>-${discount.toFixed(2)}</span>
                 </div>
               </>
+            )}
+            {promoMinNotMet && (
+              <p className="text-xs text-destructive">
+                Minimum order of ${promoMinAmount?.toFixed(2)} required for this promo.
+                Add ${((promoMinAmount ?? 0) - subtotal).toFixed(2)} more.
+              </p>
             )}
             <hr />
             <div className="flex justify-between text-sm">
