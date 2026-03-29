@@ -1,14 +1,89 @@
 import { Context } from 'hono';
 import Stripe from 'stripe';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../db';
-import { users } from '../db/schema';
+import { users, kycAuditLogs } from '../db/schema';
 import type { AppEnv } from '../types';
+import {
+	isValidTransition,
+	transitionError,
+	type KycStatus,
+} from '../lib/kyc-state-machine';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// ── Helpers ─────────────────────────────────────────────────
+
 /**
- * Get the current KYC verification status for the authenticated admin user.
+ * Transition KYC status inside a transaction:
+ *   1. Read current status
+ *   2. Validate transition via state machine
+ *   3. Update status
+ *   4. Write audit log entry
+ *
+ * Returns `{ success, error? }`.
+ */
+async function transitionKycStatus(opts: {
+	userId: string;
+	newStatus: KycStatus;
+	trigger: 'admin_action' | 'webhook';
+	stripeSessionId?: string | null;
+	metadata?: Record<string, unknown>;
+}): Promise<{ success: boolean; error?: string }> {
+	const { userId, newStatus, trigger, stripeSessionId, metadata } = opts;
+
+	return db.transaction(async (tx) => {
+		// Read current state
+		const [user] = await tx
+			.select({
+				kycStatus: users.kycStatus,
+				kycSessionId: users.kycSessionId,
+			})
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+
+		if (!user) {
+			return { success: false, error: 'User not found' };
+		}
+
+		const currentStatus = user.kycStatus as KycStatus;
+
+		// Validate transition
+		const err = transitionError(currentStatus, newStatus);
+		if (err) {
+			return { success: false, error: err };
+		}
+
+		// For webhook triggers, verify session ID matches
+		if (trigger === 'webhook' && stripeSessionId && user.kycSessionId !== stripeSessionId) {
+			return { success: false, error: 'Stale webhook: session ID mismatch' };
+		}
+
+		// Update status
+		await tx
+			.update(users)
+			.set({ kycStatus: newStatus })
+			.where(eq(users.id, userId));
+
+		// Write audit log
+		await tx.insert(kycAuditLogs).values({
+			userId,
+			previousStatus: currentStatus,
+			newStatus,
+			trigger,
+			stripeSessionId: stripeSessionId ?? user.kycSessionId,
+			metadata: metadata ?? null,
+		});
+
+		return { success: true };
+	});
+}
+
+// ── Route handlers ──────────────────────────────────────────
+
+/**
+ * GET /api/kyc/status — current KYC status for the authenticated admin.
  */
 export const getKycStatus = async (c: Context<AppEnv>) => {
 	try {
@@ -42,14 +117,14 @@ export const getKycStatus = async (c: Context<AppEnv>) => {
 };
 
 /**
- * Create a new Stripe Identity verification session for the admin user.
+ * POST /api/kyc/create-session — start a new Stripe Identity session.
  */
 export const createVerificationSession = async (c: Context<AppEnv>) => {
 	try {
 		const userId = c.get('userId');
 
 		const [user] = await db
-			.select()
+			.select({ kycStatus: users.kycStatus })
 			.from(users)
 			.where(eq(users.id, userId))
 			.limit(1);
@@ -58,40 +133,38 @@ export const createVerificationSession = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'User not found' }, 404);
 		}
 
-		if (user.kycStatus === 'verified') {
-			return c.json({
-				success: false,
-				message: 'Already verified',
-			}, 400);
+		const currentStatus = user.kycStatus as KycStatus;
+
+		// Pre-check: only allow starting from states that can reach "pending"
+		if (!isValidTransition(currentStatus, 'pending')) {
+			const reason = transitionError(currentStatus, 'pending');
+			return c.json({ success: false, message: reason ?? 'Cannot start verification' }, 400);
 		}
 
-		if (user.kycStatus === 'pending') {
-			return c.json({
-				success: false,
-				message: 'Verification already in progress',
-			}, 409);
-		}
-
+		// Create Stripe session
 		const session = await stripe.identity.verificationSessions.create({
 			type: 'document',
-			metadata: {
-				userId,
-			},
+			metadata: { userId },
 			options: {
-				document: {
-					require_matching_selfie: true,
-				},
+				document: { require_matching_selfie: true },
 			},
 		});
 
-		// Update user with session ID and pending status
-		await db
-			.update(users)
-			.set({
-				kycStatus: 'pending',
-				kycSessionId: session.id,
-			})
-			.where(eq(users.id, userId));
+		// Transition status: current → pending (inside transaction with audit)
+		await db.transaction(async (tx) => {
+			await tx
+				.update(users)
+				.set({ kycStatus: 'pending', kycSessionId: session.id })
+				.where(eq(users.id, userId));
+
+			await tx.insert(kycAuditLogs).values({
+				userId,
+				previousStatus: currentStatus,
+				newStatus: 'pending',
+				trigger: 'admin_action',
+				stripeSessionId: session.id,
+			});
+		});
 
 		return c.json({
 			success: true,
@@ -109,7 +182,7 @@ export const createVerificationSession = async (c: Context<AppEnv>) => {
 };
 
 /**
- * Handle Stripe Identity webhook events.
+ * POST /api/kyc/webhook — Stripe Identity webhook handler.
  */
 export const handleIdentityWebhook = async (c: Context<AppEnv>) => {
 	const sig = c.req.header('stripe-signature');
@@ -136,29 +209,55 @@ export const handleIdentityWebhook = async (c: Context<AppEnv>) => {
 		const userId = session.metadata?.userId;
 
 		if (userId) {
-			const newStatus = event.type === 'identity.verification_session.verified'
-				? 'verified'
-				: 'requires_input';
+			const newStatus: KycStatus =
+				event.type === 'identity.verification_session.verified'
+					? 'verified'
+					: 'requires_input';
 
-			// Only update if the webhook is for the user's current session
-			const [user] = await db
-				.select({ kycSessionId: users.kycSessionId })
-				.from(users)
-				.where(eq(users.id, userId))
-				.limit(1);
+			const result = await transitionKycStatus({
+				userId,
+				newStatus,
+				trigger: 'webhook',
+				stripeSessionId: session.id,
+				metadata: { stripeEventId: event.id, stripeEventType: event.type },
+			});
 
-			if (user?.kycSessionId !== session.id) {
-				return c.json({ received: true });
+			if (result.success) {
+				console.log(`KYC status updated for user ${userId}: ${newStatus}`);
+			} else {
+				console.log(`KYC transition rejected for user ${userId}: ${result.error}`);
 			}
-
-			await db
-				.update(users)
-				.set({ kycStatus: newStatus })
-				.where(eq(users.id, userId));
-
-			console.log(`KYC status updated for user ${userId}: ${newStatus}`);
 		}
 	}
 
 	return c.json({ received: true });
+};
+
+/**
+ * GET /api/kyc/audit-logs — recent KYC audit log entries for the admin.
+ */
+export const getKycAuditLogs = async (c: Context<AppEnv>) => {
+	try {
+		const userId = c.get('userId');
+
+		const logs = await db
+			.select({
+				id: kycAuditLogs.id,
+				previousStatus: kycAuditLogs.previousStatus,
+				newStatus: kycAuditLogs.newStatus,
+				trigger: kycAuditLogs.trigger,
+				stripeSessionId: kycAuditLogs.stripeSessionId,
+				createdAt: kycAuditLogs.createdAt,
+			})
+			.from(kycAuditLogs)
+			.where(eq(kycAuditLogs.userId, userId))
+			.orderBy(desc(kycAuditLogs.createdAt))
+			.limit(50);
+
+		return c.json({ success: true, data: logs });
+	} catch (error) {
+		const err = error as Error;
+		console.error('Error fetching KYC audit logs:', err);
+		return c.json({ success: false, message: 'Internal server error' }, 500);
+	}
 };

@@ -10,6 +10,8 @@ import {
   Shield,
   ShieldAlert,
   ExternalLink,
+  ArrowRight,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,11 +23,28 @@ interface KycStatus {
   sessionId: string | null;
 }
 
+interface AuditLogEntry {
+  id: string;
+  previousStatus: string;
+  newStatus: string;
+  trigger: string;
+  stripeSessionId: string | null;
+  createdAt: string;
+}
+
 async function fetchKycStatus(): Promise<KycStatus> {
   const res = await fetch("/api/admin/kyc");
   if (!res.ok) throw new Error("Failed to fetch KYC status");
   const data = await res.json();
   if (!data.success) throw new Error(data.message || "Failed to fetch status");
+  return data.data;
+}
+
+async function fetchAuditLogs(): Promise<AuditLogEntry[]> {
+  const res = await fetch("/api/admin/kyc/audit-logs");
+  if (!res.ok) throw new Error("Failed to fetch audit logs");
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message || "Failed to fetch logs");
   return data.data;
 }
 
@@ -68,6 +87,32 @@ const STATUS_CONFIG: Record<
   },
 };
 
+const TRIGGER_LABELS: Record<string, string> = {
+  admin_action: "Admin",
+  webhook: "Stripe",
+  system: "System",
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const config = STATUS_CONFIG[status];
+  if (!config) return <span className="text-xs">{status}</span>;
+  return (
+    <Badge variant={config.variant} className="text-xs">
+      {config.label}
+    </Badge>
+  );
+}
+
 export function KycVerification() {
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -85,6 +130,11 @@ export function KycVerification() {
     },
   });
 
+  const { data: auditLogs, isLoading: logsLoading } = useQuery({
+    queryKey: ["kycAuditLogs"],
+    queryFn: fetchAuditLogs,
+  });
+
   const handleStartVerification = async () => {
     setIsCreating(true);
     try {
@@ -98,6 +148,7 @@ export function KycVerification() {
         toast.success("Verification session created");
         window.open(data.data.url, "_blank", "noopener,noreferrer");
         await queryClient.invalidateQueries({ queryKey: ["kycStatus"] });
+        await queryClient.invalidateQueries({ queryKey: ["kycAuditLogs"] });
       } else {
         toast.error(data.message || "Failed to create verification session");
       }
@@ -216,6 +267,45 @@ export function KycVerification() {
           Learn more about Stripe Identity
           <ExternalLink className="h-3 w-3" />
         </a>
+      </div>
+
+      {/* Audit Log History */}
+      <div className="mt-6 rounded-lg border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <History className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Status Change History</h3>
+        </div>
+
+        {logsLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !auditLogs || auditLogs.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No status changes recorded yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {auditLogs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between rounded-md border px-4 py-3 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={log.previousStatus} />
+                  <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <StatusBadge status={log.newStatus} />
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    via {TRIGGER_LABELS[log.trigger] || log.trigger}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(log.createdAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

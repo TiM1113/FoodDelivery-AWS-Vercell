@@ -89,10 +89,23 @@ export const addresses = pgTable('addresses', {
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ── KYC Audit Logs ──────────────────────────────────────────
+export const kycAuditLogs = pgTable('kyc_audit_logs', {
+	id: uuid('id').defaultRandom().primaryKey(),
+	userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	previousStatus: varchar('previous_status', { length: 20 }).notNull(),
+	newStatus: varchar('new_status', { length: 20 }).notNull(),
+	trigger: varchar('trigger', { length: 30 }).notNull(),
+	stripeSessionId: varchar('stripe_session_id', { length: 255 }),
+	metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ── Relations ────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
 	orders: many(orders),
 	addresses: many(addresses),
+	kycAuditLogs: many(kycAuditLogs),
 }));
 
 export const foodsRelations = relations(foods, ({ many }) => ({
@@ -111,4 +124,8 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 
 export const addressesRelations = relations(addresses, ({ one }) => ({
 	user: one(users, { fields: [addresses.userId], references: [users.id] }),
+}));
+
+export const kycAuditLogsRelations = relations(kycAuditLogs, ({ one }) => ({
+	user: one(users, { fields: [kycAuditLogs.userId], references: [users.id] }),
 }));
