@@ -147,7 +147,8 @@ const mockState = vi.hoisted(() => {
         }),
       };
     }),
-    transaction: vi.fn(async (callback: (tx: typeof tx) => Promise<unknown> | unknown) => callback(tx)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- avoid TS2502 circular reference with typeof tx
+    transaction: vi.fn(async (callback: (tx: any) => Promise<unknown> | unknown) => callback(tx)),
     update: vi.fn(() => ({
       set: vi.fn((values: Record<string, unknown>) => {
         updateSetCalls.push(values);
