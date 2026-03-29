@@ -194,10 +194,12 @@ export const listFood = async (c: Context<AppEnv>) => {
 						);
 						break;
 					default: {
+						// Use millisecond range to avoid sub-ms precision loss from JS Date round-trip
 						const d = new Date(parsed.value);
+						const dNext = new Date(d.getTime() + 1);
 						conditions.push(
 							or(
-								and(eq(foods.createdAt, d), gt(foods.id, cursorId)),
+								and(gte(foods.createdAt, d), lt(foods.createdAt, dNext), gt(foods.id, cursorId)),
 								lt(foods.createdAt, d),
 							)!,
 						);

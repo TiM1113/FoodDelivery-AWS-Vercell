@@ -290,8 +290,9 @@ describe('Food list pagination and list query fixes', () => {
     const whereQuery = renderSql(mockState.whereCalls[0]);
 
     expect(res.status).toBe(200);
-    expect(whereQuery.sql).toBe('(("foods"."created_at" = $1 and "foods"."id" > $2) or "foods"."created_at" < $3)');
-    expect(whereQuery.params).toEqual([cursorDate, cursorId, cursorDate]);
+    const dNext = new Date(new Date(cursorDate).getTime() + 1).toISOString();
+    expect(whereQuery.sql).toBe('(("foods"."created_at" >= $1 and "foods"."created_at" < $2 and "foods"."id" > $3) or "foods"."created_at" < $4)');
+    expect(whereQuery.params).toEqual([cursorDate, dNext, cursorId, cursorDate]);
   });
 
   it('falls back to the first page when the cursor is invalid base64', async () => {
