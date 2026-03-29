@@ -56,6 +56,53 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			) + DELIVERY_FEE) * 100
 		) / 100;
 
+		// Pre-validate promo code BEFORE any order mutation (prevents dangling orders on promo rejection)
+		const { promoCode } = body;
+		let validatedPromoId: string | null = null;
+		let discountAmount: number | null = null;
+
+		if (promoCode && typeof promoCode === 'string') {
+			try {
+				const promoCodes = await stripe.promotionCodes.retrieve(promoCode, {
+					expand: ['coupon'],
+				});
+
+				if (!promoCodes.active) {
+					return c.json({
+						success: false,
+						message: 'Promo code is no longer active. Please remove it and try again.',
+					}, 400);
+				}
+
+				// Enforce minimum order amount
+				const minAmount = promoCodes.restrictions.minimum_amount
+					? promoCodes.restrictions.minimum_amount / 100
+					: null;
+
+				if (minAmount && amount < minAmount) {
+					return c.json({
+						success: false,
+						message: `Minimum order amount for this promo is $${minAmount.toFixed(2)}`,
+					}, 400);
+				}
+
+				validatedPromoId = promoCodes.id;
+
+				// Calculate discount amount for order record
+				const coupon = promoCodes.coupon;
+				if (coupon.percent_off) {
+					discountAmount = Math.round(amount * (coupon.percent_off / 100) * 100) / 100;
+				} else if (coupon.amount_off) {
+					discountAmount = Math.min(coupon.amount_off / 100, amount);
+				}
+			} catch {
+				return c.json({
+					success: false,
+					message: 'Promo code not found or invalid',
+				}, 400);
+			}
+		}
+
 		// Check for existing unpaid duplicate order
 		const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 		const [existingUnpaidOrder] = await db
@@ -185,13 +232,23 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			},
 		};
 
-		// Apply promotion code if provided
-		const { promoCode } = body;
-		if (promoCode && typeof promoCode === 'string') {
-			sessionParams.discounts = [{ promotion_code: promoCode }];
+		// Apply validated promo to session params
+		if (validatedPromoId) {
+			sessionParams.discounts = [{ promotion_code: validatedPromoId }];
 		}
 
-		const session = await stripe.checkout.sessions.create(sessionParams);
+		// Include promo state in idempotency key to handle param changes across retries
+		const promoSuffix = validatedPromoId ? `_p${validatedPromoId}` : '';
+		const session = await stripe.checkout.sessions.create(
+			sessionParams,
+			{ idempotencyKey: `order_${orderId}${promoSuffix}` },
+		);
+
+		// Always update promo fields to clear stale values from reused orders
+		await db.update(orders).set({
+			promoCode: validatedPromoId,
+			discountAmount: validatedPromoId ? discountAmount : null,
+		}).where(eq(orders.id, orderId));
 
 		console.log('Stripe session created successfully:', session.id);
 		return c.json({ success: true, session_url: session.url });
@@ -578,9 +635,15 @@ export const validatePromoCode = async (c: Context<AppEnv>) => {
 		const promo = promotionCodes.data[0];
 		const coupon = promo.coupon;
 
+		// Return minimum_amount so frontend/backend can enforce it
+		const minimumAmount = promo.restrictions.minimum_amount
+			? promo.restrictions.minimum_amount / 100
+			: null;
+
 		return c.json({
 			success: true,
 			promoId: promo.id,
+			minimumAmount,
 			coupon: {
 				percentOff: coupon.percent_off,
 				amountOff: coupon.amount_off ? coupon.amount_off / 100 : null,

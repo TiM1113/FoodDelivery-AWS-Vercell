@@ -6,6 +6,7 @@ interface PromoCoupon {
   amountOff: number | null;
   currency: string | null;
   name: string | null;
+  minimumAmount: number | null;
 }
 
 interface CartState {

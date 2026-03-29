@@ -257,7 +257,7 @@ describe("getTotalAmount", () => {
 // ---------------------------------------------------------------------------
 describe("setPromo", () => {
   it("sets promo code, id, and coupon", () => {
-    const coupon = { percentOff: 10, amountOff: null, currency: null, name: "10% Off" };
+    const coupon = { percentOff: 10, amountOff: null, currency: null, name: "10% Off", minimumAmount: null };
     useCartStore.getState().setPromo("SAVE10", "promo_123", coupon);
 
     const state = useCartStore.getState();
@@ -272,7 +272,7 @@ describe("clearPromo", () => {
     useCartStore.setState({
       promoCode: "SAVE10",
       promoId: "promo_123",
-      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off", minimumAmount: null },
     });
 
     useCartStore.getState().clearPromo();
@@ -290,7 +290,7 @@ describe("clearCart clears promo", () => {
       items: { a: 1 },
       promoCode: "SAVE10",
       promoId: "promo_123",
-      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off", minimumAmount: null },
     });
 
     useCartStore.getState().clearCart();
@@ -313,7 +313,7 @@ describe("getDiscount", () => {
 
   it("calculates percentage discount", () => {
     useCartStore.setState({
-      promoCoupon: { percentOff: 15, amountOff: null, currency: null, name: "15% Off" },
+      promoCoupon: { percentOff: 15, amountOff: null, currency: null, name: "15% Off", minimumAmount: null },
     });
     // 100 * 15% = 15
     expect(useCartStore.getState().getDiscount(100)).toBe(15);
@@ -321,7 +321,7 @@ describe("getDiscount", () => {
 
   it("rounds percentage discount to 2 decimal places", () => {
     useCartStore.setState({
-      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off" },
+      promoCoupon: { percentOff: 10, amountOff: null, currency: null, name: "10% Off", minimumAmount: null },
     });
     // 33.33 * 10% = 3.333 → 3.33
     expect(useCartStore.getState().getDiscount(33.33)).toBe(3.33);
@@ -329,14 +329,14 @@ describe("getDiscount", () => {
 
   it("calculates fixed amount discount", () => {
     useCartStore.setState({
-      promoCoupon: { percentOff: null, amountOff: 5, currency: "usd", name: "$5 Off" },
+      promoCoupon: { percentOff: null, amountOff: 5, currency: "usd", name: "$5 Off", minimumAmount: null },
     });
     expect(useCartStore.getState().getDiscount(100)).toBe(5);
   });
 
   it("caps fixed discount at subtotal", () => {
     useCartStore.setState({
-      promoCoupon: { percentOff: null, amountOff: 20, currency: "usd", name: "$20 Off" },
+      promoCoupon: { percentOff: null, amountOff: 20, currency: "usd", name: "$20 Off", minimumAmount: null },
     });
     // Discount ($20) exceeds subtotal ($10), so it should cap at $10
     expect(useCartStore.getState().getDiscount(10)).toBe(10);
@@ -344,7 +344,7 @@ describe("getDiscount", () => {
 
   it("returns 0 for coupon with no percentOff or amountOff", () => {
     useCartStore.setState({
-      promoCoupon: { percentOff: null, amountOff: null, currency: null, name: "Unknown" },
+      promoCoupon: { percentOff: null, amountOff: null, currency: null, name: "Unknown", minimumAmount: null },
     });
     expect(useCartStore.getState().getDiscount(100)).toBe(0);
   });
