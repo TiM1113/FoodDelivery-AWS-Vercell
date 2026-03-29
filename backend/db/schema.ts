@@ -55,6 +55,7 @@ export const orders = pgTable('orders', {
 	address: jsonb('address').$type<IAddress>().notNull(),
 	status: varchar('status', { length: 50 }).notNull().default('Payment Pending'),
 	payment: boolean('payment').notNull().default(false),
+	stripePaymentIntentId: varchar('stripe_payment_intent_id', { length: 255 }),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -82,18 +82,13 @@ run_codex() {
     local exit_code=0
 
     # gpt-5 does not support xhigh reasoning effort
-    local -a cmd=(timeout "$CODEX_TIMEOUT" codex exec -m "$model" --full-auto -q)
+    local -a cmd=(timeout "$CODEX_TIMEOUT" codex exec -m "$model" --full-auto)
     if [[ "$model" == "gpt-5" ]]; then
       cmd+=(-c 'model_reasoning_effort="medium"')
     fi
 
-    # Write prompt to temp file to avoid shell injection via eval
-    local tmpfile
-    tmpfile=$(mktemp)
-    printf '%s' "$prompt" > "$tmpfile"
-
-    output=$("${cmd[@]}" - < "$tmpfile" 2>&1) || exit_code=$?
-    rm -f "$tmpfile"
+    # Pass prompt as a direct argument (stdin mode unreliable)
+    output=$("${cmd[@]}" "$prompt" 2>&1) || exit_code=$?
 
     # Check for quota / rate-limit errors
     if echo "$output" | grep -qiE "rate.limit|quota|too many requests|capacity|exceeded|429"; then
@@ -188,6 +183,11 @@ check_results() {
 
 # ── Phase: Claude fixes failures ──────────────────────────────────────────────
 claude_fix() {
+  if [[ ! -f "$REPORT_FILE" ]]; then
+    log_error "No TEST-REPORT.md to fix against. Codex may not have written tests."
+    return 1
+  fi
+
   local report_content
   report_content=$(cat "$REPORT_FILE")
 
