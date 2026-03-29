@@ -82,16 +82,18 @@ run_codex() {
     local exit_code=0
 
     # gpt-5 does not support xhigh reasoning effort
-    local extra_flags=""
+    local -a cmd=(timeout "$CODEX_TIMEOUT" codex exec -m "$model" --full-auto -q)
     if [[ "$model" == "gpt-5" ]]; then
-      extra_flags='-c model_reasoning_effort="medium"'
+      cmd+=(-c 'model_reasoning_effort="medium"')
     fi
 
-    output=$(eval timeout "$CODEX_TIMEOUT" codex exec \
-      -m "$model" $extra_flags \
-      --full-auto \
-      -q \
-      '"$prompt"' 2>&1) || exit_code=$?
+    # Write prompt to temp file to avoid shell injection via eval
+    local tmpfile
+    tmpfile=$(mktemp)
+    printf '%s' "$prompt" > "$tmpfile"
+
+    output=$("${cmd[@]}" - < "$tmpfile" 2>&1) || exit_code=$?
+    rm -f "$tmpfile"
 
     # Check for quota / rate-limit errors
     if echo "$output" | grep -qiE "rate.limit|quota|too many requests|capacity|exceeded|429"; then
@@ -161,9 +163,9 @@ Then write TEST-REPORT.md with results."
     log_info "  Tests completed by model: ${model_used}"
     log_info "=========================================="
 
-    # Inject model info into report if it exists
+    # Inject model info into report if it exists (portable, no sed -i)
     if [[ -f "$REPORT_FILE" ]]; then
-      sed -i '' "1s/^/# Test Report (model: ${model_used})\n\n/" "$REPORT_FILE" 2>/dev/null || true
+      { echo "# Test Report (model: ${model_used})"; echo; cat "$REPORT_FILE"; } > "${REPORT_FILE}.tmp" && mv "${REPORT_FILE}.tmp" "$REPORT_FILE"
     fi
   fi
 
