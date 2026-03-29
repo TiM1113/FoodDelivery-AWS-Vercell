@@ -4,12 +4,12 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mocks — vi.hoisted ensures variables exist before vi.mock factory runs
 // ---------------------------------------------------------------------------
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-backend-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -38,7 +38,7 @@ function makeParams(orderId: string) {
 
 describe("GET /api/order/status/[orderId]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await GET(makeRequest("order_123"), makeParams("order_123"));
     const data = await res.json();
@@ -48,7 +48,7 @@ describe("GET /api/order/status/[orderId]", () => {
   });
 
   it("forwards request to backend and returns payment status", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user1" } });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ payment: true }),
@@ -69,7 +69,7 @@ describe("GET /api/order/status/[orderId]", () => {
   });
 
   it("returns payment=false when order is still pending", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user1" } });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ payment: false }),

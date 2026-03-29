@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-backend-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -25,7 +25,7 @@ beforeEach(() => {
 
 describe("GET /api/user/profile", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/user/profile");
     const res = await GET(req);
@@ -34,7 +34,7 @@ describe("GET /api/user/profile", () => {
   });
 
   it("forwards profile data from backend", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     const backendResponse = {
       success: true,
@@ -53,7 +53,7 @@ describe("GET /api/user/profile", () => {
   });
 
   it("returns 502 on network error", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
     vi.spyOn(globalThis, "fetch").mockRejectedValue(
       new Error("Connection refused"),
     );
@@ -67,7 +67,7 @@ describe("GET /api/user/profile", () => {
 
 describe("PUT /api/user/profile", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/user/profile", {
       method: "PUT",
@@ -80,7 +80,7 @@ describe("PUT /api/user/profile", () => {
   });
 
   it("forwards name update to backend", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     const backendResponse = {
       success: true,

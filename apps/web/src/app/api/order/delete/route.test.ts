@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-backend-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -22,7 +22,6 @@ import { POST } from "./route";
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("API_URL", "http://localhost:4000");
-  vi.stubEnv("AUTH_SECRET", "test-secret");
   vi.stubEnv("JWT_SECRET", "test-jwt-secret");
 });
 
@@ -41,7 +40,7 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
 
 describe("POST /api/order/delete", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(makeRequest({ orderId: "abc123" }));
     const data = await res.json();
@@ -51,7 +50,7 @@ describe("POST /api/order/delete", () => {
   });
 
   it("forwards delete request to backend and returns response", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ success: true, message: "Order deleted" }),

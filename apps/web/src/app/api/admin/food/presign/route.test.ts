@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-admin-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -22,7 +22,6 @@ import { POST } from "./route";
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("API_URL", "http://localhost:4000");
-  vi.stubEnv("AUTH_SECRET", "test-secret");
   vi.stubEnv("JWT_SECRET", "test-jwt-secret");
 });
 
@@ -41,7 +40,7 @@ function makeRequest(body: string): NextRequest {
 
 describe("POST /api/admin/food/presign", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(makeRequest(JSON.stringify({ fileName: "img.png", fileType: "image/png" })));
     const data = await res.json();
@@ -51,7 +50,7 @@ describe("POST /api/admin/food/presign", () => {
   });
 
   it("returns 403 when user is not admin", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", role: "user" });
+    mockAuth.mockResolvedValue({ user: { id: "user1", role: "user" } });
 
     const res = await POST(makeRequest(JSON.stringify({ fileName: "img.png", fileType: "image/png" })));
     const data = await res.json();
@@ -61,7 +60,7 @@ describe("POST /api/admin/food/presign", () => {
   });
 
   it("proxies presign request to backend for admin", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ success: true, uploadUrl: "https://s3.example.com/upload", key: "foods/abc.png" }),
     );
@@ -78,7 +77,7 @@ describe("POST /api/admin/food/presign", () => {
   });
 
   it("returns 400 for invalid JSON body", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
 
     const req = new NextRequest("http://localhost:3000/api/admin/food/presign", {
       method: "POST",

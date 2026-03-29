@@ -4,12 +4,12 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mocks — vi.hoisted ensures variables exist before vi.mock factory runs
 // ---------------------------------------------------------------------------
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-backend-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -39,7 +39,7 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
 // ---------------------------------------------------------------------------
 describe("POST /api/order/place", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(makeRequest({ items: [], amount: 0 }));
     const data = await res.json();
@@ -50,7 +50,7 @@ describe("POST /api/order/place", () => {
   });
 
   it("returns 401 when token has no id", async () => {
-    mockGetToken.mockResolvedValue({ sub: "x" });
+    mockAuth.mockResolvedValue({ user: {} });
 
     const res = await POST(makeRequest({ items: [], amount: 0 }));
 
@@ -58,7 +58,7 @@ describe("POST /api/order/place", () => {
   });
 
   it("forwards request to backend with userId and returns response", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     const backendResponse = { success: true, session_url: "https://stripe.com/checkout/123" };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -87,7 +87,7 @@ describe("POST /api/order/place", () => {
   });
 
   it("includes userId in forwarded body", async () => {
-    mockGetToken.mockResolvedValue({ id: "user456", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user456" } });
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ success: true }),

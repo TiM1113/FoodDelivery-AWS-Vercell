@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-admin-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -22,7 +22,6 @@ import { GET, POST } from "./route";
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("API_URL", "http://localhost:4000");
-  vi.stubEnv("AUTH_SECRET", "test-secret");
   vi.stubEnv("JWT_SECRET", "test-jwt-secret");
 });
 
@@ -37,7 +36,7 @@ function makeRequest(method: "GET" | "POST" = "GET"): NextRequest {
 
 describe("GET /api/admin/kyc", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await GET(makeRequest());
     const data = await res.json();
@@ -47,7 +46,7 @@ describe("GET /api/admin/kyc", () => {
   });
 
   it("returns 403 for non-admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", role: "user", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123", role: "user" } });
 
     const res = await GET(makeRequest());
     const data = await res.json();
@@ -57,7 +56,7 @@ describe("GET /api/admin/kyc", () => {
   });
 
   it("forwards status request to backend for admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
 
     const mockStatus = {
       success: true,
@@ -79,7 +78,7 @@ describe("GET /api/admin/kyc", () => {
 
 describe("POST /api/admin/kyc", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(makeRequest("POST"));
     const data = await res.json();
@@ -89,7 +88,7 @@ describe("POST /api/admin/kyc", () => {
   });
 
   it("forwards create-session request to backend for admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
 
     const mockSession = {
       success: true,

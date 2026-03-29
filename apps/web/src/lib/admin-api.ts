@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 import { SignJWT } from "jose";
 import { NextRequest } from "next/server";
 
@@ -12,19 +12,17 @@ function env(name: string): string {
  * Verify the request comes from an authenticated admin user.
  * Returns the backend-compatible JWT or a JSON error response.
  */
-export async function getAdminJwt(
-  req: NextRequest,
-): Promise<{ jwt: string } | Response> {
-  const token = await getToken({ req, secret: env("AUTH_SECRET") });
+export async function getAdminJwt(): Promise<{ jwt: string } | Response> {
+  const session = await auth();
 
-  if (!token?.id) {
+  if (!session?.user?.id) {
     return Response.json(
       { success: false, message: "Not authenticated" },
       { status: 401 },
     );
   }
 
-  if (token.role !== "admin") {
+  if (session.user.role !== "admin") {
     return Response.json(
       { success: false, message: "Admin access required" },
       { status: 403 },
@@ -32,7 +30,7 @@ export async function getAdminJwt(
   }
 
   const secret = new TextEncoder().encode(env("JWT_SECRET"));
-  const jwt = await new SignJWT({ id: token.id })
+  const jwt = await new SignJWT({ id: session.user.id })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("7d")
     .sign(secret);
@@ -48,7 +46,7 @@ export async function adminProxy(
   backendPath: string,
   options?: { method?: string; body?: unknown },
 ): Promise<Response> {
-  const result = await getAdminJwt(req);
+  const result = await getAdminJwt();
   if (result instanceof Response) return result;
 
   const method = options?.method ?? "POST";

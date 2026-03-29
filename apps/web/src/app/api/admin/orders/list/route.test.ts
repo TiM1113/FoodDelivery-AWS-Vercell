@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-admin-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -22,7 +22,6 @@ import { GET } from "./route";
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.API_URL = "http://localhost:4000";
-  process.env.AUTH_SECRET = "test-secret";
   process.env.JWT_SECRET = "test-jwt-secret";
 });
 
@@ -34,7 +33,7 @@ function makeRequest(): NextRequest {
 
 describe("GET /api/admin/orders/list", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await GET(makeRequest());
     const data = await res.json();
@@ -44,7 +43,7 @@ describe("GET /api/admin/orders/list", () => {
   });
 
   it("returns 403 for non-admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", role: "user" });
+    mockAuth.mockResolvedValue({ user: { id: "user1", role: "user" } });
 
     const res = await GET(makeRequest());
     const data = await res.json();
@@ -54,7 +53,7 @@ describe("GET /api/admin/orders/list", () => {
   });
 
   it("proxies GET request to backend for admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
 
     const mockOrders = [
       { _id: "o1", items: [], amount: 25, status: "Food Processing", payment: true },
