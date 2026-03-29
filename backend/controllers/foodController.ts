@@ -117,8 +117,9 @@ export const listFood = async (c: Context<AppEnv>) => {
 		const cursor = c.req.query('cursor');
 		const limitParam = c.req.query('limit');
 
+		const rawLimit = limitParam != null ? parseInt(limitParam, 10) : DEFAULT_PAGE_SIZE;
 		const limit = Math.min(
-			Math.max(1, parseInt(limitParam || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE),
+			Math.max(1, isNaN(rawLimit) ? DEFAULT_PAGE_SIZE : rawLimit),
 			MAX_PAGE_SIZE,
 		);
 
@@ -148,34 +149,75 @@ export const listFood = async (c: Context<AppEnv>) => {
 			if (!isNaN(max)) conditions.push(lte(foods.price, max));
 		}
 
-		// Cursor-based pagination: use createdAt as cursor for default sort
+		// Decode compound cursor: { value, id }
+		const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 		if (cursor) {
-			const cursorDate = new Date(cursor);
-			if (!isNaN(cursorDate.getTime())) {
-				switch (sortBy) {
-					case 'price_asc':
-						conditions.push(gt(foods.price, parseFloat(cursor)));
-						break;
-					case 'price_desc':
-						conditions.push(lt(foods.price, parseFloat(cursor)));
-						break;
-					case 'name_asc':
-						conditions.push(gt(foods.name, cursor));
-						break;
-					default:
-						conditions.push(lt(foods.createdAt, cursorDate));
-						break;
+			try {
+				const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+				if (typeof parsed.value !== 'string' || typeof parsed.id !== 'string' || !UUID_RE.test(parsed.id)) {
+					throw new Error('Invalid cursor payload');
 				}
+				if ((sortBy === 'price_asc' || sortBy === 'price_desc') && !Number.isFinite(parseFloat(parsed.value))) {
+					throw new Error('Invalid cursor payload');
+				}
+				if (sortBy !== 'price_asc' && sortBy !== 'price_desc' && sortBy !== 'name_asc' && isNaN(Date.parse(parsed.value))) {
+					throw new Error('Invalid cursor payload');
+				}
+				const cursorId: string = parsed.id;
+				switch (sortBy) {
+					case 'price_asc': {
+						const v = parseFloat(parsed.value);
+						conditions.push(
+							or(
+								and(eq(foods.price, v), gt(foods.id, cursorId)),
+								gt(foods.price, v),
+							)!,
+						);
+						break;
+					}
+					case 'price_desc': {
+						const v = parseFloat(parsed.value);
+						conditions.push(
+							or(
+								and(eq(foods.price, v), gt(foods.id, cursorId)),
+								lt(foods.price, v),
+							)!,
+						);
+						break;
+					}
+					case 'name_asc':
+						conditions.push(
+							or(
+								and(eq(foods.name, parsed.value), gt(foods.id, cursorId)),
+								gt(foods.name, parsed.value),
+							)!,
+						);
+						break;
+					default: {
+						// Use millisecond range to avoid sub-ms precision loss from JS Date round-trip
+						const d = new Date(parsed.value);
+						const dNext = new Date(d.getTime() + 1);
+						conditions.push(
+							or(
+								and(gte(foods.createdAt, d), lt(foods.createdAt, dNext), gt(foods.id, cursorId)),
+								lt(foods.createdAt, d),
+							)!,
+						);
+						break;
+					}
+				}
+			} catch {
+				// Invalid cursor — ignore and start from first page
 			}
 		}
 
-		// Build sort
-		const orderClause = (() => {
+		// Build sort with secondary tiebreaker on id
+		const orderClauses = (() => {
 			switch (sortBy) {
-				case 'price_asc': return asc(foods.price);
-				case 'price_desc': return desc(foods.price);
-				case 'name_asc': return asc(foods.name);
-				default: return desc(foods.createdAt);
+				case 'price_asc': return [asc(foods.price), asc(foods.id)];
+				case 'price_desc': return [desc(foods.price), asc(foods.id)];
+				case 'name_asc': return [asc(foods.name), asc(foods.id)];
+				default: return [desc(foods.createdAt), asc(foods.id)];
 			}
 		})();
 
@@ -185,12 +227,9 @@ export const listFood = async (c: Context<AppEnv>) => {
 			: query;
 
 		// Fetch limit + 1 to determine if there are more items
-		const foodList = await Promise.race([
-			filtered.orderBy(orderClause).limit(limit + 1),
-			new Promise<never>((_, reject) =>
-				setTimeout(() => reject(new Error('Database query timeout')), 25000)
-			),
-		]);
+		const foodList = await filtered
+			.orderBy(...orderClauses)
+			.limit(limit + 1);
 
 		const hasMore = foodList.length > limit;
 		const pageItems = hasMore ? foodList.slice(0, limit) : foodList;
@@ -203,22 +242,24 @@ export const listFood = async (c: Context<AppEnv>) => {
 			return formatted;
 		});
 
-		// Build next cursor from the last item
+		// Build next cursor from the last item (base64url-encoded compound key)
 		let nextCursor: string | null = null;
 		if (hasMore && pageItems.length > 0) {
 			const lastItem = pageItems[pageItems.length - 1];
+			let value: string;
 			switch (sortBy) {
 				case 'price_asc':
 				case 'price_desc':
-					nextCursor = String(lastItem.price);
+					value = String(lastItem.price);
 					break;
 				case 'name_asc':
-					nextCursor = lastItem.name;
+					value = lastItem.name;
 					break;
 				default:
-					nextCursor = lastItem.createdAt.toISOString();
+					value = lastItem.createdAt.toISOString();
 					break;
 			}
+			nextCursor = Buffer.from(JSON.stringify({ value, id: lastItem.id })).toString('base64url');
 		}
 
 		return c.json({
