@@ -55,10 +55,6 @@ logs/
 tmp/
 temp/
 
-# Claude + Codex orchestration artifacts
-TEST-SPEC.md
-TEST-REPORT.md
-**/TEST-SPEC.md
-**/TEST-REPORT.md
-claude-fix-log.txt
-**/claude-fix-log.txt
+# Claude + Codex test artifacts (live in backend/__tests__/)
+backend/__tests__/TEST-SPEC.md
+backend/__tests__/TEST-REPORT.md
