@@ -150,9 +150,19 @@ export const listFood = async (c: Context<AppEnv>) => {
 		}
 
 		// Decode compound cursor: { value, id }
+		const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 		if (cursor) {
 			try {
 				const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+				if (typeof parsed.value !== 'string' || typeof parsed.id !== 'string' || !UUID_RE.test(parsed.id)) {
+					throw new Error('Invalid cursor payload');
+				}
+				if ((sortBy === 'price_asc' || sortBy === 'price_desc') && !Number.isFinite(parseFloat(parsed.value))) {
+					throw new Error('Invalid cursor payload');
+				}
+				if (sortBy !== 'price_asc' && sortBy !== 'price_desc' && sortBy !== 'name_asc' && isNaN(Date.parse(parsed.value))) {
+					throw new Error('Invalid cursor payload');
+				}
 				const cursorId: string = parsed.id;
 				switch (sortBy) {
 					case 'price_asc': {
