@@ -1,9 +1,8 @@
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 import { SignJWT } from "jose";
 
 const API_URL = process.env.API_URL || "";
-const AUTH_SECRET = process.env.AUTH_SECRET || "";
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "");
 
 async function mintBackendJwt(userId: string) {
@@ -14,8 +13,8 @@ async function mintBackendJwt(userId: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: AUTH_SECRET });
-  if (!token?.id) {
+  const session = await auth();
+  if (!session?.user?.id) {
     return Response.json(
       { success: false, message: "Not authenticated" },
       { status: 401 },
@@ -23,7 +22,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const backendJwt = await mintBackendJwt(token.id as string);
+    const backendJwt = await mintBackendJwt(session.user.id);
     const res = await fetch(`${API_URL}/api/user/profile`, {
       headers: { Cookie: `token=${backendJwt}` },
       signal: AbortSignal.timeout(10_000),
@@ -45,8 +44,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const token = await getToken({ req, secret: AUTH_SECRET });
-  if (!token?.id) {
+  const session = await auth();
+  if (!session?.user?.id) {
     return Response.json(
       { success: false, message: "Not authenticated" },
       { status: 401 },
@@ -54,7 +53,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const backendJwt = await mintBackendJwt(token.id as string);
+    const backendJwt = await mintBackendJwt(session.user.id);
     const body = await req.json();
     const res = await fetch(`${API_URL}/api/user/profile`, {
       method: "PUT",

@@ -4,12 +4,12 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-backend-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -39,7 +39,7 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
 // ---------------------------------------------------------------------------
 describe("POST /api/promo/validate", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(makeRequest({ code: "SAVE10" }));
     const data = await res.json();
@@ -50,7 +50,7 @@ describe("POST /api/promo/validate", () => {
   });
 
   it("returns 401 when token has no id", async () => {
-    mockGetToken.mockResolvedValue({ sub: "x" });
+    mockAuth.mockResolvedValue({ user: {} });
 
     const res = await POST(makeRequest({ code: "SAVE10" }));
 
@@ -58,7 +58,7 @@ describe("POST /api/promo/validate", () => {
   });
 
   it("forwards request to backend and returns success response", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     const backendResponse = {
       success: true,
@@ -85,7 +85,7 @@ describe("POST /api/promo/validate", () => {
   });
 
   it("forwards invalid promo response from backend", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     const backendResponse = {
       success: false,
@@ -103,7 +103,7 @@ describe("POST /api/promo/validate", () => {
   });
 
   it("returns 502 on network error", async () => {
-    mockGetToken.mockResolvedValue({ id: "user123", sub: "x" });
+    mockAuth.mockResolvedValue({ user: { id: "user123" } });
 
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Connection refused"));
 

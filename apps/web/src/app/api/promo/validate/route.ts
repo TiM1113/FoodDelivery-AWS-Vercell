@@ -1,22 +1,21 @@
 import { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 import { SignJWT } from "jose";
 
 const API_URL = process.env.API_URL || "";
-const AUTH_SECRET = process.env.AUTH_SECRET || "";
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "");
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: AUTH_SECRET });
+  const session = await auth();
 
-  if (!token?.id) {
+  if (!session?.user?.id) {
     return Response.json(
       { success: false, message: "Not authenticated" },
       { status: 401 },
     );
   }
 
-  const backendJwt = await new SignJWT({ id: token.id })
+  const backendJwt = await new SignJWT({ id: session.user.id })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("7d")
     .sign(JWT_SECRET);

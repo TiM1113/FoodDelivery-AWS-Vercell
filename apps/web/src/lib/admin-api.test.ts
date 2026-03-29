@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockGetToken, mockSign } = vi.hoisted(() => ({
-  mockGetToken: vi.fn(),
+const { mockAuth, mockSign } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockSign: vi.fn().mockResolvedValue("mocked-admin-jwt"),
 }));
 
-vi.mock("next-auth/jwt", () => ({ getToken: mockGetToken }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("jose", () => ({
   SignJWT: function SignJWT() {
     return {
@@ -22,7 +22,6 @@ import { getAdminJwt, adminProxy } from "./admin-api";
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.API_URL = "http://localhost:4000";
-  process.env.AUTH_SECRET = "test-secret";
   process.env.JWT_SECRET = "test-jwt-secret";
 });
 
@@ -35,9 +34,9 @@ function makeRequest(
 
 describe("getAdminJwt", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
-    const result = await getAdminJwt(makeRequest());
+    const result = await getAdminJwt();
     expect(result).toBeInstanceOf(Response);
     const data = await (result as Response).json();
     expect(data.success).toBe(false);
@@ -45,9 +44,9 @@ describe("getAdminJwt", () => {
   });
 
   it("returns 403 when user is not admin", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", role: "user" });
+    mockAuth.mockResolvedValue({ user: { id: "user1", role: "user" } });
 
-    const result = await getAdminJwt(makeRequest());
+    const result = await getAdminJwt();
     expect(result).toBeInstanceOf(Response);
     const data = await (result as Response).json();
     expect(data.success).toBe(false);
@@ -55,9 +54,9 @@ describe("getAdminJwt", () => {
   });
 
   it("returns JWT when user is admin", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
 
-    const result = await getAdminJwt(makeRequest());
+    const result = await getAdminJwt();
     expect(result).not.toBeInstanceOf(Response);
     expect((result as { jwt: string }).jwt).toBe("mocked-admin-jwt");
   });
@@ -65,7 +64,7 @@ describe("getAdminJwt", () => {
 
 describe("adminProxy", () => {
   it("returns 401 for unauthenticated requests", async () => {
-    mockGetToken.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const res = await adminProxy(makeRequest(), "/api/food/add", {
       body: { name: "test" },
@@ -77,7 +76,7 @@ describe("adminProxy", () => {
   });
 
   it("returns 403 for non-admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "user1", role: "user" });
+    mockAuth.mockResolvedValue({ user: { id: "user1", role: "user" } });
 
     const res = await adminProxy(makeRequest(), "/api/food/add", {
       body: { name: "test" },
@@ -89,7 +88,7 @@ describe("adminProxy", () => {
   });
 
   it("forwards POST request to backend for admin users", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ success: true, message: "Food added" }),
     );
@@ -112,7 +111,7 @@ describe("adminProxy", () => {
   });
 
   it("forwards GET request without body", async () => {
-    mockGetToken.mockResolvedValue({ id: "admin1", role: "admin" });
+    mockAuth.mockResolvedValue({ user: { id: "admin1", role: "admin" } });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ success: true, data: [] }),
     );
