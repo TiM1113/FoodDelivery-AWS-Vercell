@@ -108,6 +108,12 @@ run_codex() {
       continue
     fi
 
+    # Any other non-zero exit should not be treated as success
+    if [[ $exit_code -ne 0 ]]; then
+      log_warn "${model} failed (exit ${exit_code}). Falling back..."
+      continue
+    fi
+
     # Success
     used_model="$model"
     log_ok "Codex completed with model: ${used_model}"

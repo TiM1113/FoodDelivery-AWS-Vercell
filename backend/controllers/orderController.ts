@@ -294,12 +294,19 @@ export const handleWebhook = async (c: Context<AppEnv>) => {
 				? session.payment_intent
 				: session.payment_intent?.id ?? null;
 
-			await db.update(orders).set({
+			const [updated] = await db.update(orders).set({
 				payment: true,
 				status: 'Food Processing',
 				stripePaymentIntentId: paymentIntentId,
-			}).where(eq(orders.id, orderId));
-			console.log(`Webhook: order ${orderId} marked as paid (pi: ${paymentIntentId})`);
+			}).where(
+				and(eq(orders.id, orderId), eq(orders.payment, false)),
+			).returning({ id: orders.id });
+
+			if (updated) {
+				console.log(`Webhook: order ${orderId} marked as paid (pi: ${paymentIntentId})`);
+			} else {
+				console.log(`Webhook: order ${orderId} already paid or cancelled, skipped`);
+			}
 		} catch (error) {
 			console.error('Webhook: error updating order:', error);
 			return c.json({ success: false, message: 'Error updating order' }, 500);
@@ -655,11 +662,13 @@ export const cancelOrder = async (c: Context<AppEnv>) => {
 			}
 		}
 
-		return c.json({
-			success: true,
-			message: updated.payment ? 'Order cancelled and refund initiated' : 'Order cancelled',
-			refundId,
-		});
+		const message = refundId
+			? 'Order cancelled and refund initiated'
+			: updated.payment
+				? 'Order cancelled. Refund requires manual follow-up.'
+				: 'Order cancelled';
+
+		return c.json({ success: true, message, refundId });
 	} catch (error) {
 		const err = error as Error;
 		console.error('Cancel order error:', err);
