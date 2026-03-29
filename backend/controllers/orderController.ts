@@ -290,11 +290,23 @@ export const handleWebhook = async (c: Context<AppEnv>) => {
 			return c.json({ received: true });
 		}
 		try {
-			await db.update(orders).set({
+			const paymentIntentId = typeof session.payment_intent === 'string'
+				? session.payment_intent
+				: session.payment_intent?.id ?? null;
+
+			const [updated] = await db.update(orders).set({
 				payment: true,
 				status: 'Food Processing',
-			}).where(eq(orders.id, orderId));
-			console.log(`Webhook: order ${orderId} marked as paid`);
+				stripePaymentIntentId: paymentIntentId,
+			}).where(
+				and(eq(orders.id, orderId), eq(orders.payment, false)),
+			).returning({ id: orders.id });
+
+			if (updated) {
+				console.log(`Webhook: order ${orderId} marked as paid (pi: ${paymentIntentId})`);
+			} else {
+				console.log(`Webhook: order ${orderId} already paid or cancelled, skipped`);
+			}
 		} catch (error) {
 			console.error('Webhook: error updating order:', error);
 			return c.json({ success: false, message: 'Error updating order' }, 500);
@@ -583,7 +595,7 @@ export const validatePromoCode = async (c: Context<AppEnv>) => {
 	}
 };
 
-const CANCELLABLE_STATUSES = new Set(['Payment Pending', 'Food Processing']);
+const CANCELLABLE_STATUSES = ['Payment Pending', 'Food Processing'] as const;
 
 export const cancelOrder = async (c: Context<AppEnv>) => {
 	try {
@@ -594,57 +606,69 @@ export const cancelOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const [order] = await db
-			.select()
-			.from(orders)
-			.where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
-			.limit(1);
+		// Atomic UPDATE: only succeeds if order exists, belongs to user, and is cancellable
+		const [updated] = await db
+			.update(orders)
+			.set({ status: 'Cancelled' })
+			.where(
+				and(
+					eq(orders.id, orderId),
+					eq(orders.userId, userId),
+					inArray(orders.status, [...CANCELLABLE_STATUSES]),
+				),
+			)
+			.returning();
 
-		if (!order) {
-			return c.json({ success: false, message: 'Order not found' }, 404);
-		}
+		if (!updated) {
+			// Determine why: order not found vs wrong status
+			const [existing] = await db
+				.select({ id: orders.id, status: orders.status })
+				.from(orders)
+				.where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+				.limit(1);
 
-		if (!CANCELLABLE_STATUSES.has(order.status)) {
+			if (!existing) {
+				return c.json({ success: false, message: 'Order not found' }, 404);
+			}
 			return c.json({
 				success: false,
-				message: `Cannot cancel order with status "${order.status}"`,
+				message: `Cannot cancel order with status "${existing.status}"`,
 			}, 400);
 		}
 
-		// If paid, issue Stripe refund
+		// Determine previous status for rollback (Payment Pending→unpaid, Food Processing→paid)
+		const previousStatus = updated.payment ? 'Food Processing' : 'Payment Pending';
+
+		// If paid, issue Stripe refund using stored paymentIntentId
 		let refundId: string | null = null;
-		if (order.payment) {
-			// Find the Stripe payment intent via checkout session metadata
-			const sessions = await stripe.checkout.sessions.list({
-				limit: 5,
-			});
-
-			const session = sessions.data.find(
-				(s) => s.metadata?.orderId === orderId && s.payment_status === 'paid',
-			);
-
-			if (session?.payment_intent) {
-				const paymentIntentId = typeof session.payment_intent === 'string'
-					? session.payment_intent
-					: session.payment_intent.id;
-
+		if (updated.payment && updated.stripePaymentIntentId) {
+			try {
 				const refund = await stripe.refunds.create({
-					payment_intent: paymentIntentId,
+					payment_intent: updated.stripePaymentIntentId,
 				});
 				refundId = refund.id;
+			} catch (refundError) {
+				console.error('Refund failed, rolling back cancellation:', refundError);
+				// Rollback: restore previous status
+				await db
+					.update(orders)
+					.set({ status: previousStatus })
+					.where(eq(orders.id, orderId));
+
+				return c.json({
+					success: false,
+					message: 'Refund failed. Order status restored. Please try again later.',
+				}, 502);
 			}
 		}
 
-		await db
-			.update(orders)
-			.set({ status: 'Cancelled' })
-			.where(eq(orders.id, orderId));
+		const message = refundId
+			? 'Order cancelled and refund initiated'
+			: updated.payment
+				? 'Order cancelled. Refund requires manual follow-up.'
+				: 'Order cancelled';
 
-		return c.json({
-			success: true,
-			message: order.payment ? 'Order cancelled and refund initiated' : 'Order cancelled',
-			refundId,
-		});
+		return c.json({ success: true, message, refundId });
 	} catch (error) {
 		const err = error as Error;
 		console.error('Cancel order error:', err);
