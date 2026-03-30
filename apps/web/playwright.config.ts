@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+
+const authFile = path.join(__dirname, "e2e", ".auth-state.json");
+const adminAuthFile = path.join(__dirname, "e2e", ".admin-auth-state.json");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,9 +20,43 @@ export default defineConfig({
   },
 
   projects: [
+    // Setup project — runs first and logs in once
+    {
+      name: "setup",
+      testMatch: /^auth\.setup\.ts$/,
+    },
+    // Tests that do NOT need authentication — depend on setup to avoid rate limit conflicts
+    {
+      name: "no-auth",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      testMatch: /\/(smoke|navigation|menu|auth)\.spec\.ts$/,
+    },
+    // Tests that need authentication — depend on setup
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: authFile,
+      },
+      dependencies: ["setup"],
+      testIgnore: /\/(smoke|navigation|menu|auth|admin-).*\.spec\.ts$/,
+    },
+    // Admin setup — runs after regular setup to avoid rate limit conflicts
+    {
+      name: "admin-setup",
+      testMatch: /admin-auth\.setup\.ts/,
+      dependencies: ["setup"],
+    },
+    // Admin tests — depend on admin-setup
+    {
+      name: "admin",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: adminAuthFile,
+      },
+      dependencies: ["admin-setup"],
+      testMatch: /\/admin-.*\.spec\.ts$/,
     },
   ],
 
