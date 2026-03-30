@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  AddressAutocomplete,
+  type AddressComponents,
+} from "@/components/address-autocomplete";
 
 // ---------------------------------------------------------------------------
 // Types used in test helpers
@@ -50,8 +53,8 @@ vi.mock("@/components/google-maps-provider", () => ({
 }));
 
 vi.mock("use-places-autocomplete", () => ({
-  default: (...args: unknown[]) => mockUsePlacesAutocomplete(...args),
-  getGeocode: (...args: unknown[]) => mockGetGeocode(...args),
+  default: mockUsePlacesAutocomplete,
+  getGeocode: mockGetGeocode,
 }));
 
 interface GeocoderAddressComponent {
@@ -114,8 +117,8 @@ function renderComponent(
     id: string;
     value: string;
     placeholder: string;
-    onChange: ReturnType<typeof vi.fn>;
-    onSelect: ReturnType<typeof vi.fn>;
+    onChange: (value: string) => void;
+    onSelect: (address: AddressComponents) => void;
   }> = {},
 ) {
   const onChange = props.onChange ?? vi.fn();
