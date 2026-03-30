@@ -84,4 +84,11 @@ test.describe("Authentication flows", () => {
       page.getByRole("link", { name: "Sign In" }),
     ).toBeVisible();
   });
+
+  test("profile page redirects to login when not authenticated", async ({
+    page,
+  }) => {
+    await page.goto("/profile");
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
+  });
 });
