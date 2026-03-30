@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import {
   AddressAutocomplete,
   type AddressComponents,
@@ -111,7 +111,7 @@ const STANDARD_SUGGESTION: PlaceSuggestion = {
   },
 };
 
-function renderComponent(
+async function renderComponent(
   props: Partial<{
     id: string;
     value: string;
@@ -123,15 +123,19 @@ function renderComponent(
   const onChange = props.onChange ?? vi.fn();
   const onSelect = props.onSelect ?? vi.fn();
 
-  return render(
-    <AddressAutocomplete
-      id={props.id}
-      value={props.value ?? ""}
-      onChange={onChange}
-      onSelect={onSelect}
-      placeholder={props.placeholder}
-    />,
-  );
+  let result!: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(
+      <AddressAutocomplete
+        id={props.id}
+        value={props.value ?? ""}
+        onChange={onChange}
+        onSelect={onSelect}
+        placeholder={props.placeholder}
+      />,
+    );
+  });
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,22 +162,22 @@ describe("AddressAutocomplete", () => {
   // Rendering
   // -------------------------------------------------------------------------
   describe("rendering", () => {
-    it("renders input with the default placeholder", () => {
-      renderComponent();
+    it("renders input with the default placeholder", async () => {
+      await renderComponent();
       expect(
         screen.getByPlaceholderText("Start typing an address…"),
       ).toBeInTheDocument();
     });
 
-    it("renders input with a custom placeholder prop", () => {
-      renderComponent({ placeholder: "Enter your delivery address" });
+    it("renders input with a custom placeholder prop", async () => {
+      await renderComponent({ placeholder: "Enter your delivery address" });
       expect(
         screen.getByPlaceholderText("Enter your delivery address"),
       ).toBeInTheDocument();
     });
 
-    it("renders input with the id prop", () => {
-      renderComponent({ id: "test-id" });
+    it("renders input with the id prop", async () => {
+      await renderComponent({ id: "test-id" });
       const input = screen.getByRole("combobox");
       expect(input).toHaveAttribute("id", "test-id");
     });
@@ -183,9 +187,9 @@ describe("AddressAutocomplete", () => {
   // User interaction
   // -------------------------------------------------------------------------
   describe("user interaction", () => {
-    it("calls onChange when the user types", () => {
+    it("calls onChange when the user types", async () => {
       const onChange = vi.fn();
-      renderComponent({ onChange });
+      await renderComponent({ onChange });
 
       const input = screen.getByRole("combobox");
       fireEvent.change(input, { target: { value: "123 Main" } });
@@ -193,9 +197,9 @@ describe("AddressAutocomplete", () => {
       expect(onChange).toHaveBeenCalledWith("123 Main");
     });
 
-    it("calls onChange with the full typed value via fireEvent", () => {
+    it("calls onChange with the full typed value via fireEvent", async () => {
       const onChange = vi.fn();
-      renderComponent({ onChange });
+      await renderComponent({ onChange });
 
       const input = screen.getByRole("combobox");
       fireEvent.change(input, { target: { value: "42 Main St" } });
@@ -208,7 +212,7 @@ describe("AddressAutocomplete", () => {
   // Suggestion list visibility
   // -------------------------------------------------------------------------
   describe("suggestion list", () => {
-    it("displays the suggestion list when suggestions are available (status OK)", () => {
+    it("displays the suggestion list when suggestions are available (status OK)", async () => {
       mockUsePlacesAutocomplete.mockReturnValue({
         ready: true,
         suggestions: {
@@ -219,21 +223,21 @@ describe("AddressAutocomplete", () => {
         clearSuggestions: mockClearSuggestions,
       });
 
-      renderComponent();
+      await renderComponent();
 
       expect(screen.getByRole("listbox")).toBeInTheDocument();
       expect(screen.getByRole("option")).toBeInTheDocument();
       expect(screen.getByText("123 Collins St")).toBeInTheDocument();
     });
 
-    it("hides the suggestion list when there are no suggestions", () => {
+    it("hides the suggestion list when there are no suggestions", async () => {
       // Default mock already returns empty suggestions
-      renderComponent();
+      await renderComponent();
 
       expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     });
 
-    it("hides the suggestion list when status is not OK", () => {
+    it("hides the suggestion list when status is not OK", async () => {
       mockUsePlacesAutocomplete.mockReturnValue({
         ready: true,
         suggestions: {
@@ -244,7 +248,7 @@ describe("AddressAutocomplete", () => {
         clearSuggestions: mockClearSuggestions,
       });
 
-      renderComponent();
+      await renderComponent();
 
       expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     });
@@ -254,14 +258,13 @@ describe("AddressAutocomplete", () => {
   // Maps loading lifecycle
   // -------------------------------------------------------------------------
   describe("maps loading lifecycle", () => {
-    it("calls loadGoogleMaps on mount", () => {
-      renderComponent();
+    it("calls loadGoogleMaps on mount", async () => {
+      await renderComponent();
       expect(mockLoadGoogleMaps).toHaveBeenCalledOnce();
     });
 
-    it("re-mounts the inner component when maps loads (usePlacesAutocomplete called twice)", async () => {
-      // Simulate delayed resolution so we can observe both renders:
-      // key="false" (before) and key="true" (after).
+    it("mounts the inner component only after maps loads (conditional rendering)", async () => {
+      // Simulate delayed resolution so we can observe the loading → ready transition.
       let resolveLoad!: () => void;
       mockLoadGoogleMaps.mockReturnValue(
         new Promise<void>((res) => {
@@ -269,17 +272,22 @@ describe("AddressAutocomplete", () => {
         }),
       );
 
-      renderComponent();
+      await renderComponent();
 
-      // After initial render, inner component mounted once → 1 call
-      expect(mockUsePlacesAutocomplete).toHaveBeenCalledTimes(1);
+      // Before maps load: inner component is NOT mounted (loading fallback shown)
+      expect(mockUsePlacesAutocomplete).toHaveBeenCalledTimes(0);
+      expect(
+        screen.getByPlaceholderText("Loading address suggestions…"),
+      ).toBeInTheDocument();
 
-      // Resolve the promise so state flips from false → true, triggering re-mount
-      resolveLoad();
+      // Resolve the promise so mapsLoaded flips to true → inner component mounts
+      await act(async () => {
+        resolveLoad();
+      });
 
       await waitFor(() => {
-        // Inner component unmounts + remounts → total 2 calls
-        expect(mockUsePlacesAutocomplete).toHaveBeenCalledTimes(2);
+        // Inner component mounts once after maps load
+        expect(mockUsePlacesAutocomplete).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -312,7 +320,7 @@ describe("AddressAutocomplete", () => {
       };
       mockGetGeocode.mockResolvedValue([geocodeResult]);
 
-      renderComponent({ onChange, onSelect });
+      await renderComponent({ onChange, onSelect });
 
       const option = screen.getByRole("option");
       fireEvent.click(option);
@@ -372,7 +380,7 @@ describe("AddressAutocomplete", () => {
       };
       mockGetGeocode.mockResolvedValue([geocodeResult]);
 
-      renderComponent({ onChange, onSelect });
+      await renderComponent({ onChange, onSelect });
 
       fireEvent.click(screen.getByRole("option"));
 
@@ -396,7 +404,7 @@ describe("AddressAutocomplete", () => {
 
       mockGetGeocode.mockRejectedValue(new Error("Geocode failed"));
 
-      renderComponent({ onChange, onSelect });
+      await renderComponent({ onChange, onSelect });
 
       fireEvent.click(screen.getByRole("option"));
 
@@ -417,20 +425,20 @@ describe("AddressAutocomplete", () => {
   // ARIA attributes
   // -------------------------------------------------------------------------
   describe("ARIA attributes", () => {
-    it("has role=combobox on the input", () => {
-      renderComponent();
+    it("has role=combobox on the input", async () => {
+      await renderComponent();
       expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    it("has aria-expanded=false when there are no suggestions", () => {
-      renderComponent();
+    it("has aria-expanded=false when there are no suggestions", async () => {
+      await renderComponent();
       expect(screen.getByRole("combobox")).toHaveAttribute(
         "aria-expanded",
         "false",
       );
     });
 
-    it("has aria-expanded=true when suggestions are visible", () => {
+    it("has aria-expanded=true when suggestions are visible", async () => {
       mockUsePlacesAutocomplete.mockReturnValue({
         ready: true,
         suggestions: { status: "OK", data: [STANDARD_SUGGESTION] },
@@ -438,7 +446,7 @@ describe("AddressAutocomplete", () => {
         clearSuggestions: mockClearSuggestions,
       });
 
-      renderComponent();
+      await renderComponent();
 
       expect(screen.getByRole("combobox")).toHaveAttribute(
         "aria-expanded",
@@ -446,16 +454,16 @@ describe("AddressAutocomplete", () => {
       );
     });
 
-    it("has aria-controls pointing to the listbox id", () => {
-      renderComponent();
+    it("has aria-controls pointing to the listbox id", async () => {
+      await renderComponent();
       expect(screen.getByRole("combobox")).toHaveAttribute(
         "aria-controls",
         "address-listbox",
       );
     });
 
-    it("has aria-autocomplete=list", () => {
-      renderComponent();
+    it("has aria-autocomplete=list", async () => {
+      await renderComponent();
       expect(screen.getByRole("combobox")).toHaveAttribute(
         "aria-autocomplete",
         "list",
