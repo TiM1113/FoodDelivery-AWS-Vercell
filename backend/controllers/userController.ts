@@ -36,7 +36,7 @@ export const loginUser = async (c: Context<AppEnv>) => {
 		setCookie(c, 'token', token, COOKIE_OPTIONS);
 		return c.json({ success: true, role: user.role, userId: user.id, name: user.name });
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 		return c.json({ success: false, message: 'Error' });
 	}
 };
@@ -70,7 +70,7 @@ export const registerUser = async (c: Context<AppEnv>) => {
 		setCookie(c, 'token', token, COOKIE_OPTIONS);
 		return c.json({ success: true, role: user.role });
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 		return c.json({ success: false, message: 'Error' });
 	}
 };
