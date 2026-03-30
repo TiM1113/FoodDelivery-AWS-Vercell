@@ -17,16 +17,16 @@
   "author": "Tim1113",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1017.0",
-    "@aws-sdk/s3-request-presigner": "^3.1017.0",
-    "@hono/node-server": "^1.14.1",
+    "@aws-sdk/client-s3": "^3.1020.0",
+    "@aws-sdk/s3-request-presigner": "^3.1020.0",
+    "@hono/node-server": "^1.19.12",
     "@neondatabase/serverless": "^1.0.2",
     "@sentry/node": "^10.46.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.9",
     "jsonwebtoken": "^9.0.2",
     "stripe": "^17.3.1",
@@ -44,6 +44,6 @@
     "esbuild": "^0.27.4",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.1"
+    "vitest": "^4.1.2"
   }
 }
