@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import usePlacesAutocomplete, {
-  getGeocode,
-  getLatLng,
-} from "use-places-autocomplete";
+import usePlacesAutocomplete, { getGeocode } from "use-places-autocomplete";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +14,7 @@ export interface AddressComponents {
 }
 
 interface AddressAutocompleteProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   onSelect: (address: AddressComponents) => void;
@@ -61,6 +59,7 @@ function parseAddressComponents(
 }
 
 export function AddressAutocomplete({
+  id,
   value,
   onChange,
   onSelect,
@@ -120,10 +119,11 @@ export function AddressAutocomplete({
   return (
     <div className="relative">
       <Input
+        id={id}
         value={value}
         onChange={handleInput}
-        disabled={disabled || !ready}
-        placeholder={ready ? placeholder : "Loading…"}
+        disabled={disabled}
+        placeholder={ready ? placeholder : placeholder}
         className={cn(className)}
         autoComplete="off"
         role="combobox"

@@ -118,14 +118,10 @@ export function AddressDialog({
 
   const handleAddressSelect = (components: AddressComponents) => {
     setFormValue("street", components.street, { shouldValidate: true });
-    if (components.city)
-      setFormValue("city", components.city, { shouldValidate: true });
-    if (components.state)
-      setFormValue("state", components.state, { shouldValidate: true });
-    if (components.zipcode)
-      setFormValue("zipcode", components.zipcode, { shouldValidate: true });
-    if (components.country)
-      setFormValue("country", components.country, { shouldValidate: true });
+    setFormValue("city", components.city, { shouldValidate: true });
+    setFormValue("state", components.state, { shouldValidate: true });
+    setFormValue("zipcode", components.zipcode, { shouldValidate: true });
+    setFormValue("country", components.country, { shouldValidate: true });
   };
 
   const onSubmit = async (data: AddressFormData) => {

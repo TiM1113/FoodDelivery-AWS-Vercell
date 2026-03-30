@@ -198,17 +198,16 @@ export function ProfileClient({
         </CardContent>
       </Card>
 
-      <GoogleMapsProvider>
-        <AddressDialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) setEditingAddress(null);
-          }}
-          address={editingAddress}
-          onSave={handleSaveAddress}
-        />
-      </GoogleMapsProvider>
+      {dialogOpen && <GoogleMapsProvider />}
+      <AddressDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingAddress(null);
+        }}
+        address={editingAddress}
+        onSave={handleSaveAddress}
+      />
     </div>
   );
 }

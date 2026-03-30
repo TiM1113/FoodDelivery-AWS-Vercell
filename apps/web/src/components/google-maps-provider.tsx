@@ -1,31 +1,40 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect } from "react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
-let initStarted = false;
+let loaded = false;
+let loadPromise: Promise<void> | null = null;
 
 function loadGoogleMaps(): Promise<void> {
-  if (initStarted) return Promise.resolve();
+  if (loaded) return Promise.resolve();
+  if (loadPromise) return loadPromise;
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return Promise.resolve();
 
-  initStarted = true;
   setOptions({ key: apiKey, libraries: ["places"] });
 
-  return importLibrary("places").then(() => undefined);
+  loadPromise = importLibrary("places")
+    .then(() => {
+      loaded = true;
+    })
+    .catch(() => {
+      // Allow retry on next mount
+      loadPromise = null;
+    });
+
+  return loadPromise;
 }
 
-export function GoogleMapsProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-
+/**
+ * Side-effect component that loads the Google Maps Places library.
+ * Renders nothing — mount it when you need Places API available.
+ */
+export function GoogleMapsProvider() {
   useEffect(() => {
-    loadGoogleMaps()
-      .then(() => setReady(true))
-      .catch(() => setReady(true));
+    loadGoogleMaps();
   }, []);
 
-  // Render children immediately — autocomplete degrades gracefully if not ready
-  return <>{children}</>;
+  return null;
 }
