@@ -41,18 +41,15 @@ interface OrderCardProps {
 
 function formatOrderDate(date: Date | string | undefined): string {
   if (!date) return "";
-  try {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("en-AU", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getStatusVariant(
