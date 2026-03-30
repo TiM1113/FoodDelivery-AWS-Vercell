@@ -6,7 +6,7 @@ import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 let loaded = false;
 let loadPromise: Promise<void> | null = null;
 
-function loadGoogleMaps(): Promise<void> {
+export function loadGoogleMaps(): Promise<void> {
   if (loaded) return Promise.resolve();
   if (loadPromise) return loadPromise;
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import usePlacesAutocomplete, { getGeocode } from "use-places-autocomplete";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { loadGoogleMaps } from "@/components/google-maps-provider";
 
 export interface AddressComponents {
   street: string;
@@ -58,7 +59,22 @@ function parseAddressComponents(
   };
 }
 
-export function AddressAutocomplete({
+/**
+ * Wrapper that loads the Google Maps Places library, then mounts the
+ * inner autocomplete component.  The key change forces usePlacesAutocomplete
+ * to re-initialise once the library is available.
+ */
+export function AddressAutocomplete(props: AddressAutocompleteProps) {
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+
+  useEffect(() => {
+    loadGoogleMaps().then(() => setMapsLoaded(true));
+  }, []);
+
+  return <AddressAutocompleteInner key={String(mapsLoaded)} {...props} />;
+}
+
+function AddressAutocompleteInner({
   id,
   value,
   onChange,
@@ -123,7 +139,7 @@ export function AddressAutocomplete({
         value={value}
         onChange={handleInput}
         disabled={disabled}
-        placeholder={ready ? placeholder : placeholder}
+        placeholder={placeholder}
         className={cn(className)}
         autoComplete="off"
         role="combobox"
