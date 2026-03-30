@@ -15,6 +15,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AddressAutocomplete,
+  type AddressComponents,
+} from "@/components/address-autocomplete";
 import type { SavedAddress } from "@/types/address";
 
 const addressFormSchema = z.object({
@@ -55,6 +59,8 @@ export function AddressDialog({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue: setFormValue,
     formState: { errors },
   } = useForm<AddressFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4.3 internal version mismatch with @hookform/resolvers types; runtime works correctly
@@ -107,6 +113,16 @@ export function AddressDialog({
       }
     }
   }, [open, address, reset]);
+
+  const streetValue = watch("street");
+
+  const handleAddressSelect = (components: AddressComponents) => {
+    setFormValue("street", components.street, { shouldValidate: true });
+    setFormValue("city", components.city, { shouldValidate: true });
+    setFormValue("state", components.state, { shouldValidate: true });
+    setFormValue("zipcode", components.zipcode, { shouldValidate: true });
+    setFormValue("country", components.country, { shouldValidate: true });
+  };
 
   const onSubmit = async (data: AddressFormData) => {
     setIsSaving(true);
@@ -174,10 +190,18 @@ export function AddressDialog({
             )}
           </div>
 
-          {/* Street */}
+          {/* Street — with Google Places autocomplete */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="addr-street">Street Address</Label>
-            <Input id="addr-street" {...register("street")} />
+            <AddressAutocomplete
+              value={streetValue}
+              onChange={(val) =>
+                setFormValue("street", val, { shouldValidate: true })
+              }
+              onSelect={handleAddressSelect}
+              placeholder="Start typing an address…"
+              disabled={isSaving}
+            />
             {errors.street && (
               <p className="text-xs text-destructive">
                 {errors.street.message}
