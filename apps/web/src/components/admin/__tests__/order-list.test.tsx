@@ -115,10 +115,10 @@ describe("OrderList", () => {
     render(<OrderList />);
 
     await waitFor(() => {
-      expect(screen.getByText("$38")).toBeInTheDocument();
+      expect(screen.getByText("$38.00")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("$15")).toBeInTheDocument();
+    expect(screen.getByText("$15.00")).toBeInTheDocument();
   });
 
   it("displays order item summaries", async () => {

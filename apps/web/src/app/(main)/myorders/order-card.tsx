@@ -39,11 +39,11 @@ interface OrderCardProps {
   onRefresh: () => Promise<void>;
 }
 
-function formatOrderDate(orderId: string): string {
+function formatOrderDate(date: Date | string | undefined): string {
+  if (!date) return "";
   try {
-    const timestamp = parseInt(orderId.substring(0, 8), 16) * 1000;
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("en-AU", {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleDateString("en-AU", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -51,7 +51,7 @@ function formatOrderDate(orderId: string): string {
       minute: "2-digit",
     });
   } catch {
-    return new Date().toLocaleDateString("en-AU");
+    return "";
   }
 }
 
@@ -207,7 +207,7 @@ export function OrderCard({
 
             {/* Row 2: Date */}
             <p className="text-sm text-muted-foreground">
-              {order._id ? formatOrderDate(order._id) : ""}
+              {formatOrderDate(order.date)}
             </p>
 
             {/* Row 3: Order ID + Status + Reorder */}

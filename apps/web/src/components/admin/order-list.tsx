@@ -36,6 +36,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Package,
 } from "lucide-react";
 
 const ORDER_STATUSES = OrderStatusSchema.options;
@@ -170,7 +171,7 @@ export function OrderList() {
           </Button>
         ),
         cell: ({ getValue }) => (
-          <span className="font-semibold">${getValue<number>()}</span>
+          <span className="font-semibold">${getValue<number>().toFixed(2)}</span>
         ),
         size: 100,
       },
@@ -312,7 +313,13 @@ export function OrderList() {
       </div>
 
       {orders.length === 0 ? (
-        <p className="text-muted-foreground">No orders found.</p>
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+          <Package className="h-10 w-10 text-muted-foreground" />
+          <p className="text-muted-foreground">No orders found.</p>
+          <p className="text-sm text-muted-foreground">
+            Orders will appear here once customers place them.
+          </p>
+        </div>
       ) : (
         <>
           <div className="rounded-md border">
