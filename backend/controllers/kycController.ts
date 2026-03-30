@@ -256,10 +256,8 @@ export const handleIdentityWebhook = async (c: Context<AppEnv>) => {
 				metadata: { stripeEventId: event.id, stripeEventType: event.type },
 			});
 
-			if (result.success) {
-				console.log(`KYC status updated for user ${userId}: ${newStatus}`);
-			} else {
-				console.log(`KYC transition rejected for user ${userId}: ${result.error}`);
+			if (!result.success) {
+				// Transition rejected — no action needed
 			}
 		}
 	}

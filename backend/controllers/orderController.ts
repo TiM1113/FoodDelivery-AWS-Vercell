@@ -12,13 +12,9 @@ const DELIVERY_FEE = 2;
 
 export const placeOrder = async (c: Context<AppEnv>) => {
 	try {
-		console.log('Order placement request received');
-
 		const userId = c.get('userId');
 		const body = await c.req.json();
 		const { items, address } = body;
-
-		console.log('Extracted fields:', { userId, itemsCount: items?.length });
 
 		if (!userId || !items || !address) {
 			return c.json({
@@ -143,11 +139,9 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			const addressMatch = JSON.stringify(existingUnpaidOrder.address) === JSON.stringify(address);
 
 			if (existingItemsStr === newItemsStr && addressMatch) {
-				console.log('Found existing unpaid order with same items and address, reusing:', existingUnpaidOrder.id);
 				orderId = existingUnpaidOrder.id;
 				await db.update(users).set({ cartData: {} }).where(eq(users.id, userId));
 			} else {
-				console.log('Items different, creating new order');
 				orderId = await db.transaction(async (tx) => {
 					const [newOrder] = await tx.insert(orders).values({
 						userId,
@@ -250,7 +244,6 @@ export const placeOrder = async (c: Context<AppEnv>) => {
 			discountAmount: validatedPromoId ? discountAmount : null,
 		}).where(eq(orders.id, orderId));
 
-		console.log('Stripe session created successfully:', session.id);
 		return c.json({ success: true, session_url: session.url });
 	} catch (error) {
 		const err = error as Error;
@@ -359,10 +352,8 @@ export const handleWebhook = async (c: Context<AppEnv>) => {
 				and(eq(orders.id, orderId), eq(orders.payment, false)),
 			).returning({ id: orders.id });
 
-			if (updated) {
-				console.log(`Webhook: order ${orderId} marked as paid (pi: ${paymentIntentId})`);
-			} else {
-				console.log(`Webhook: order ${orderId} already paid or cancelled, skipped`);
+			if (!updated) {
+				// Order already paid or cancelled — no action needed
 			}
 		} catch (error) {
 			console.error('Webhook: error updating order:', error);
@@ -569,7 +560,6 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 			},
 		});
 
-		console.log('Retry payment session created for order:', existingOrder.id);
 		return c.json({ success: true, session_url: session.url });
 	} catch (error) {
 		const err = error as Error;

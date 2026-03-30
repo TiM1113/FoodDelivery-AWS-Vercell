@@ -86,8 +86,6 @@ export const addFood = async (c: Context<AppEnv>) => {
 			image: imageUrl,
 		}).returning();
 
-		console.log('Food item saved:', savedFood.id);
-
 		return c.json({
 			success: true,
 			message: 'Food Added',

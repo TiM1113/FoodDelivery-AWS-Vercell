@@ -20,7 +20,7 @@ export const addToCart = async (c: Context<AppEnv>) => {
 		await db.update(users).set({ cartData }).where(eq(users.id, userId));
 		return c.json({ success: true, message: 'Added To Cart' });
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 		return c.json({ success: false, message: 'Error' });
 	}
 };
@@ -39,7 +39,7 @@ export const removeFromCart = async (c: Context<AppEnv>) => {
 		await db.update(users).set({ cartData }).where(eq(users.id, userId));
 		return c.json({ success: true, message: 'Removed From Cart' });
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 		return c.json({ success: false, message: 'Error' });
 	}
 };
@@ -52,7 +52,7 @@ export const getCart = async (c: Context<AppEnv>) => {
 
 		return c.json({ success: true, cartData: userData.cartData });
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 		return c.json({ success: false, message: 'Error' });
 	}
 };

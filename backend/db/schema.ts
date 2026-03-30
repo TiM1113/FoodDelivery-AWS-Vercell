@@ -34,7 +34,9 @@ export const foods = pgTable('foods', {
 	image: varchar('image', { length: 1024 }).notNull(),
 	category: varchar('category', { length: 100 }).notNull(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+	index('foods_category_idx').on(table.category),
+]);
 
 // ── Orders ───────────────────────────────────────────────────
 export interface IAddress {
@@ -60,7 +62,9 @@ export const orders = pgTable('orders', {
 	promoCode: varchar('promo_code', { length: 255 }),
 	discountAmount: doublePrecision('discount_amount'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+	index('orders_user_created_idx').on(table.userId, table.createdAt),
+]);
 
 // ── Order Items ──────────────────────────────────────────────
 export const orderItems = pgTable('order_items', {
@@ -72,7 +76,9 @@ export const orderItems = pgTable('order_items', {
 	name: varchar('name', { length: 255 }).notNull(),
 	price: doublePrecision('price').notNull(),
 	quantity: integer('quantity').notNull(),
-});
+}, (table) => [
+	index('order_items_order_idx').on(table.orderId),
+]);
 
 // ── Addresses ────────────────────────────────────────────────
 export const addresses = pgTable('addresses', {
@@ -90,7 +96,9 @@ export const addresses = pgTable('addresses', {
 	phone: varchar('phone', { length: 30 }).notNull(),
 	isDefault: boolean('is_default').notNull().default(false),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+	index('addresses_user_default_idx').on(table.userId, table.isDefault),
+]);
 
 // ── KYC Audit Logs ──────────────────────────────────────────
 // Audit rows are retained even if the user is deleted (no cascade).
