@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GoogleMapsProvider } from "@/components/google-maps-provider";
 import type { SavedAddress } from "@/types/address";
 import { AddressCard } from "./address-card";
 import { AddressDialog } from "./address-dialog";
@@ -197,15 +198,17 @@ export function ProfileClient({
         </CardContent>
       </Card>
 
-      <AddressDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) setEditingAddress(null);
-        }}
-        address={editingAddress}
-        onSave={handleSaveAddress}
-      />
+      <GoogleMapsProvider>
+        <AddressDialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) setEditingAddress(null);
+          }}
+          address={editingAddress}
+          onSave={handleSaveAddress}
+        />
+      </GoogleMapsProvider>
     </div>
   );
 }
