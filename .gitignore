@@ -61,4 +61,5 @@ backend/__tests__/TEST-REPORT.md
 
 # Playwright auth state and test results
 apps/web/e2e/.auth-state*.json
+apps/web/e2e/.admin-auth-state.json
 apps/web/test-results/
