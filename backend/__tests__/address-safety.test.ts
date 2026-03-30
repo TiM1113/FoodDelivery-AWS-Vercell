@@ -181,12 +181,10 @@ const mockState = vi.hoisted(() => {
   };
 
   const db = {
-    select: vi.fn(),
-    update: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- avoid TS2502 circular reference with typeof tx
-    transaction: vi.fn(async (callback: (tx: any) => Promise<unknown> | unknown) => callback(tx)),
+    select: tx.select,
+    update: tx.update,
+    insert: tx.insert,
+    delete: tx.delete,
   };
 
   const reset = () => {
@@ -213,11 +211,6 @@ const mockState = vi.hoisted(() => {
     txDeleteWhereCalls.length = 0;
     txDeleteReturningQueue.length = 0;
 
-    db.select.mockClear();
-    db.update.mockClear();
-    db.insert.mockClear();
-    db.delete.mockClear();
-    db.transaction.mockClear();
     tx.select.mockClear();
     tx.update.mockClear();
     tx.insert.mockClear();
@@ -333,7 +326,6 @@ describe('Address safety', () => {
       ...buildAddressBody({ isDefault: true }),
     };
 
-    mockState.txSelectForUpdateQueue.push([{ id: ADDRESS_ID_2 }]);
     mockState.txInsertReturningQueue.push([created]);
 
     const res = await requestJson('POST', '/api/user/addresses', buildAddressBody({ isDefault: true }));
@@ -341,20 +333,13 @@ describe('Address safety', () => {
 
     expect(res.status).toBe(201);
     expect(body).toEqual({ success: true, data: created });
-    expect(mockState.db.transaction).toHaveBeenCalledTimes(1);
-    expect(mockState.txSelectForUpdateCalls).toEqual(['update']);
+    // No longer uses transactions — neon-http driver doesn't support them
     expect(mockState.txUpdateSetCalls[0]).toEqual({ isDefault: false });
     expect(mockState.txInsertCalls[0]).toEqual({
       ...BASE_ADDRESS,
       isDefault: true,
       userId: mockState.testUserId,
     });
-
-    const lockIndex = mockState.txOperationLog.indexOf('select.for:update');
-    const clearDefaultsIndex = mockState.txOperationLog.indexOf('update.set:clear-defaults');
-
-    expect(lockIndex).toBeGreaterThanOrEqual(0);
-    expect(clearDefaultsIndex).toBeGreaterThan(lockIndex);
   });
 
   it('A2 saveAddress does not lock rows when isDefault is false', async () => {
