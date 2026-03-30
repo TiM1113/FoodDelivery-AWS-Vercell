@@ -60,9 +60,8 @@ function parseAddressComponents(
 }
 
 /**
- * Wrapper that loads the Google Maps Places library, then mounts the
- * inner autocomplete component.  The key change forces usePlacesAutocomplete
- * to re-initialise once the library is available.
+ * Wrapper that loads the Google Maps Places library, then conditionally
+ * renders the inner autocomplete component once the library is ready.
  */
 export function AddressAutocomplete(props: AddressAutocompleteProps) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
@@ -71,7 +70,21 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
     loadGoogleMaps().then(() => setMapsLoaded(true));
   }, []);
 
-  return <AddressAutocompleteInner key={String(mapsLoaded)} {...props} />;
+  if (!mapsLoaded) {
+    return (
+      <Input
+        id={props.id}
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
+        disabled={props.disabled}
+        placeholder="Loading address suggestions…"
+        className={cn(props.className)}
+        autoComplete="off"
+      />
+    );
+  }
+
+  return <AddressAutocompleteInner {...props} />;
 }
 
 function AddressAutocompleteInner({
