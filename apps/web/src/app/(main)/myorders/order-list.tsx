@@ -17,6 +17,7 @@ function hasActiveOrders(orders: Order[]): boolean {
 }
 
 const STATUS_MESSAGES: Record<string, string> = {
+  "Payment Pending": "Your order is awaiting payment.",
   "Food Processing": "Your order is being prepared!",
   "Out for Delivery": "Your order is out for delivery!",
   "Delivered": "Your order has been delivered!",

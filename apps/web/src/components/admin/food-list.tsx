@@ -65,6 +65,7 @@ import {
   Pencil,
   Search,
   Trash2,
+  UtensilsCrossed,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -290,7 +291,7 @@ export function FoodList() {
             <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
           </Button>
         ),
-        cell: ({ getValue }) => `$${getValue<number>()}`,
+        cell: ({ getValue }) => `$${getValue<number>().toFixed(2)}`,
         size: 100,
       },
       {
@@ -419,7 +420,13 @@ export function FoodList() {
       </div>
 
       {list.length === 0 ? (
-        <p className="text-muted-foreground">No food items found.</p>
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+          <UtensilsCrossed className="h-10 w-10 text-muted-foreground" />
+          <p className="text-muted-foreground">No food items found.</p>
+          <p className="text-sm text-muted-foreground">
+            Add a new item using the form above.
+          </p>
+        </div>
       ) : (
         <>
           <div className="rounded-md border">

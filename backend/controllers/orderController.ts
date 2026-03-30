@@ -474,12 +474,24 @@ export const getDashboardStats = async (c: Context<AppEnv>) => {
 	}
 };
 
+const VALID_ORDER_STATUSES = [
+	'Payment Pending',
+	'Food Processing',
+	'Out for Delivery',
+	'Delivered',
+	'Cancelled',
+] as const;
+
 export const updateStatus = async (c: Context<AppEnv>) => {
 	try {
 		const { orderId, status } = await c.req.json();
 
 		if (!orderId || !status) {
 			return c.json({ success: false, message: 'Missing orderId or status' }, 400);
+		}
+
+		if (!VALID_ORDER_STATUSES.includes(status)) {
+			return c.json({ success: false, message: `Invalid status: ${status}` }, 400);
 		}
 
 		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);

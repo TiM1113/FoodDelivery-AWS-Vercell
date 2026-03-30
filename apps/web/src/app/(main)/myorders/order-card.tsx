@@ -39,20 +39,17 @@ interface OrderCardProps {
   onRefresh: () => Promise<void>;
 }
 
-function formatOrderDate(orderId: string): string {
-  try {
-    const timestamp = parseInt(orderId.substring(0, 8), 16) * 1000;
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("en-AU", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return new Date().toLocaleDateString("en-AU");
-  }
+function formatOrderDate(date: Date | string | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getStatusVariant(
@@ -207,7 +204,7 @@ export function OrderCard({
 
             {/* Row 2: Date */}
             <p className="text-sm text-muted-foreground">
-              {order._id ? formatOrderDate(order._id) : ""}
+              {formatOrderDate(order.date)}
             </p>
 
             {/* Row 3: Order ID + Status + Reorder */}

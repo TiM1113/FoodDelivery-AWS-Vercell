@@ -92,11 +92,11 @@ describe("FoodList", () => {
     render(<FoodList />);
 
     await waitFor(() => {
-      expect(screen.getByText("$14")).toBeInTheDocument();
+      expect(screen.getByText("$14.00")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("$10")).toBeInTheDocument();
-    expect(screen.getByText("$8")).toBeInTheDocument();
+    expect(screen.getByText("$10.00")).toBeInTheDocument();
+    expect(screen.getByText("$8.00")).toBeInTheDocument();
   });
 
   it("shows item count", async () => {
