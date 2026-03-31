@@ -98,7 +98,9 @@ describe("VerifyPage", () => {
     vi.useRealTimers();
   });
 
-  it("sends cancel request to backend when success=false", () => {
+  it("does not send cancel request to backend when success=false (read-only verify)", () => {
+    vi.restoreAllMocks();
+
     mockGet.mockImplementation((key: string) => {
       if (key === "orderId") return "order_abc";
       if (key === "success") return "false";
@@ -111,10 +113,8 @@ describe("VerifyPage", () => {
 
     render(<VerifyPage />);
 
-    // handleCancel is called in useEffect on mount
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("success=false&orderId=order_abc"),
-    );
+    // verify is now read-only — no backend call on cancellation
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("shows 'Back to Cart' link on cancellation", () => {
