@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { toast } from "sonner";
 
 import type { Order } from "@/types/order";
@@ -116,8 +116,6 @@ export function OrderList({ initialOrders }: OrderListProps) {
       ? orders.filter((o) => o._id && favouriteIds.has(o._id))
       : orders;
 
-  const isPolling = hasActiveOrders(orders);
-
   return (
     <>
       {/* Tab Navigation */}
@@ -143,14 +141,6 @@ export function OrderList({ initialOrders }: OrderListProps) {
           Favourites
         </button>
       </div>
-
-      {/* Polling indicator */}
-      {isPolling && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Auto-refreshing active orders</span>
-        </div>
-      )}
 
       {/* Order List */}
       {displayOrders.length === 0 ? (
