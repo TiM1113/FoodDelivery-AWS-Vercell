@@ -9,6 +9,7 @@
 | 3 | Engineering quality | v0.3.0 | Completed |
 | 4 | Product completion | v0.4.0 | Completed |
 | 5 | Bug fixes + test quality rebuild | v0.5.0 | Completed |
+| 6 | Product polish + engineering cleanup | v0.6.0 | Completed |
 
 ## Phase 1: Foundation Rebuild
 
@@ -42,12 +43,12 @@ Already landed in the repository:
 - Vercel Analytics + Speed Insights
 - Dependabot automation
 
-Still open or still being hardened:
+Resolved in later phases:
 
-- Backend automated tests
-- Blocking end-to-end checkout and order-lifecycle coverage
-- Observability cleanup for current SDK warnings and missing hooks
-- Ongoing reduction of stale scripts and doc drift
+- Backend automated tests (Phase 5: 70 tests)
+- E2E checkout and order-lifecycle coverage (Phase 5: 101 Playwright tests)
+- Observability cleanup — Sentry sample rate tuning (Phase 6)
+- No stale scripts found — all scripts actively used
 
 ## Phase 4: Product Completion
 
@@ -60,11 +61,11 @@ Already landed in the repository:
 - Privacy Policy and Terms pages
 - Stripe KYC admin flow
 
-Still open or still being hardened:
+Resolved in later phases:
 
-- Realtime order-status updates
-- Search and pagination hardening for larger datasets
-- Production verification for the newest flows
+- Search and pagination hardening (Phase 5: compound cursor pagination)
+- Production verification (Phase 5: full deployment verification)
+- Realtime order-status updates: deferred (Vercel Serverless does not support SSE/WebSocket long connections; 10s polling is sufficient for delivery status updates)
 
 ## Phase 5: Bug Fixes + Test Quality Rebuild
 
@@ -81,6 +82,19 @@ Steps:
 - Step 5: Address and user data safety (default address race, deletion guard)
 - Step 6: Frontend robustness (missing statuses, UTC dates, empty states)
 - Step 7: Performance and cleanup (indexes, caching, stale debug endpoints)
+
+## Phase 6: Product Polish + Engineering Cleanup
+
+Completed outcomes:
+
+- Cart atomic updates via PostgreSQL jsonb_set (race condition fix)
+- Food price validation (finite, positive)
+- Live database health check (SELECT 1 instead of static string)
+- Sentry trace sampling tuned to 10% in production (client, server, edge)
+- Explicit sentry.client.config.ts
+- CI E2E conditionally enabled with backend server startup
+- Polling indicator removed from My Orders (silent background refresh)
+- Database driver switched from neon-http to neon-serverless (transaction support)
 
 ## Working Rule
 
