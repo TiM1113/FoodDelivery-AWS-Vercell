@@ -19,7 +19,6 @@ export function FoodCard({ food, action }: FoodCardProps) {
           className="object-cover"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
-        {action && <div className="absolute bottom-3 right-3">{action}</div>}
       </div>
 
       <CardContent className="flex flex-col gap-2 p-4">
@@ -36,7 +35,10 @@ export function FoodCard({ food, action }: FoodCardProps) {
 
         <p className="line-clamp-2 text-sm text-muted-foreground">{food.description}</p>
 
-        <p className="text-lg font-bold text-orange-600">${food.price.toFixed(2)}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-bold text-orange-600">${food.price.toFixed(2)}</p>
+          {action}
+        </div>
       </CardContent>
     </Card>
   );
