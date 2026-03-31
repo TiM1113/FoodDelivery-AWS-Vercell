@@ -76,12 +76,17 @@ export const addFood = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Invalid imageKey' }, 400);
 		}
 
+		const parsedPrice = Number(price);
+		if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+			return c.json({ success: false, message: 'Price must be a positive number' }, 400);
+		}
+
 		const imageUrl = buildImageUrl(imageKey);
 
 		const [savedFood] = await db.insert(foods).values({
 			name,
 			description,
-			price: Number(price),
+			price: parsedPrice,
 			category,
 			image: imageUrl,
 		}).returning();
@@ -339,10 +344,19 @@ export const updateFood = async (c: Context<AppEnv>) => {
 			oldKeyToDelete = extractS3Key(existingFood.image);
 		}
 
+		let finalPrice = existingFood.price;
+		if (price !== undefined) {
+			const parsedPrice = Number(price);
+			if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+				return c.json({ success: false, message: 'Price must be a positive number' }, 400);
+			}
+			finalPrice = parsedPrice;
+		}
+
 		const [updatedFood] = await db.update(foods).set({
 			name: name || existingFood.name,
 			description: description || existingFood.description,
-			price: price !== undefined ? Number(price) : existingFood.price,
+			price: finalPrice,
 			category: category || existingFood.category,
 			image: imageUrl,
 		}).where(eq(foods.id, id)).returning();
