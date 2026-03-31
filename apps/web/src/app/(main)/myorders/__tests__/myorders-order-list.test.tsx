@@ -112,21 +112,10 @@ describe("OrderList (myorders)", () => {
     expect(screen.queryByText("Salad")).not.toBeInTheDocument();
   });
 
-  it("shows polling indicator when active orders exist", () => {
+  it("does not show polling indicator (silent refresh)", () => {
     renderWithQuery(<OrderList initialOrders={mockOrders} />);
 
-    // order2 has "Food Processing" status + payment=true → active
-    expect(screen.getByText("Auto-refreshing active orders")).toBeInTheDocument();
-  });
-
-  it("hides polling indicator when all orders are delivered", () => {
-    const allDelivered: Order[] = mockOrders.map((o) => ({
-      ...o,
-      status: "Delivered" as const,
-    }));
-
-    renderWithQuery(<OrderList initialOrders={allDelivered} />);
-
+    // Polling still works in background, but no visible indicator
     expect(screen.queryByText("Auto-refreshing active orders")).not.toBeInTheDocument();
   });
 
