@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -25,22 +25,9 @@ function VerifyContent() {
   });
   const attemptRef = useRef(0);
 
-  // Handle cancellation — notify backend to delete unpaid order
-  const handleCancel = useCallback(async () => {
-    if (!orderId) return;
-    try {
-      await fetch(
-        `/api/order/verify?success=false&orderId=${encodeURIComponent(orderId)}`,
-      );
-    } catch {
-      // Best effort — order stays unpaid, no harm
-    }
-  }, [orderId]);
-
   useEffect(() => {
-    // User cancelled on Stripe page
+    // User cancelled on Stripe page — order stays unpaid, can be retried or deleted from My Orders
     if (success === "false") {
-      handleCancel();
       return;
     }
 
@@ -70,7 +57,7 @@ function VerifyContent() {
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(poll);
-  }, [orderId, success, router, handleCancel]);
+  }, [orderId, success, router]);
 
   return (
     <div className="mx-auto flex w-[80%] flex-col items-center justify-center gap-6 py-24 text-center">

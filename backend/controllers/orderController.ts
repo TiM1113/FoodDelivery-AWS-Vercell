@@ -281,17 +281,13 @@ export const verifyOrder = async (c: Context<AppEnv>) => {
 	const success = c.req.query('success');
 
 	try {
+		// Read-only: cancelled payments are handled by webhook + authenticated cancelOrder
 		if (success === 'false') {
-			if (orderId) {
-				await db.delete(orders).where(
-					and(eq(orders.id, orderId), eq(orders.payment, false))
-				);
-			}
-			return c.json({ success: false, message: 'Order cancelled' });
+			return c.json({ success: false, message: 'Payment cancelled' });
 		}
 		if (!orderId) return c.json({ success: false, message: 'Order not found' }, 404);
 
-		const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+		const [order] = await db.select({ payment: orders.payment, status: orders.status }).from(orders).where(eq(orders.id, orderId)).limit(1);
 		if (!order) return c.json({ success: false, message: 'Order not found' }, 404);
 		return c.json({ success: order.payment, message: order.payment ? 'Paid' : 'Pending' });
 	} catch (error) {
@@ -302,10 +298,13 @@ export const verifyOrder = async (c: Context<AppEnv>) => {
 };
 
 export const getOrderStatus = async (c: Context<AppEnv>) => {
+	const userId = c.get('userId');
 	const orderId = c.req.param('orderId');
 	if (!orderId) return c.json({ success: false, message: 'Order ID required' }, 400);
 	try {
-		const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+		const [order] = await db.select().from(orders).where(
+			and(eq(orders.id, orderId), eq(orders.userId, userId))
+		).limit(1);
 		if (!order) return c.json({ success: false, message: 'Order not found' }, 404);
 		return c.json({ success: true, payment: order.payment, status: order.status });
 	} catch (error) {
@@ -507,6 +506,7 @@ export const updateStatus = async (c: Context<AppEnv>) => {
 
 export const retryPayment = async (c: Context<AppEnv>) => {
 	try {
+		const userId = c.get('userId');
 		const { orderId } = await c.req.json();
 
 		if (!orderId) {
@@ -514,7 +514,7 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 		}
 
 		const existingOrder = await db.query.orders.findFirst({
-			where: eq(orders.id, orderId),
+			where: and(eq(orders.id, orderId), eq(orders.userId, userId)),
 			with: { items: true },
 		});
 
@@ -573,13 +573,24 @@ export const retryPayment = async (c: Context<AppEnv>) => {
 
 export const editOrder = async (c: Context<AppEnv>) => {
 	try {
-		const { orderId, items, amount } = await c.req.json();
+		const userId = c.get('userId');
+		const { orderId, items } = await c.req.json();
 
 		if (!orderId) {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+		if (!items || !Array.isArray(items) || items.length === 0) {
+			return c.json({ success: false, message: 'Items must be a non-empty array' }, 400);
+		}
+
+		if (items.length > 50) {
+			return c.json({ success: false, message: 'Too many items' }, 400);
+		}
+
+		const [existingOrder] = await db.select().from(orders).where(
+			and(eq(orders.id, orderId), eq(orders.userId, userId))
+		).limit(1);
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -588,25 +599,45 @@ export const editOrder = async (c: Context<AppEnv>) => {
 			return c.json({ success: false, message: 'Cannot edit paid orders' }, 400);
 		}
 
-		// Replace order items
-		if (items && Array.isArray(items)) {
-			await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
-			if (items.length > 0) {
-				await db.insert(orderItems).values(
-					items.map((item: { _id: string; name: string; price: number; quantity: number }) => ({
-						orderId,
-						foodId: item._id,
-						name: item.name,
-						price: item.price,
-						quantity: item.quantity,
-					}))
-				);
+		// Server-side price lookup — never trust client prices
+		const foodIds = items.map((item: { _id: string; quantity: number }) => item._id);
+		const foodList = await db.select().from(foods).where(inArray(foods.id, foodIds));
+		const foodMap: Record<string, { name: string; price: number }> = {};
+		for (const f of foodList) {
+			foodMap[f.id] = { name: f.name, price: f.price };
+		}
+
+		// Validate all items exist in database
+		for (const item of items) {
+			if (!foodMap[item._id]) {
+				return c.json({ success: false, message: `Food item not found: ${item._id}` }, 400);
+			}
+			if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
+				return c.json({ success: false, message: 'Quantity must be between 1 and 99' }, 400);
 			}
 		}
 
-		if (amount !== undefined) {
-			await db.update(orders).set({ amount }).where(eq(orders.id, orderId));
-		}
+		// Server-side amount calculation
+		const serverAmount = items.reduce(
+			(sum: number, item: { _id: string; quantity: number }) =>
+				sum + foodMap[item._id].price * item.quantity,
+			0,
+		) + DELIVERY_FEE;
+
+		// Atomic replace: delete old items + insert new items + update amount
+		await db.transaction(async (tx) => {
+			await tx.delete(orderItems).where(eq(orderItems.orderId, orderId));
+			await tx.insert(orderItems).values(
+				items.map((item: { _id: string; quantity: number }) => ({
+					orderId,
+					foodId: item._id,
+					name: foodMap[item._id].name,
+					price: foodMap[item._id].price,
+					quantity: item.quantity,
+				}))
+			);
+			await tx.update(orders).set({ amount: serverAmount }).where(eq(orders.id, orderId));
+		});
 
 		return c.json({ success: true, message: 'Order updated successfully' });
 	} catch (error) {
@@ -743,13 +774,16 @@ export const cancelOrder = async (c: Context<AppEnv>) => {
 
 export const deleteOrder = async (c: Context<AppEnv>) => {
 	try {
+		const userId = c.get('userId');
 		const { orderId } = await c.req.json();
 
 		if (!orderId) {
 			return c.json({ success: false, message: 'Order ID is required' }, 400);
 		}
 
-		const [existingOrder] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+		const [existingOrder] = await db.select().from(orders).where(
+			and(eq(orders.id, orderId), eq(orders.userId, userId))
+		).limit(1);
 		if (!existingOrder) {
 			return c.json({ success: false, message: 'Order not found' }, 404);
 		}
@@ -759,7 +793,7 @@ export const deleteOrder = async (c: Context<AppEnv>) => {
 		}
 
 		// CASCADE will delete order_items automatically
-		await db.delete(orders).where(eq(orders.id, orderId));
+		await db.delete(orders).where(and(eq(orders.id, orderId), eq(orders.userId, userId)));
 		return c.json({ success: true, message: 'Order deleted successfully' });
 	} catch (error) {
 		console.error('Error deleting order:', error);
