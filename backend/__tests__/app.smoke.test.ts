@@ -9,6 +9,8 @@ describe('App smoke tests', () => {
     const body = await res.json();
     expect(body.status).toBe('API Working');
     expect(body.version).toBe('3.0.0');
+    // database field is dynamic: 'connected' when DB is up, 'error' otherwise
+    expect(['connected', 'error']).toContain(body.database);
   });
 
   it('responds 200 on /api/health', async () => {
@@ -16,7 +18,9 @@ describe('App smoke tests', () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.status).toBe('healthy');
+    // status is 'healthy' when DB is connected, 'degraded' otherwise
+    expect(['healthy', 'degraded']).toContain(body.status);
+    expect(['connected', 'error']).toContain(body.database);
   });
 
   it('returns 404 for unknown routes', async () => {

@@ -16,6 +16,8 @@ if (process.env.SENTRY_DSN) {
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { sql } from 'drizzle-orm';
+import { db } from './db';
 import foodRoute from './routes/foodRoute';
 import userRoute from './routes/userRoute';
 import cartRoute from './routes/cartRoute';
@@ -61,21 +63,36 @@ app.route('/api/order', orderRoute);
 app.route('/api/kyc', kycRoute);
 
 // Health check endpoints
-app.get('/', (c) => {
+app.get('/', async (c) => {
+	let dbStatus: 'connected' | 'error' = 'error';
+	try {
+		await db.execute(sql`SELECT 1`);
+		dbStatus = 'connected';
+	} catch {
+		// DB unreachable — report but don't crash
+	}
 	return c.json({
 		status: 'API Working',
 		version: '3.0.0',
 		environment: process.env.NODE_ENV || 'development',
 		timestamp: new Date().toISOString(),
-		database: 'postgresql',
+		database: dbStatus,
 	});
 });
 
-app.get('/api/health', (c) => {
+app.get('/api/health', async (c) => {
+	let dbStatus: 'connected' | 'error' = 'error';
+	try {
+		await db.execute(sql`SELECT 1`);
+		dbStatus = 'connected';
+	} catch {
+		// DB unreachable
+	}
 	return c.json({
-		status: 'healthy',
+		status: dbStatus === 'connected' ? 'healthy' : 'degraded',
 		timestamp: new Date().toISOString(),
 		environment: process.env.NODE_ENV || 'development',
+		database: dbStatus,
 	});
 });
 
