@@ -1,128 +1,193 @@
-# Food Delivery Application
+# Tomato — Food Delivery Platform
 
-Full-stack food delivery platform built with Next.js 16 App Router, React 19, Hono, PostgreSQL (Neon), Drizzle ORM, and NextAuth.js v5. The customer experience and admin dashboard now live in the same web app, with admin routes served from `/admin`.
+Full-stack food delivery platform with customer ordering, Stripe payments, admin dashboard, and comprehensive test coverage. Built with Next.js 15, Hono, PostgreSQL (Neon), and deployed on Vercel.
 
-## Current Status
+**Live Demo:** [food-delivery-web-eosin.vercel.app](https://food-delivery-web-eosin.vercel.app)
 
-- Foundation and modernization work are complete.
-- Engineering quality work is in progress.
-- Several product-completion features are already shipped in the repository.
+## Highlights
+
+- **544 automated tests** — 373 frontend unit + 70 backend unit + 101 E2E (Playwright)
+- **Stripe checkout** with server-side price verification, webhook confirmation, and promo code support
+- **Admin dashboard** with food CRUD, order management, revenue charts, and KYC verification
+- **Security hardened** — JWT auth, RBAC, userId ownership checks, atomic DB operations, rate limiting
+- **AI-assisted development** — Claude Code + Codex Plugin with automated review gates
 
 ## Architecture
 
-### Web App (`apps/web`)
-- Next.js 16 App Router
-- React 19
-- TanStack Query v5
-- Zustand 5
-- Tailwind CSS v4 + shadcn/ui
-- NextAuth.js v5
-- Sentry + Vercel Analytics + Speed Insights
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Next.js 15  │────▶│    Hono     │────▶│   Neon DB   │
+│  (Frontend)  │     │  (Backend)  │     │ (PostgreSQL) │
+└──────┬───────┘     └──────┬───────┘     └─────────────┘
+       │                    │
+       │              ┌─────┴──────┐
+       │              │   Stripe   │
+       │              │ (Payments) │
+       │              └────────────┘
+       │
+  ┌────┴─────┐
+  │  AWS S3  │
+  │ (Images) │
+  └──────────┘
+```
+
+### Frontend (`apps/web`)
+
+| Technology | Purpose |
+|---|---|
+| Next.js 15 App Router | Server-side rendering + routing |
+| React 19 | UI components |
+| TanStack Query v5 | Data fetching + caching |
+| Zustand 5 | Client-side state (cart) |
+| Tailwind CSS v4 + shadcn/ui | Styling |
+| NextAuth.js v5 | Authentication (httpOnly cookies + RBAC) |
+| Sentry | Error tracking |
 
 ### Backend (`backend`)
-- Hono + TypeScript
-- PostgreSQL (Neon) + Drizzle ORM
-- Stripe payments + webhook verification
-- AWS S3 presigned uploads
-- Upstash Redis rate limiting
-- Sentry server-side error tracking
 
-### Shared Package (`packages/shared`)
-- Shared Zod schemas
-- Shared TypeScript contracts for frontend and backend
+| Technology | Purpose |
+|---|---|
+| Hono | Lightweight web framework |
+| Drizzle ORM | Type-safe database queries |
+| PostgreSQL (Neon) | Database (serverless WebSocket driver) |
+| Stripe | Payment processing + webhooks |
+| AWS S3 | Image storage (presigned uploads) |
 
-## Key Features
+### Shared (`packages/shared`)
+
+- Zod schemas shared between frontend and backend
+- TypeScript type contracts
+
+## Features
 
 ### Customer Experience
-- Browse, search, sort, and paginate food listings
-- Persistent cart with backend sync
-- Register and sign in with NextAuth.js
-- Stripe checkout, payment retry, and order tracking
-- Profile and address management
-- Promo-code validation
-- Privacy Policy and Terms pages
+- Browse, search, sort, and paginate food listings (cursor-based pagination)
+- Persistent cart with optimistic updates and backend sync
+- Stripe checkout with promo code validation
+- Order tracking with background polling
+- Profile and address management (Google Maps autocomplete)
+- Payment retry and order cancellation with Stripe refund
 
-### Admin Experience
-- Food CRUD with S3 image upload
-- Order management and status updates
-- Dashboard charts and operational summary
-- Stripe KYC verification flow
+### Admin Dashboard (`/admin`)
+- Revenue, orders, users, and menu item statistics
+- Food CRUD with S3 presigned image upload
+- Order status management
+- Stripe Identity KYC verification with state machine
 
-### Quality and Operations
-- Shared schema contracts across the stack
-- Vitest + React Testing Library + MSW
-- Playwright smoke / auth / navigation coverage
-- GitHub Actions CI
-- Dependabot dependency updates
+### Security
+- Server-side price verification (never trust client prices)
+- userId ownership checks on all order operations
+- Read-only `/verify` endpoint (no destructive GET requests)
+- Atomic cart updates via PostgreSQL `jsonb_set`
+- Database transactions for multi-step operations
+- Rate limiting on auth and order endpoints
 
 ## Project Structure
 
-```text
+```
 FoodDelivery-AWS-Vercell/
 ├── apps/
-│   └── web/                 Next.js web app + /admin routes
-├── backend/                 Hono API server
+│   └── web/                    Next.js frontend + admin routes
+│       ├── src/
+│       │   ├── app/(main)/     Customer pages
+│       │   ├── app/(admin)/    Admin pages
+│       │   └── components/     Shared components
+│       └── e2e/                Playwright E2E tests (101 tests)
+├── backend/
+│   ├── controllers/            Business logic
+│   ├── db/                     Drizzle schema + connection
+│   ├── middleware/              Auth + rate limiting
+│   ├── routes/                 API route definitions
+│   └── __tests__/              Backend unit tests (70 tests)
 ├── packages/
-│   └── shared/              Shared schemas and types
-├── docs/                    Project notes and roadmap
-└── .github/workflows/       CI automation
+│   └── shared/                 Shared Zod schemas
+├── docs/
+│   ├── roadmap.md              Development roadmap
+│   └── dev-notes/              Phase retrospectives (39 entries)
+└── .github/workflows/          CI automation
 ```
 
-## Prerequisites
+## Getting Started
 
-- Node.js >= 20.9.0
-- pnpm >= 8.0.0
-- PostgreSQL / Neon database
+### Prerequisites
+- Node.js >= 20
+- pnpm >= 10
+- PostgreSQL database ([Neon](https://neon.tech) recommended)
 - Stripe account
 - AWS S3 bucket
-- Upstash Redis instance
 
-## Installation
-
+### Installation
 ```bash
+git clone https://github.com/TiM1113/FoodDelivery-AWS-Vercell.git
+cd FoodDelivery-AWS-Vercell
 pnpm install
 ```
 
-## Development
+### Environment Variables
 
+Create `.env` files from examples:
+- `apps/web/.env.local` — NextAuth secret, backend URL, Stripe keys, Google Maps key
+- `backend/.env` — Database URL, Stripe secret + webhook secret, AWS credentials, JWT secret
+
+### Development
 ```bash
-# Start the backend API
+# Terminal 1: Start backend
 pnpm dev:backend
 
-# Start the web app (customer + admin routes)
+# Terminal 2: Start frontend
 pnpm dev:web
 ```
 
-With the web app running locally, the admin dashboard is available at `/admin`.
+Frontend: http://localhost:3000 | Admin: http://localhost:3000/admin
 
-## Quality Checks
-
+### Testing
 ```bash
-pnpm typecheck
-pnpm lint:web
-pnpm test:coverage
-pnpm build
+# Unit tests
+pnpm test                           # Frontend (373 tests)
+pnpm --filter backend test          # Backend (70 tests)
+
+# E2E tests (requires backend running)
+pnpm --filter @food-delivery/web test:e2e   # Playwright (101 tests)
+
+# Quality checks
+pnpm typecheck                      # TypeScript
+pnpm lint:web                       # ESLint
+pnpm build                          # Full build
 ```
 
-## Environment Variables
+## Development Phases
 
-See the package-level example files for required variables:
+| Phase | Focus | Version |
+|---|---|---|
+| 1 | Foundation (monorepo, RBAC, Stripe, rate limiting) | v0.1.0 |
+| 2 | Modernization (Next.js, Hono, PostgreSQL, S3) | v0.2.0 |
+| 3 | Engineering quality (testing, Sentry, CI) | v0.3.0 |
+| 4 | Product completion (promo, addresses, admin, KYC) | v0.4.0 |
+| 5 | Bug fixes + test rebuild (33 bugs fixed, 521 tests) | v0.5.0 |
+| 6 | Polish + cleanup (security fixes, Sentry tuning, CI E2E) | v0.6.0 |
 
-- `apps/web/env.local.example`
-- `backend/.env.example` (if present in your local setup)
+See [docs/roadmap.md](docs/roadmap.md) for detailed outcomes per phase.
+
+## CI/CD
+
+Every PR triggers:
+- TypeScript type check
+- ESLint
+- Backend + frontend unit tests
+- Build check
+- CodeRabbit AI review
+- Snyk security scan
+- Vercel preview deployment
+
+E2E tests run conditionally when `E2E_ENABLED` is set.
 
 ## Deployment
 
-- `apps/web` is deployed as the Next.js serverless frontend on Vercel.
-- `backend` is deployed as the API service on Vercel.
-- Admin functionality is served through the web app instead of a separate admin project.
+Both `apps/web` and `backend` deploy as Vercel Serverless functions. Merging to `main` triggers automatic production deployment.
 
-## Known Cleanup Areas
-
-- Legacy standalone admin build output remains under `admin/dist`.
-- Legacy MongoDB migration helpers remain under `backend/` for historical migration work.
-- The repository roadmap should be treated as an implementation snapshot, not a guarantee that every remaining feature is unfinished.
+- Frontend: [food-delivery-web-eosin.vercel.app](https://food-delivery-web-eosin.vercel.app)
+- Backend API: [backend-ten-azure-58.vercel.app](https://backend-ten-azure-58.vercel.app)
 
 ## License
 
-This project is licensed under the MIT License.
+MIT
