@@ -11,8 +11,8 @@ export async function Navbar() {
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 w-[80%] items-center justify-between">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-16 w-[92%] items-center justify-between md:w-[80%]">
         <Link href="/">
           <Image src="/images/logo.png" alt="Tomato" width={150} height={40} style={{ width: "auto", height: "auto" }} priority />
         </Link>
@@ -26,7 +26,7 @@ export async function Navbar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-3 md:gap-8">
           <ThemeToggle />
           <CartBadge />
           {session?.user ? (
