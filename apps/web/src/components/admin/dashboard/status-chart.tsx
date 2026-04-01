@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -22,6 +23,15 @@ interface StatusChartProps {
 }
 
 export function StatusChart({ data }: StatusChartProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="rounded-lg border bg-card p-4 shadow-sm">
@@ -36,7 +46,7 @@ export function StatusChart({ data }: StatusChartProps) {
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       <h3 className="mb-4 text-sm font-medium">Order Status Distribution</h3>
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={isMobile ? 300 : 250}>
         <PieChart>
           <Pie
             data={data}
@@ -44,8 +54,8 @@ export function StatusChart({ data }: StatusChartProps) {
             nameKey="status"
             cx="50%"
             cy="50%"
-            outerRadius={80}
-            label={({ name, value }) => `${name}: ${value}`}
+            outerRadius={isMobile ? 70 : 80}
+            label={isMobile ? false : ({ name, value }) => `${name}: ${value}`}
           >
             {data.map((entry) => (
               <Cell
