@@ -15,8 +15,8 @@ describe("CategoryFilter", () => {
     render(<CategoryFilter selected="All" onSelect={onSelect} />);
 
     expect(screen.getByText("Explore our menu")).toBeInTheDocument();
-    // "All" appears as the label (emoji replaced the text in the circle)
-    expect(screen.getByText("All")).toBeInTheDocument();
+    // "All" appears only once as the label (emoji replaced the text in the circle)
+    expect(screen.getAllByText("All")).toHaveLength(1);
     expect(screen.getByText("Salad")).toBeInTheDocument();
     expect(screen.getByText("Rolls")).toBeInTheDocument();
     expect(screen.getByText("Deserts")).toBeInTheDocument();

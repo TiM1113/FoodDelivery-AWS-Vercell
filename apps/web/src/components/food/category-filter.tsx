@@ -44,7 +44,7 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
                 : "hover:ring-2 hover:ring-muted-foreground/30",
             )}
           >
-            <span className="text-5xl">🍽️</span>
+            <span aria-hidden="true" className="text-5xl">🍽️</span>
           </div>
           <span
             className={cn(
@@ -73,7 +73,7 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
                   : "hover:ring-2 hover:ring-muted-foreground/30",
               )}
             >
-              <span className="text-5xl">{cat.emoji}</span>
+              <span aria-hidden="true" className="text-5xl">{cat.emoji}</span>
             </div>
             <span
               className={cn(
