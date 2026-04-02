@@ -1,18 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { FoodCategory } from "@/types/food";
 
-const CATEGORIES: { name: FoodCategory; image: string }[] = [
-  { name: "Salad", image: "/images/categories/salad.png" },
-  { name: "Rolls", image: "/images/categories/rolls.png" },
-  { name: "Deserts", image: "/images/categories/deserts.png" },
-  { name: "Sandwich", image: "/images/categories/sandwich.png" },
-  { name: "Cake", image: "/images/categories/cake.png" },
-  { name: "Pure Veg", image: "/images/categories/pure-veg.png" },
-  { name: "Pasta", image: "/images/categories/pasta.png" },
-  { name: "Noodles", image: "/images/categories/noodles.png" },
+const CATEGORIES: { name: FoodCategory; emoji: string }[] = [
+  { name: "Salad", emoji: "🥗" },
+  { name: "Rolls", emoji: "🌯" },
+  { name: "Deserts", emoji: "🍰" },
+  { name: "Sandwich", emoji: "🥪" },
+  { name: "Cake", emoji: "🎂" },
+  { name: "Pure Veg", emoji: "🥬" },
+  { name: "Pasta", emoji: "🍝" },
+  { name: "Noodles", emoji: "🍜" },
 ];
 
 interface CategoryFilterProps {
@@ -39,13 +38,13 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
         >
           <div
             className={cn(
-              "flex h-[7.5vw] min-h-[80px] w-[7.5vw] min-w-[80px] items-center justify-center rounded-full bg-muted text-sm font-medium transition-all",
+              "flex h-[7.5vw] min-h-[80px] w-[7.5vw] min-w-[80px] items-center justify-center rounded-full bg-muted transition-all",
               selected === "All"
                 ? "ring-4 ring-orange-500 ring-offset-0"
                 : "hover:ring-2 hover:ring-muted-foreground/30",
             )}
           >
-            All
+            <span aria-hidden="true" className="text-5xl">🍽️</span>
           </div>
           <span
             className={cn(
@@ -68,13 +67,13 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
           >
             <div
               className={cn(
-                "relative h-[7.5vw] min-h-[80px] w-[7.5vw] min-w-[80px] overflow-hidden rounded-full transition-all",
+                "flex h-[7.5vw] min-h-[80px] w-[7.5vw] min-w-[80px] items-center justify-center rounded-full bg-muted transition-all",
                 selected === cat.name
                   ? "ring-4 ring-orange-500 ring-offset-0"
                   : "hover:ring-2 hover:ring-muted-foreground/30",
               )}
             >
-              <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="80px" />
+              <span aria-hidden="true" className="text-5xl">{cat.emoji}</span>
             </div>
             <span
               className={cn(
